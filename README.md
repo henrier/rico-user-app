@@ -270,6 +270,27 @@ flutter test test/widget/
 flutter test integration_test/
 ```
 
+## 🔌 VS Code/Cursor 插件推荐
+
+为了获得最佳的 Flutter 开发体验，我们整理了详细的插件推荐清单：
+
+📖 **[Flutter VS Code 插件推荐指南](docs/flutter-vscode-plugins.md)**
+
+包含内容：
+- 🚀 分级安装策略（必装 → 推荐 → 可选）
+- 🛠️ 详细功能说明和使用技巧  
+- ⚙️ 推荐配置和快捷键设置
+- 🎯 按开发阶段的安装建议
+- 🔧 故障排除和常见问题解决
+
+**快速开始**：
+```bash
+# 安装核心插件
+code --install-extension Dart-Code.flutter
+code --install-extension Dart-Code.dart-code
+code --install-extension alexisvt.flutter-snippets
+```
+
 ## 📱 构建发布版本
 
 ### Android
