@@ -6,8 +6,36 @@ import '../common/utils/logger.dart';
 import 'base_api.dart';
 
 class AuthApi extends BaseApi {
+  // 🎯 演示模式：允许的测试账号
+  static const Map<String, String> _demoAccounts = {
+    'demo@rico.com': 'password123',
+    'test@example.com': '123456',
+    'admin@rico.com': 'admin123',
+    'user@rico.com': 'user123',
+  };
+
   Future<User> login(String email, String password) async {
     try {
+      // 🔥 演示模式：检查是否为测试账号
+      if (_demoAccounts.containsKey(email)) {
+        if (_demoAccounts[email] == password) {
+          // 模拟网络延迟
+          await Future.delayed(const Duration(milliseconds: 800));
+          
+          // 创建演示用户数据
+          final user = _createDemoUser(email);
+          
+          // 保存演示 token
+          await saveToken('demo_token_${DateTime.now().millisecondsSinceEpoch}');
+          
+          AppLogger.i('Demo login successful for: $email');
+          return user;
+        } else {
+          throw Exception('密码错误');
+        }
+      }
+      
+      // 🌐 真实 API 模式（当前不可用）
       final response = await http.post(
         Uri.parse('${AppConstants.baseUrl}/${AppConstants.apiVersion}/auth/login'),
         headers: getHeaders(),
@@ -30,8 +58,60 @@ class AuthApi extends BaseApi {
       }
     } catch (e) {
       AppLogger.e('Login API error', e);
+      
+      // 如果是网络错误，提供更友好的错误信息
+      if (e.toString().contains('Failed host lookup') || 
+          e.toString().contains('SocketException') ||
+          e.toString().contains('TimeoutException')) {
+        throw Exception('网络连接失败，请检查网络或使用演示账号登录');
+      }
+      
       rethrow;
     }
+  }
+
+  // 🎯 创建演示用户数据
+  User _createDemoUser(String email) {
+    final now = DateTime.now();
+    
+    // 根据邮箱生成不同的用户信息
+    Map<String, dynamic> userData = {
+      'id': 'demo_${email.split('@')[0]}',
+      'email': email,
+      'username': email.split('@')[0],
+      'createdAt': now.subtract(const Duration(days: 30)).millisecondsSinceEpoch,
+      'updatedAt': now.millisecondsSinceEpoch,
+      'isActive': true,
+    };
+
+    switch (email) {
+      case 'demo@rico.com':
+        userData.addAll({
+          'firstName': 'Demo',
+          'lastName': 'User',
+        });
+        break;
+      case 'test@example.com':
+        userData.addAll({
+          'firstName': 'Test',
+          'lastName': 'Example',
+        });
+        break;
+      case 'admin@rico.com':
+        userData.addAll({
+          'firstName': 'Admin',
+          'lastName': 'Rico',
+        });
+        break;
+      case 'user@rico.com':
+        userData.addAll({
+          'firstName': 'Rico',
+          'lastName': 'User',
+        });
+        break;
+    }
+
+    return User.fromMap(userData);
   }
 
   Future<User> register(String email, String password, String username) async {

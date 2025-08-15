@@ -89,6 +89,48 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                       ),
                       textAlign: TextAlign.center,
                     ),
+                    const SizedBox(height: AppConstants.defaultPadding),
+                    
+                    // 🎯 演示账号提示
+                    Container(
+                      padding: const EdgeInsets.all(AppConstants.defaultPadding),
+                      decoration: BoxDecoration(
+                        color: Theme.of(context).primaryColor.withOpacity(0.1),
+                        borderRadius: BorderRadius.circular(AppConstants.defaultBorderRadius),
+                        border: Border.all(
+                          color: Theme.of(context).primaryColor.withOpacity(0.3),
+                        ),
+                      ),
+                      child: Column(
+                        children: [
+                          Row(
+                            children: [
+                              Icon(
+                                Icons.info_outline,
+                                size: 20,
+                                color: Theme.of(context).primaryColor,
+                              ),
+                              const SizedBox(width: 8),
+                              Text(
+                                '演示账号',
+                                style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                                  fontWeight: FontWeight.bold,
+                                  color: Theme.of(context).primaryColor,
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 8),
+                          Text(
+                            '邮箱: demo@rico.com\n密码: password123',
+                            style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                              fontFamily: 'monospace',
+                            ),
+                            textAlign: TextAlign.center,
+                          ),
+                        ],
+                      ),
+                    ),
                     const SizedBox(height: AppConstants.largePadding),
 
                     // Email Field
