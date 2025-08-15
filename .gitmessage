@@ -1,0 +1,43 @@
+# <type>(<scope>): <subject>
+#
+# <body>
+#
+# <footer>
+
+# Type 类型:
+#   feat:     新功能
+#   fix:      Bug修复
+#   docs:     文档更改
+#   style:    代码格式调整
+#   refactor: 代码重构
+#   test:     测试相关
+#   chore:    构建/工具相关
+#   perf:     性能优化
+
+# Scope 作用域示例:
+#   auth, ui, api, theme, routing, storage, models, widgets, providers, utils
+#   android, ios, web, deps, config, docs, test
+
+# Subject 主题:
+#   - 使用中文，动词开头
+#   - 不超过50个字符
+#   - 使用现在时态
+
+# Body 正文:
+#   - 详细说明更改原因和内容
+#   - 使用列表格式 (-)
+#   - 每行不超过72字符
+
+# Footer 页脚:
+#   - Breaking changes: BREAKING CHANGE: xxx
+#   - 关联Issue: Closes #123, Fixes #456
+#   - 共同作者: Co-authored-by: Name <email>
+
+# 示例:
+# feat(auth): 添加用户登录功能
+#
+# - 实现邮箱/密码登录
+# - 添加表单验证
+# - 集成JWT token管理
+#
+# Closes #123

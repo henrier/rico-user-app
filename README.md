@@ -366,11 +366,44 @@ chore: 构建或工具相关
 
 ## 🤝 贡献指南
 
+### 开发流程
+
 1. Fork 项目
-2. 创建特性分支 (`git checkout -b feature/AmazingFeature`)
-3. 提交更改 (`git commit -m 'Add some AmazingFeature'`)
-4. 推送到分支 (`git push origin feature/AmazingFeature`)
+2. 创建特性分支 (`git checkout -b feature/auth-login`)
+3. 按照提交规范提交更改 (`git commit -m 'feat(auth): 添加用户登录功能'`)
+4. 推送到分支 (`git push origin feature/auth-login`)
 5. 创建 Pull Request
+
+### 📋 提交规范
+
+为了保持项目历史的清晰和可追溯性，请遵循我们的提交信息规范：
+
+📖 **[Git Commit Message 规范指南](docs/commit-message-guide.md)**
+
+**快速参考**：
+```bash
+# 格式
+<type>(<scope>): <description>
+
+# 示例
+feat(auth): 添加用户登录功能
+fix(ui): 修复按钮样式问题
+docs(readme): 更新安装说明
+```
+
+**常用类型**：
+- `feat`: 新功能
+- `fix`: Bug修复  
+- `docs`: 文档更改
+- `style`: 代码格式
+- `refactor`: 重构
+- `test`: 测试
+- `chore`: 构建/工具
+
+**配置提交模板**：
+```bash
+git config commit.template .gitmessage
+```
 
 ## 📄 许可证
 
