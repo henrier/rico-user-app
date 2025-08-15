@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../providers/auth_provider.dart';
+import '../../providers/theme_provider.dart';
 import '../../common/constants/app_constants.dart';
 
 class HomeScreen extends ConsumerWidget {
@@ -19,6 +20,19 @@ class HomeScreen extends ConsumerWidget {
           IconButton(
             icon: const Icon(Icons.person),
             onPressed: () => context.go('/home/profile'),
+          ),
+          // 🎨 主题切换按钮
+          Consumer(
+            builder: (context, ref, child) {
+              final themeState = ref.watch(themeProvider);
+              return IconButton(
+                icon: Icon(themeState.icon),
+                onPressed: () {
+                  ref.read(themeProvider.notifier).toggleTheme();
+                },
+                tooltip: '切换主题: ${themeState.displayName}',
+              );
+            },
           ),
           IconButton(
             icon: const Icon(Icons.logout),
@@ -92,12 +106,8 @@ class HomeScreen extends ConsumerWidget {
                     context,
                     icon: Icons.settings,
                     title: 'Settings',
-                    subtitle: 'App preferences',
-                    onTap: () {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('Settings coming soon')),
-                      );
-                    },
+                    subtitle: 'App preferences & theme',
+                    onTap: () => context.go('/home/settings'),
                   ),
                   _buildActionCard(
                     context,

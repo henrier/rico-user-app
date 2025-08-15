@@ -1,9 +1,10 @@
-import 'package:flutter/material.dart';
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../screens/auth/login_screen.dart';
 import '../screens/home/home_screen.dart';
 import '../screens/profile/profile_screen.dart';
+import '../screens/settings/settings_screen.dart';
 import '../providers/auth_provider.dart';
 
 final routerProvider = Provider<GoRouter>((ref) {
@@ -40,6 +41,11 @@ final routerProvider = Provider<GoRouter>((ref) {
             path: 'profile',
             name: 'profile',
             builder: (context, state) => const ProfileScreen(),
+          ),
+          GoRoute(
+            path: 'settings',
+            name: 'settings',
+            builder: (context, state) => const SettingsScreen(),
           ),
         ],
       ),
