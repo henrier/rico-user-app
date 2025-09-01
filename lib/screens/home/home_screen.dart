@@ -1,9 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+
+import '../../common/constants/app_constants.dart';
 import '../../providers/auth_provider.dart';
 import '../../providers/theme_provider.dart';
-import '../../common/constants/app_constants.dart';
 
 class HomeScreen extends ConsumerWidget {
   const HomeScreen({super.key});
@@ -56,9 +57,10 @@ class HomeScreen extends ConsumerWidget {
                   children: [
                     Text(
                       'Welcome back!',
-                      style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                        fontWeight: FontWeight.bold,
-                      ),
+                      style:
+                          Theme.of(context).textTheme.headlineSmall?.copyWith(
+                                fontWeight: FontWeight.bold,
+                              ),
                     ),
                     const SizedBox(height: AppConstants.smallPadding),
                     Text(
@@ -70,8 +72,8 @@ class HomeScreen extends ConsumerWidget {
                       Text(
                         user!.email,
                         style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                          color: Colors.grey[600],
-                        ),
+                              color: Colors.grey[600],
+                            ),
                       ),
                     ],
                   ],
@@ -84,8 +86,8 @@ class HomeScreen extends ConsumerWidget {
             Text(
               'Quick Actions',
               style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                fontWeight: FontWeight.bold,
-              ),
+                    fontWeight: FontWeight.bold,
+                  ),
             ),
             const SizedBox(height: AppConstants.defaultPadding),
 
@@ -94,6 +96,7 @@ class HomeScreen extends ConsumerWidget {
                 crossAxisCount: 2,
                 crossAxisSpacing: AppConstants.defaultPadding,
                 mainAxisSpacing: AppConstants.defaultPadding,
+                childAspectRatio: 1.2, // 增加卡片高度比例
                 children: [
                   _buildActionCard(
                     context,
@@ -116,9 +119,17 @@ class HomeScreen extends ConsumerWidget {
                     subtitle: 'Manage notifications',
                     onTap: () {
                       ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('Notifications coming soon')),
+                        const SnackBar(
+                            content: Text('Notifications coming soon')),
                       );
                     },
+                  ),
+                  _buildActionCard(
+                    context,
+                    icon: Icons.category,
+                    title: 'Category Selection',
+                    subtitle: 'Browse product categories',
+                    onTap: () => context.go('/home/categories'),
                   ),
                   _buildActionCard(
                     context,
@@ -127,7 +138,8 @@ class HomeScreen extends ConsumerWidget {
                     subtitle: 'Get help and support',
                     onTap: () {
                       ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('Help & Support coming soon')),
+                        const SnackBar(
+                            content: Text('Help & Support coming soon')),
                       );
                     },
                   ),
@@ -159,23 +171,23 @@ class HomeScreen extends ConsumerWidget {
             children: [
               Icon(
                 icon,
-                size: 48,
+                size: 40, // 减小图标大小
                 color: Theme.of(context).primaryColor,
               ),
-              const SizedBox(height: AppConstants.smallPadding),
+              const SizedBox(height: 8), // 减小间距
               Text(
                 title,
-                style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                  fontWeight: FontWeight.bold,
-                ),
+                style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                      fontWeight: FontWeight.bold,
+                    ),
                 textAlign: TextAlign.center,
               ),
-              const SizedBox(height: AppConstants.smallPadding),
+              const SizedBox(height: 6), // 进一步减小间距
               Text(
                 subtitle,
                 style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                  color: Colors.grey[600],
-                ),
+                      color: Colors.grey[600],
+                    ),
                 textAlign: TextAlign.center,
                 maxLines: 2,
                 overflow: TextOverflow.ellipsis,
