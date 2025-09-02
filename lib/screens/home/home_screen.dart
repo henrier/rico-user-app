@@ -134,6 +134,18 @@ class HomeScreen extends ConsumerWidget {
                   ),
                   _buildActionCard(
                     context,
+                    icon: Icons.inventory_2,
+                    title: 'SPU Selection',
+                    subtitle: 'Browse SPU items',
+                    onTap: () {
+                      // 由于SPU选择需要类目ID，这里显示提示信息
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: Text('请先选择类目，然后进入SPU选择')),
+                      );
+                    },
+                  ),
+                  _buildActionCard(
+                    context,
                     icon: Icons.help,
                     title: 'Help & Support',
                     subtitle: 'Get help and support',

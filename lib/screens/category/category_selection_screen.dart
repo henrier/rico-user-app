@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
 import '../../common/constants/app_constants.dart';
 import '../../models/productcategory/data.dart';
@@ -227,7 +228,7 @@ class CategorySelectionScreen extends ConsumerWidget {
               ),
             ),
             onTap: () {
-              _showCategoryClickedDialog(context, category);
+              _navigateToSpuSelection(context, category);
             },
           ),
         );
@@ -235,23 +236,9 @@ class CategorySelectionScreen extends ConsumerWidget {
     );
   }
 
-  void _showCategoryClickedDialog(
-      BuildContext context, ProductCategory category) {
-    showDialog(
-      context: context,
-      builder: (BuildContext context) {
-        return AlertDialog(
-          title: const Text('类目选择'),
-          content: Text(
-              '${category.displayName} 类目被点击\n类目ID: ${category.id}\n二级类目ID: $secondCategoryId'),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(context).pop(),
-              child: const Text('确定'),
-            ),
-          ],
-        );
-      },
-    );
+  /// 导航到SPU选择页面
+  void _navigateToSpuSelection(BuildContext context, ProductCategory category) {
+    // 跳转到SPU选择页面，传递类目ID
+    context.go('/home/spu-selection?categoryId=${category.id}');
   }
 }
