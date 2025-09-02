@@ -43,38 +43,3 @@ class Category {
     return 'Category(id: $id, name: $name, level: $level, parentId: $parentId)';
   }
 }
-
-// 类目状态模型
-class CategoryState {
-  final List<Category> thirdLevelCategories; // 三级类目列表
-  final List<Category> fourthLevelCategories; // 当前选中三级类目下的四级类目列表
-  final Category? selectedThirdCategory; // 当前选中的三级类目
-  final bool isLoading;
-  final String? error;
-
-  const CategoryState({
-    this.thirdLevelCategories = const [],
-    this.fourthLevelCategories = const [],
-    this.selectedThirdCategory,
-    this.isLoading = false,
-    this.error,
-  });
-
-  CategoryState copyWith({
-    List<Category>? thirdLevelCategories,
-    List<Category>? fourthLevelCategories,
-    Category? selectedThirdCategory,
-    bool? isLoading,
-    String? error,
-  }) {
-    return CategoryState(
-      thirdLevelCategories: thirdLevelCategories ?? this.thirdLevelCategories,
-      fourthLevelCategories:
-          fourthLevelCategories ?? this.fourthLevelCategories,
-      selectedThirdCategory:
-          selectedThirdCategory ?? this.selectedThirdCategory,
-      isLoading: isLoading ?? this.isLoading,
-      error: error ?? this.error,
-    );
-  }
-}

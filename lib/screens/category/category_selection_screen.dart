@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../common/constants/app_constants.dart';
 import '../../models/category_model.dart';
 import '../../providers/category_provider.dart';
+import '../../viewmodels/category_viewmodel.dart';
 
 class CategorySelectionScreen extends ConsumerWidget {
   const CategorySelectionScreen({super.key});
@@ -63,7 +64,7 @@ class CategorySelectionScreen extends ConsumerWidget {
   Widget _buildContent(
     BuildContext context,
     WidgetRef ref,
-    CategoryState categoryState,
+    CategoryViewModelState categoryState,
     bool isLoading,
     String? error,
   ) {
@@ -117,7 +118,7 @@ class CategorySelectionScreen extends ConsumerWidget {
   Widget _buildThirdLevelList(
     BuildContext context,
     WidgetRef ref,
-    CategoryState categoryState,
+    CategoryViewModelState categoryState,
   ) {
     final thirdLevelCategories = categoryState.thirdLevelCategories;
     final selectedCategory = categoryState.selectedThirdCategory;
@@ -160,7 +161,7 @@ class CategorySelectionScreen extends ConsumerWidget {
   Widget _buildFourthLevelList(
     BuildContext context,
     WidgetRef ref,
-    CategoryState categoryState,
+    CategoryViewModelState categoryState,
   ) {
     final fourthLevelCategories = categoryState.fourthLevelCategories;
 
@@ -185,7 +186,7 @@ class CategorySelectionScreen extends ConsumerWidget {
       ),
       itemBuilder: (context, index) {
         final category = fourthLevelCategories[index];
-        
+
         // 特殊处理高亮项目（模拟Figma设计中的高亮效果）
         final isHighlighted = category.name == 'Twilight Masquerade';
 
@@ -197,15 +198,15 @@ class CategorySelectionScreen extends ConsumerWidget {
               vertical: 8,
             ),
             title: Container(
-              padding: isHighlighted 
-                ? const EdgeInsets.symmetric(horizontal: 12, vertical: 8)
-                : EdgeInsets.zero,
-              decoration: isHighlighted 
-                ? BoxDecoration(
-                    color: Colors.grey[300],
-                    borderRadius: BorderRadius.circular(4),
-                  )
-                : null,
+              padding: isHighlighted
+                  ? const EdgeInsets.symmetric(horizontal: 12, vertical: 8)
+                  : EdgeInsets.zero,
+              decoration: isHighlighted
+                  ? BoxDecoration(
+                      color: Colors.grey[300],
+                      borderRadius: BorderRadius.circular(4),
+                    )
+                  : null,
               child: Text(
                 category.name,
                 style: const TextStyle(
