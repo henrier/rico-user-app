@@ -129,7 +129,8 @@ class HomeScreen extends ConsumerWidget {
                     icon: Icons.category,
                     title: 'Category Selection',
                     subtitle: 'Browse product categories',
-                    onTap: () => context.go('/home/categories'),
+                    onTap: () => context.go(
+                        '/home/categories?secondCategoryId=688f63bbd51a4040650454da'),
                   ),
                   _buildActionCard(
                     context,

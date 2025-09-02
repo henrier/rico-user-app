@@ -1,4 +1,3 @@
-
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
@@ -11,21 +10,21 @@ import '../screens/settings/settings_screen.dart';
 
 final routerProvider = Provider<GoRouter>((ref) {
   final authState = ref.watch(authProvider);
-  
+
   return GoRouter(
     initialLocation: '/login',
     redirect: (context, state) {
       final isLoggedIn = authState.isAuthenticated;
       final isLoggingIn = state.matchedLocation == '/login';
-      
+
       if (!isLoggedIn && !isLoggingIn) {
         return '/login';
       }
-      
+
       if (isLoggedIn && isLoggingIn) {
         return '/home';
       }
-      
+
       return null;
     },
     routes: [
@@ -52,7 +51,16 @@ final routerProvider = Provider<GoRouter>((ref) {
           GoRoute(
             path: 'categories',
             name: 'categories',
-            builder: (context, state) => const CategorySelectionScreen(),
+            builder: (context, state) {
+              // 从查询参数获取二级类目ID
+              final secondCategoryId =
+                  state.uri.queryParameters['secondCategoryId'] ??
+                      'tempSecondCategoryId';
+
+              return CategorySelectionScreen(
+                secondCategoryId: secondCategoryId,
+              );
+            },
           ),
         ],
       ),

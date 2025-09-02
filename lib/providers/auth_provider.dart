@@ -65,6 +65,32 @@ class AuthNotifier extends StateNotifier<AuthState> {
     }
   }
 
+  // 一键登录方法 - 使用默认的演示账号
+  Future<void> quickLogin() async {
+    try {
+      state = state.copyWith(isLoading: true, error: null);
+
+      // 使用默认的演示账号进行登录
+      final user = await _authApi.quickLogin();
+
+      state = state.copyWith(
+        user: user,
+        isLoading: false,
+        isAuthenticated: true,
+      );
+
+      AppLogger.i('Quick login successful: ${user.email}');
+    } catch (e) {
+      state = state.copyWith(
+        isLoading: false,
+        error: e.toString(),
+        isAuthenticated: false,
+      );
+
+      AppLogger.e('Quick login failed', e);
+    }
+  }
+
   Future<void> register(String email, String password, String username) async {
     try {
       state = state.copyWith(isLoading: true, error: null);

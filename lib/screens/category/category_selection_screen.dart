@@ -7,13 +7,19 @@ import '../../providers/category_provider.dart';
 import '../../viewmodels/category_viewmodel.dart';
 
 class CategorySelectionScreen extends ConsumerWidget {
-  const CategorySelectionScreen({super.key});
+  final String secondCategoryId;
+
+  const CategorySelectionScreen({
+    super.key,
+    required this.secondCategoryId,
+  });
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final categoryState = ref.watch(categoryProvider);
-    final isLoading = ref.watch(isLoadingCategoriesProvider);
-    final error = ref.watch(categoryErrorProvider);
+    final categoryState =
+        ref.watch(categoryViewModelProvider(secondCategoryId));
+    final isLoading = ref.watch(isLoadingCategoriesProvider(secondCategoryId));
+    final error = ref.watch(categoryErrorProvider(secondCategoryId));
 
     return Scaffold(
       backgroundColor: Colors.white,
@@ -86,7 +92,9 @@ class CategorySelectionScreen extends ConsumerWidget {
             ),
             const SizedBox(height: AppConstants.defaultPadding),
             ElevatedButton(
-              onPressed: () => ref.read(categoryProvider.notifier).refresh(),
+              onPressed: () => ref
+                  .read(categoryViewModelProvider(secondCategoryId).notifier)
+                  .refresh(),
               child: const Text('重试'),
             ),
           ],
@@ -142,7 +150,7 @@ class CategorySelectionScreen extends ConsumerWidget {
               vertical: 8,
             ),
             title: Text(
-              category.name,
+              category.displayName,
               style: TextStyle(
                 fontSize: 14,
                 fontWeight: FontWeight.normal,
@@ -150,7 +158,9 @@ class CategorySelectionScreen extends ConsumerWidget {
               ),
             ),
             onTap: () {
-              ref.read(categoryProvider.notifier).selectThirdCategory(category);
+              ref
+                  .read(categoryViewModelProvider(secondCategoryId).notifier)
+                  .selectThirdCategory(category);
             },
           ),
         );
@@ -188,7 +198,7 @@ class CategorySelectionScreen extends ConsumerWidget {
         final category = fourthLevelCategories[index];
 
         // 特殊处理高亮项目（模拟Figma设计中的高亮效果）
-        final isHighlighted = category.name == 'Twilight Masquerade';
+        final isHighlighted = category.displayName == 'Twilight Masquerade';
 
         return Container(
           color: isHighlighted ? Colors.grey[200] : Colors.transparent,
@@ -208,7 +218,7 @@ class CategorySelectionScreen extends ConsumerWidget {
                     )
                   : null,
               child: Text(
-                category.name,
+                category.displayName,
                 style: const TextStyle(
                   fontSize: 14,
                   fontWeight: FontWeight.normal,
@@ -231,7 +241,8 @@ class CategorySelectionScreen extends ConsumerWidget {
       builder: (BuildContext context) {
         return AlertDialog(
           title: const Text('类目选择'),
-          content: Text('${category.name} 类目被点击\n类目ID: ${category.id}'),
+          content: Text(
+              '${category.displayName} 类目被点击\n类目ID: ${category.id}\n二级类目ID: $secondCategoryId'),
           actions: [
             TextButton(
               onPressed: () => Navigator.of(context).pop(),

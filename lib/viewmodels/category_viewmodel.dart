@@ -1,7 +1,8 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../common/data/mock_categories.dart';
+import '../common/utils/logger.dart';
 import '../models/category_model.dart';
+import '../services/category_service.dart';
 
 /// 类目页面的ViewModel状态
 /// 包含UI需要的所有状态数据
@@ -9,6 +10,7 @@ class CategoryViewModelState {
   final List<Category> thirdLevelCategories; // 三级类目列表
   final List<Category> fourthLevelCategories; // 当前选中三级类目下的四级类目列表
   final Category? selectedThirdCategory; // 当前选中的三级类目
+  final String secondCategoryId; // 二级类目ID
   final bool isLoading; // 加载状态
   final String? error; // 错误信息
 
@@ -16,6 +18,7 @@ class CategoryViewModelState {
     this.thirdLevelCategories = const [],
     this.fourthLevelCategories = const [],
     this.selectedThirdCategory,
+    required this.secondCategoryId,
     this.isLoading = false,
     this.error,
   });
@@ -25,6 +28,7 @@ class CategoryViewModelState {
     List<Category>? thirdLevelCategories,
     List<Category>? fourthLevelCategories,
     Category? selectedThirdCategory,
+    String? secondCategoryId,
     bool? isLoading,
     String? error,
   }) {
@@ -34,6 +38,7 @@ class CategoryViewModelState {
           fourthLevelCategories ?? this.fourthLevelCategories,
       selectedThirdCategory:
           selectedThirdCategory ?? this.selectedThirdCategory,
+      secondCategoryId: secondCategoryId ?? this.secondCategoryId,
       isLoading: isLoading ?? this.isLoading,
       error: error ?? this.error,
     );
@@ -43,7 +48,8 @@ class CategoryViewModelState {
   String toString() {
     return 'CategoryViewModelState(thirdLevelCount: ${thirdLevelCategories.length}, '
         'fourthLevelCount: ${fourthLevelCategories.length}, '
-        'selectedThird: ${selectedThirdCategory?.name}, '
+        'selectedThird: ${selectedThirdCategory?.displayName}, '
+        'secondCategoryId: $secondCategoryId, '
         'isLoading: $isLoading, error: $error)';
   }
 }
@@ -51,21 +57,31 @@ class CategoryViewModelState {
 /// 类目页面的ViewModel
 /// 负责业务逻辑处理和状态管理
 class CategoryViewModel extends StateNotifier<CategoryViewModelState> {
-  CategoryViewModel() : super(const CategoryViewModelState()) {
+  final CategoryService _categoryService;
+
+  CategoryViewModel({
+    CategoryService? categoryService,
+    required String secondCategoryId,
+  })  : _categoryService = categoryService ?? CategoryService(),
+        super(CategoryViewModelState(
+          secondCategoryId: secondCategoryId,
+        )) {
     _loadCategories();
   }
 
   /// 加载类目数据
-  /// 模拟从服务器获取数据的过程
+  /// 使用真实API加载数据
   Future<void> _loadCategories() async {
     state = state.copyWith(isLoading: true, error: null);
 
     try {
-      // 模拟网络请求延迟
-      await Future.delayed(const Duration(milliseconds: 500));
+      AppLogger.i('加载类目数据，二级类目ID: ${state.secondCategoryId}');
 
-      // 获取三级类目数据
-      final thirdLevelCategories = MockCategoryData.getThirdLevelCategories();
+      // 使用真实API加载三级类目
+      final thirdLevelCategories =
+          await _categoryService.getThirdLevelCategories(
+        state.secondCategoryId,
+      );
 
       // 默认选中第一个三级类目
       Category? firstCategory;
@@ -73,8 +89,9 @@ class CategoryViewModel extends StateNotifier<CategoryViewModelState> {
 
       if (thirdLevelCategories.isNotEmpty) {
         firstCategory = thirdLevelCategories.first;
-        fourthLevelCategories =
-            MockCategoryData.getFourthLevelCategories(firstCategory.id);
+        fourthLevelCategories = await _categoryService.getFourthLevelCategories(
+          firstCategory.id,
+        );
       }
 
       // 更新状态
@@ -84,7 +101,12 @@ class CategoryViewModel extends StateNotifier<CategoryViewModelState> {
         selectedThirdCategory: firstCategory,
         isLoading: false,
       );
+
+      AppLogger.i(
+          '类目加载完成: ${thirdLevelCategories.length}个三级类目, ${fourthLevelCategories.length}个四级类目');
     } catch (e) {
+      AppLogger.e('加载类目失败', e);
+
       // 处理错误情况
       state = state.copyWith(
         isLoading: false,
@@ -95,21 +117,39 @@ class CategoryViewModel extends StateNotifier<CategoryViewModelState> {
 
   /// 选择三级类目
   /// 更新选中状态并加载对应的四级类目
-  void selectThirdCategory(Category category) {
+  Future<void> selectThirdCategory(Category category) async {
     // 避免重复选择
     if (state.selectedThirdCategory?.id == category.id) {
       return;
     }
 
-    // 获取选中类目下的四级类目
-    final fourthLevelCategories =
-        MockCategoryData.getFourthLevelCategories(category.id);
+    AppLogger.i('选择三级类目: ${category.displayName}');
 
-    // 更新状态
-    state = state.copyWith(
-      selectedThirdCategory: category,
-      fourthLevelCategories: fourthLevelCategories,
-    );
+    try {
+      // 先更新选中状态，显示加载中
+      state = state.copyWith(
+        selectedThirdCategory: category,
+        fourthLevelCategories: [], // 清空四级类目
+      );
+
+      // 获取选中类目下的四级类目
+      final fourthLevelCategories =
+          await _categoryService.getFourthLevelCategories(
+        category.id,
+      );
+
+      // 更新状态
+      state = state.copyWith(
+        fourthLevelCategories: fourthLevelCategories,
+      );
+
+      AppLogger.i('四级类目加载完成: ${fourthLevelCategories.length}个');
+    } catch (e) {
+      AppLogger.e('选择三级类目失败', e);
+      state = state.copyWith(
+        error: '加载四级类目失败: $e',
+      );
+    }
   }
 
   /// 刷新数据
@@ -123,10 +163,29 @@ class CategoryViewModel extends StateNotifier<CategoryViewModelState> {
     state = state.copyWith(error: null);
   }
 
+  /// 设置二级类目ID并重新加载
+  Future<void> setSecondCategoryId(String secondCategoryId) async {
+    if (state.secondCategoryId == secondCategoryId) {
+      return;
+    }
+
+    AppLogger.i('设置二级类目ID: $secondCategoryId');
+    state = state.copyWith(secondCategoryId: secondCategoryId);
+    await _loadCategories();
+  }
+
   /// 搜索类目（预留接口）
   Future<void> searchCategories(String keyword) async {
     // TODO: 实现搜索功能
-    // 这里可以调用搜索API或本地过滤
+    // 可以调用搜索API或本地过滤
+    AppLogger.i('搜索类目: $keyword');
+  }
+
+  /// 释放资源
+  @override
+  void dispose() {
+    _categoryService.dispose();
+    super.dispose();
   }
 
   /// 获取类目路径（面包屑导航用）
@@ -134,13 +193,9 @@ class CategoryViewModel extends StateNotifier<CategoryViewModelState> {
     final path = <Category>[];
 
     // 如果是四级类目，添加其父类目
-    if (category.level == 4 && category.parentId != null) {
-      final parentCategory = state.thirdLevelCategories
-          .where((cat) => cat.id == category.parentId)
-          .firstOrNull;
-      if (parentCategory != null) {
-        path.add(parentCategory);
-      }
+    if (category.isFourthLevel && category.parentCategories.isNotEmpty) {
+      final parentCategory = category.parentCategories.first;
+      path.add(parentCategory);
     }
 
     path.add(category);

@@ -1,33 +1,205 @@
-class Category {
+/// 多语言名称
+class I18NString {
+  final String chinese;
+  final String english;
+  final String japanese;
+
+  const I18NString({
+    required this.chinese,
+    required this.english,
+    required this.japanese,
+  });
+
+  factory I18NString.fromJson(Map<String, dynamic> json) {
+    return I18NString(
+      chinese: json['chinese'] ?? '',
+      english: json['english'] ?? '',
+      japanese: json['japanese'] ?? '',
+    );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'chinese': chinese,
+      'english': english,
+      'japanese': japanese,
+    };
+  }
+
+  @override
+  String toString() => chinese.isNotEmpty ? chinese : english;
+}
+
+/// 类目类型枚举
+enum CategoryType {
+  ip('IP'),
+  language('LANGUAGE'),
+  series1('SERIES1'),
+  series2('SERIES2'),
+  recentUpdate('RECENTUPDATE');
+
+  const CategoryType(this.value);
+  final String value;
+
+  static CategoryType fromString(String value) {
+    return CategoryType.values.firstWhere(
+      (type) => type.value == value,
+      orElse: () => CategoryType.ip,
+    );
+  }
+}
+
+/// 审计信息
+class AuditMetadata {
+  final DateTime createdAt;
+  final DateTime updatedAt;
+  final UserInfo? createdBy;
+  final UserInfo? updatedBy;
+
+  const AuditMetadata({
+    required this.createdAt,
+    required this.updatedAt,
+    this.createdBy,
+    this.updatedBy,
+  });
+
+  factory AuditMetadata.fromJson(Map<String, dynamic> json) {
+    return AuditMetadata(
+      createdAt: DateTime.parse(json['createdAt']),
+      updatedAt: DateTime.parse(json['updatedAt']),
+      createdBy: json['createdBy'] != null
+          ? UserInfo.fromJson(json['createdBy'] as Map<String, dynamic>)
+          : null,
+      updatedBy: json['updatedBy'] != null
+          ? UserInfo.fromJson(json['updatedBy'] as Map<String, dynamic>)
+          : null,
+    );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'createdAt': createdAt.toIso8601String(),
+      'updatedAt': updatedAt.toIso8601String(),
+      'createdBy': createdBy?.toJson(),
+      'updatedBy': updatedBy?.toJson(),
+    };
+  }
+}
+
+/// 用户信息
+class UserInfo {
   final String id;
   final String name;
-  final String? parentId;
-  final int level; // 3级类目或4级类目
-  final List<Category> children;
+
+  const UserInfo({
+    required this.id,
+    required this.name,
+  });
+
+  factory UserInfo.fromJson(Map<String, dynamic> json) {
+    return UserInfo(
+      id: json['id'] ?? '',
+      name: json['name'] ?? '',
+    );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'id': id,
+      'name': name,
+    };
+  }
+}
+
+/// 商品类目模型（匹配后端API结构）
+class Category {
+  final String id;
+  final I18NString name;
+  final List<String> images;
+  final List<CategoryType> categoryTypes;
+  final List<Category> parentCategories;
+  final AuditMetadata auditMetadata;
 
   const Category({
     required this.id,
     required this.name,
-    this.parentId,
-    required this.level,
-    this.children = const [],
+    this.images = const [],
+    this.categoryTypes = const [],
+    this.parentCategories = const [],
+    required this.auditMetadata,
   });
+
+  /// 从JSON创建Category对象
+  factory Category.fromJson(Map<String, dynamic> json) {
+    return Category(
+      id: json['id'] ?? '',
+      name: I18NString.fromJson(json['name'] ?? {}),
+      images: List<String>.from(json['images'] ?? []),
+      categoryTypes: (json['categoryTypes'] as List<dynamic>?)
+              ?.map((type) => CategoryType.fromString(type.toString()))
+              .toList() ??
+          [],
+      parentCategories: (json['parentCategories'] as List<dynamic>?)
+              ?.map(
+                  (parent) => Category.fromJson(parent as Map<String, dynamic>))
+              .toList() ??
+          [],
+      auditMetadata: AuditMetadata.fromJson(json['auditMetadata'] ?? {}),
+    );
+  }
+
+  /// 转换为JSON
+  Map<String, dynamic> toJson() {
+    return {
+      'id': id,
+      'name': name.toJson(),
+      'images': images,
+      'categoryTypes': categoryTypes.map((type) => type.value).toList(),
+      'parentCategories':
+          parentCategories.map((parent) => parent.toJson()).toList(),
+      'auditMetadata': auditMetadata.toJson(),
+    };
+  }
 
   Category copyWith({
     String? id,
-    String? name,
-    String? parentId,
-    int? level,
-    List<Category>? children,
+    I18NString? name,
+    List<String>? images,
+    List<CategoryType>? categoryTypes,
+    List<Category>? parentCategories,
+    AuditMetadata? auditMetadata,
   }) {
     return Category(
       id: id ?? this.id,
       name: name ?? this.name,
-      parentId: parentId ?? this.parentId,
-      level: level ?? this.level,
-      children: children ?? this.children,
+      images: images ?? this.images,
+      categoryTypes: categoryTypes ?? this.categoryTypes,
+      parentCategories: parentCategories ?? this.parentCategories,
+      auditMetadata: auditMetadata ?? this.auditMetadata,
     );
   }
+
+  /// 便捷方法：获取显示名称
+  String get displayName => name.toString();
+
+  /// 便捷方法：判断是否为三级类目
+  bool get isThirdLevel => categoryTypes.contains(CategoryType.series1);
+
+  /// 便捷方法：判断是否为四级类目
+  bool get isFourthLevel => categoryTypes.contains(CategoryType.series2);
+
+  /// 便捷方法：获取层级
+  int get level {
+    if (isFourthLevel) return 4;
+    if (isThirdLevel) return 3;
+    if (categoryTypes.contains(CategoryType.language)) return 2;
+    if (categoryTypes.contains(CategoryType.ip)) return 1;
+    return 0;
+  }
+
+  /// 便捷方法：获取父类目ID列表
+  List<String> get parentIds =>
+      parentCategories.map((parent) => parent.id).toList();
 
   @override
   bool operator ==(Object other) {
@@ -40,6 +212,6 @@ class Category {
 
   @override
   String toString() {
-    return 'Category(id: $id, name: $name, level: $level, parentId: $parentId)';
+    return 'Category(id: $id, name: ${name.toString()}, level: $level, types: $categoryTypes)';
   }
 }
