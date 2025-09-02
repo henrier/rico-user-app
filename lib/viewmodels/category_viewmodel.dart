@@ -1,15 +1,15 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../common/utils/logger.dart';
-import '../models/productcategory/product_category.dart';
-import '../services/category_service.dart';
+import '../models/productcategory/data.dart';
+import '../models/productcategory/service.dart';
 
 /// 类目页面的ViewModel状态
 /// 包含UI需要的所有状态数据
 class CategoryViewModelState {
-  final List<Category> thirdLevelCategories; // 三级类目列表
-  final List<Category> fourthLevelCategories; // 当前选中三级类目下的四级类目列表
-  final Category? selectedThirdCategory; // 当前选中的三级类目
+  final List<ProductCategory> thirdLevelCategories; // 三级类目列表
+  final List<ProductCategory> fourthLevelCategories; // 当前选中三级类目下的四级类目列表
+  final ProductCategory? selectedThirdCategory; // 当前选中的三级类目
   final String secondCategoryId; // 二级类目ID
   final bool isLoading; // 加载状态
   final String? error; // 错误信息
@@ -25,9 +25,9 @@ class CategoryViewModelState {
 
   /// 创建状态副本，用于不可变状态更新
   CategoryViewModelState copyWith({
-    List<Category>? thirdLevelCategories,
-    List<Category>? fourthLevelCategories,
-    Category? selectedThirdCategory,
+    List<ProductCategory>? thirdLevelCategories,
+    List<ProductCategory>? fourthLevelCategories,
+    ProductCategory? selectedThirdCategory,
     String? secondCategoryId,
     bool? isLoading,
     String? error,
@@ -57,12 +57,12 @@ class CategoryViewModelState {
 /// 类目页面的ViewModel
 /// 负责业务逻辑处理和状态管理
 class CategoryViewModel extends StateNotifier<CategoryViewModelState> {
-  final CategoryService _categoryService;
+  final ProductCategoryService _categoryService;
 
   CategoryViewModel({
-    CategoryService? categoryService,
+    ProductCategoryService? categoryService,
     required String secondCategoryId,
-  })  : _categoryService = categoryService ?? CategoryService(),
+  })  : _categoryService = categoryService ?? ProductCategoryService(),
         super(CategoryViewModelState(
           secondCategoryId: secondCategoryId,
         )) {
@@ -78,20 +78,29 @@ class CategoryViewModel extends StateNotifier<CategoryViewModelState> {
       AppLogger.i('加载类目数据，二级类目ID: ${state.secondCategoryId}');
 
       // 使用真实API加载三级类目
-      final thirdLevelCategories =
-          await _categoryService.getThirdLevelCategories(
-        state.secondCategoryId,
+      final thirdLevelParams = ProductCategoryPageParams(
+        parentCategories: [state.secondCategoryId],
+        categoryTypes: [CategoryType.series1],
+        pageSize: 1000, // 设置大数值避免分页
       );
+      final thirdLevelPageData =
+          await _categoryService.getProductCategoryPage(thirdLevelParams);
+      final thirdLevelCategories = thirdLevelPageData.list;
 
       // 默认选中第一个三级类目
-      Category? firstCategory;
-      List<Category> fourthLevelCategories = [];
+      ProductCategory? firstCategory;
+      List<ProductCategory> fourthLevelCategories = [];
 
       if (thirdLevelCategories.isNotEmpty) {
         firstCategory = thirdLevelCategories.first;
-        fourthLevelCategories = await _categoryService.getFourthLevelCategories(
-          firstCategory.id,
+        final fourthLevelParams = ProductCategoryPageParams(
+          parentCategories: [firstCategory.id],
+          categoryTypes: [CategoryType.series2],
+          pageSize: 1000, // 设置大数值避免分页
         );
+        final fourthLevelPageData =
+            await _categoryService.getProductCategoryPage(fourthLevelParams);
+        fourthLevelCategories = fourthLevelPageData.list;
       }
 
       // 更新状态
@@ -117,7 +126,7 @@ class CategoryViewModel extends StateNotifier<CategoryViewModelState> {
 
   /// 选择三级类目
   /// 更新选中状态并加载对应的四级类目
-  Future<void> selectThirdCategory(Category category) async {
+  Future<void> selectThirdCategory(ProductCategory category) async {
     // 避免重复选择
     if (state.selectedThirdCategory?.id == category.id) {
       return;
@@ -133,10 +142,14 @@ class CategoryViewModel extends StateNotifier<CategoryViewModelState> {
       );
 
       // 获取选中类目下的四级类目
-      final fourthLevelCategories =
-          await _categoryService.getFourthLevelCategories(
-        category.id,
+      final fourthLevelParams = ProductCategoryPageParams(
+        parentCategories: [category.id],
+        categoryTypes: [CategoryType.series2],
+        pageSize: 1000, // 设置大数值避免分页
       );
+      final fourthLevelPageData =
+          await _categoryService.getProductCategoryPage(fourthLevelParams);
+      final fourthLevelCategories = fourthLevelPageData.list;
 
       // 更新状态
       state = state.copyWith(
@@ -189,8 +202,8 @@ class CategoryViewModel extends StateNotifier<CategoryViewModelState> {
   }
 
   /// 获取类目路径（面包屑导航用）
-  List<Category> getCategoryPath(Category category) {
-    final path = <Category>[];
+  List<ProductCategory> getCategoryPath(ProductCategory category) {
+    final path = <ProductCategory>[];
 
     // 如果是四级类目，添加其父类目
     if (category.isFourthLevel && category.parentCategories.isNotEmpty) {

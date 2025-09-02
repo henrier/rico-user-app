@@ -1,6 +1,6 @@
 import '../../models/audit_metadata.dart';
 import '../../models/i18n_string.dart';
-import '../../models/productcategory/product_category.dart';
+import '../../models/productcategory/data.dart';
 import '../../models/user_info.dart';
 
 class MockCategoryData {
@@ -13,8 +13,8 @@ class MockCategoryData {
   );
 
   // 三级类目数据
-  static final List<Category> _thirdLevelCategories = [
-    Category(
+  static final List<ProductCategory> _thirdLevelCategories = [
+    ProductCategory(
       id: '3001',
       name: const I18NString(
         chinese: '最新',
@@ -24,7 +24,7 @@ class MockCategoryData {
       categoryTypes: const [CategoryType.series1],
       auditMetadata: _defaultAuditMetadata,
     ),
-    Category(
+    ProductCategory(
       id: '3002',
       name: const I18NString(
         chinese: 'MEGA',
@@ -34,7 +34,7 @@ class MockCategoryData {
       categoryTypes: const [CategoryType.series1],
       auditMetadata: _defaultAuditMetadata,
     ),
-    Category(
+    ProductCategory(
       id: '3003',
       name: const I18NString(
         chinese: '促销',
@@ -44,7 +44,7 @@ class MockCategoryData {
       categoryTypes: const [CategoryType.series1],
       auditMetadata: _defaultAuditMetadata,
     ),
-    Category(
+    ProductCategory(
       id: '3004',
       name: const I18NString(
         chinese: '朱紫系列',
@@ -54,7 +54,7 @@ class MockCategoryData {
       categoryTypes: const [CategoryType.series1],
       auditMetadata: _defaultAuditMetadata,
     ),
-    Category(
+    ProductCategory(
       id: '3005',
       name: const I18NString(
         chinese: '剑盾系列',
@@ -64,7 +64,7 @@ class MockCategoryData {
       categoryTypes: const [CategoryType.series1],
       auditMetadata: _defaultAuditMetadata,
     ),
-    Category(
+    ProductCategory(
       id: '3006',
       name: const I18NString(
         chinese: '日月系列',
@@ -74,7 +74,7 @@ class MockCategoryData {
       categoryTypes: const [CategoryType.series1],
       auditMetadata: _defaultAuditMetadata,
     ),
-    Category(
+    ProductCategory(
       id: '3007',
       name: const I18NString(
         chinese: 'XY系列',
@@ -84,7 +84,7 @@ class MockCategoryData {
       categoryTypes: const [CategoryType.series1],
       auditMetadata: _defaultAuditMetadata,
     ),
-    Category(
+    ProductCategory(
       id: '3008',
       name: const I18NString(
         chinese: '黑白系列',
@@ -97,9 +97,9 @@ class MockCategoryData {
   ];
 
   // 四级类目数据
-  static final Map<String, List<Category>> _fourthLevelCategories = {
+  static final Map<String, List<ProductCategory>> _fourthLevelCategories = {
     '3001': [
-      Category(
+      ProductCategory(
         id: '4001',
         name: const I18NString(
           chinese: '黑色闪电',
@@ -110,7 +110,7 @@ class MockCategoryData {
         parentCategories: [_thirdLevelCategories[0]],
         auditMetadata: _defaultAuditMetadata,
       ),
-      Category(
+      ProductCategory(
         id: '4002',
         name: const I18NString(
           chinese: '白色闪焰',
@@ -121,7 +121,7 @@ class MockCategoryData {
         parentCategories: [_thirdLevelCategories[0]],
         auditMetadata: _defaultAuditMetadata,
       ),
-      Category(
+      ProductCategory(
         id: '4003',
         name: const I18NString(
           chinese: '宿命对手',
@@ -134,7 +134,7 @@ class MockCategoryData {
       ),
     ],
     '3002': [
-      Category(
+      ProductCategory(
         id: '4004',
         name: const I18NString(
           chinese: '共同旅程',
@@ -145,7 +145,7 @@ class MockCategoryData {
         parentCategories: [_thirdLevelCategories[1]],
         auditMetadata: _defaultAuditMetadata,
       ),
-      Category(
+      ProductCategory(
         id: '4005',
         name: const I18NString(
           chinese: '棱镜进化',
@@ -156,7 +156,7 @@ class MockCategoryData {
         parentCategories: [_thirdLevelCategories[1]],
         auditMetadata: _defaultAuditMetadata,
       ),
-      Category(
+      ProductCategory(
         id: '4006',
         name: const I18NString(
           chinese: '激流火花',
@@ -169,7 +169,7 @@ class MockCategoryData {
       ),
     ],
     '3003': [
-      Category(
+      ProductCategory(
         id: '4007',
         name: const I18NString(
           chinese: '星辰王冠',
@@ -180,7 +180,7 @@ class MockCategoryData {
         parentCategories: [_thirdLevelCategories[2]],
         auditMetadata: _defaultAuditMetadata,
       ),
-      Category(
+      ProductCategory(
         id: '4008',
         name: const I18NString(
           chinese: '神秘传说',
@@ -193,7 +193,7 @@ class MockCategoryData {
       ),
     ],
     '3004': [
-      Category(
+      ProductCategory(
         id: '4010',
         name: const I18NString(
           chinese: '朱红收藏',
@@ -204,7 +204,7 @@ class MockCategoryData {
         parentCategories: [_thirdLevelCategories[3]],
         auditMetadata: _defaultAuditMetadata,
       ),
-      Category(
+      ProductCategory(
         id: '4011',
         name: const I18NString(
           chinese: '紫罗兰收藏',
@@ -217,7 +217,7 @@ class MockCategoryData {
       ),
     ],
     '3005': [
-      Category(
+      ProductCategory(
         id: '4013',
         name: const I18NString(
           chinese: '基础系列',
@@ -228,7 +228,7 @@ class MockCategoryData {
         parentCategories: [_thirdLevelCategories[4]],
         auditMetadata: _defaultAuditMetadata,
       ),
-      Category(
+      ProductCategory(
         id: '4014',
         name: const I18NString(
           chinese: '反叛冲突',
@@ -243,17 +243,17 @@ class MockCategoryData {
   };
 
   /// 获取所有三级类目
-  static List<Category> getThirdLevelCategories() {
+  static List<ProductCategory> getThirdLevelCategories() {
     return List.unmodifiable(_thirdLevelCategories);
   }
 
   /// 根据三级类目ID获取其下的四级类目
-  static List<Category> getFourthLevelCategories(String thirdLevelId) {
+  static List<ProductCategory> getFourthLevelCategories(String thirdLevelId) {
     return List.unmodifiable(_fourthLevelCategories[thirdLevelId] ?? []);
   }
 
   /// 根据ID查找类目
-  static Category? findCategoryById(String id) {
+  static ProductCategory? findCategoryById(String id) {
     // 先在三级类目中查找
     for (final category in _thirdLevelCategories) {
       if (category.id == id) {

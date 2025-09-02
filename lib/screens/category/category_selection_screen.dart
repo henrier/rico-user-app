@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../common/constants/app_constants.dart';
-import '../../models/productcategory/product_category.dart';
+import '../../models/productcategory/data.dart';
 import '../../providers/category_provider.dart';
 import '../../viewmodels/category_viewmodel.dart';
 
@@ -235,7 +235,8 @@ class CategorySelectionScreen extends ConsumerWidget {
     );
   }
 
-  void _showCategoryClickedDialog(BuildContext context, Category category) {
+  void _showCategoryClickedDialog(
+      BuildContext context, ProductCategory category) {
     showDialog(
       context: context,
       builder: (BuildContext context) {

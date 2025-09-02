@@ -1,13 +1,13 @@
 import '../../models/audit_metadata.dart';
 import '../../models/i18n_string.dart';
-import '../../models/productcategory/product_category.dart';
+import '../../models/productcategory/data.dart';
 import '../../models/user_info.dart';
 
 /// 模拟类目数据
 /// 用于开发和测试阶段，提供静态的类目数据
 class MockCategoryData {
   /// 获取三级类目列表
-  static List<Category> getThirdLevelCategories() {
+  static List<ProductCategory> getThirdLevelCategories() {
     final now = DateTime.now();
     final auditMetadata = AuditMetadata(
       createdAt: now,
@@ -17,7 +17,7 @@ class MockCategoryData {
     );
 
     return [
-      Category(
+      ProductCategory(
         id: '3001',
         name: const I18NString(
             chinese: 'Scarlet & Violet',
@@ -26,14 +26,14 @@ class MockCategoryData {
         categoryTypes: const [CategoryType.series1],
         auditMetadata: auditMetadata,
       ),
-      Category(
+      ProductCategory(
         id: '3002',
         name:
             const I18NString(chinese: 'MEGA', english: 'MEGA', japanese: 'メガ'),
         categoryTypes: const [CategoryType.series1],
         auditMetadata: auditMetadata,
       ),
-      Category(
+      ProductCategory(
         id: '3003',
         name: const I18NString(
             chinese: 'Stellar Crown',
@@ -42,14 +42,14 @@ class MockCategoryData {
         categoryTypes: const [CategoryType.series1],
         auditMetadata: auditMetadata,
       ),
-      Category(
+      ProductCategory(
         id: '3004',
         name: const I18NString(
             chinese: 'Collection', english: 'Collection', japanese: 'コレクション'),
         categoryTypes: const [CategoryType.series1],
         auditMetadata: auditMetadata,
       ),
-      Category(
+      ProductCategory(
         id: '3005',
         name: const I18NString(
             chinese: 'Sword & Shield',
@@ -58,20 +58,20 @@ class MockCategoryData {
         categoryTypes: const [CategoryType.series1],
         auditMetadata: auditMetadata,
       ),
-      Category(
+      ProductCategory(
         id: '3006',
         name: const I18NString(
             chinese: 'Sun & Moon', english: 'Sun & Moon', japanese: 'サン&ムーン'),
         categoryTypes: const [CategoryType.series1],
         auditMetadata: auditMetadata,
       ),
-      Category(
+      ProductCategory(
         id: '3007',
         name: const I18NString(chinese: 'XY', english: 'XY', japanese: 'XY'),
         categoryTypes: const [CategoryType.series1],
         auditMetadata: auditMetadata,
       ),
-      Category(
+      ProductCategory(
         id: '3008',
         name: const I18NString(
             chinese: 'Black & White',
@@ -80,7 +80,7 @@ class MockCategoryData {
         categoryTypes: const [CategoryType.series1],
         auditMetadata: auditMetadata,
       ),
-      Category(
+      ProductCategory(
         id: '3009',
         name: const I18NString(
             chinese: 'HeartGold & SoulSilver',
@@ -89,14 +89,14 @@ class MockCategoryData {
         categoryTypes: const [CategoryType.series1],
         auditMetadata: auditMetadata,
       ),
-      Category(
+      ProductCategory(
         id: '3010',
         name: const I18NString(
             chinese: 'Platinum', english: 'Platinum', japanese: 'プラチナ'),
         categoryTypes: const [CategoryType.series1],
         auditMetadata: auditMetadata,
       ),
-      Category(
+      ProductCategory(
         id: '3011',
         name: const I18NString(
             chinese: 'Diamond & Pearl',
@@ -105,7 +105,7 @@ class MockCategoryData {
         categoryTypes: const [CategoryType.series1],
         auditMetadata: auditMetadata,
       ),
-      Category(
+      ProductCategory(
         id: '3012',
         name: const I18NString(
             chinese: 'Ruby & Sapphire',
@@ -118,7 +118,8 @@ class MockCategoryData {
   }
 
   /// 根据三级类目ID获取四级类目列表
-  static List<Category> getFourthLevelCategories(String thirdCategoryId) {
+  static List<ProductCategory> getFourthLevelCategories(
+      String thirdCategoryId) {
     final now = DateTime.now();
     final auditMetadata = AuditMetadata(
       createdAt: now,
@@ -130,7 +131,7 @@ class MockCategoryData {
     switch (thirdCategoryId) {
       case '3001': // Scarlet & Violet
         return [
-          Category(
+          ProductCategory(
             id: '4001',
             name: const I18NString(
                 chinese: 'Black Bolt',
@@ -138,7 +139,7 @@ class MockCategoryData {
                 japanese: 'ブラックボルト'),
             categoryTypes: const [CategoryType.series2],
             parentCategories: [
-              Category(
+              ProductCategory(
                 id: '3001',
                 name: const I18NString(
                     chinese: 'Scarlet & Violet',
@@ -150,7 +151,7 @@ class MockCategoryData {
             ],
             auditMetadata: auditMetadata,
           ),
-          Category(
+          ProductCategory(
             id: '4002',
             name: const I18NString(
                 chinese: 'White Flare',
@@ -158,7 +159,7 @@ class MockCategoryData {
                 japanese: 'ホワイトフレア'),
             categoryTypes: const [CategoryType.series2],
             parentCategories: [
-              Category(
+              ProductCategory(
                 id: '3001',
                 name: const I18NString(
                     chinese: 'Scarlet & Violet',
@@ -170,7 +171,7 @@ class MockCategoryData {
             ],
             auditMetadata: auditMetadata,
           ),
-          Category(
+          ProductCategory(
             id: '4003',
             name: const I18NString(
                 chinese: 'Destined Rivals',
@@ -178,7 +179,7 @@ class MockCategoryData {
                 japanese: '運命のライバル'),
             categoryTypes: const [CategoryType.series2],
             parentCategories: [
-              Category(
+              ProductCategory(
                 id: '3001',
                 name: const I18NString(
                     chinese: 'Scarlet & Violet',
@@ -194,7 +195,7 @@ class MockCategoryData {
 
       case '3002': // MEGA
         return [
-          Category(
+          ProductCategory(
             id: '4004',
             name: const I18NString(
                 chinese: 'Journey Together',
@@ -202,7 +203,7 @@ class MockCategoryData {
                 japanese: '一緒の旅'),
             categoryTypes: const [CategoryType.series2],
             parentCategories: [
-              Category(
+              ProductCategory(
                 id: '3002',
                 name: const I18NString(
                     chinese: 'MEGA', english: 'MEGA', japanese: 'メガ'),
@@ -212,7 +213,7 @@ class MockCategoryData {
             ],
             auditMetadata: auditMetadata,
           ),
-          Category(
+          ProductCategory(
             id: '4005',
             name: const I18NString(
                 chinese: 'Twilight Masquerade',
@@ -220,7 +221,7 @@ class MockCategoryData {
                 japanese: 'トワイライトマスカレード'),
             categoryTypes: const [CategoryType.series2],
             parentCategories: [
-              Category(
+              ProductCategory(
                 id: '3002',
                 name: const I18NString(
                     chinese: 'MEGA', english: 'MEGA', japanese: 'メガ'),
@@ -230,7 +231,7 @@ class MockCategoryData {
             ],
             auditMetadata: auditMetadata,
           ),
-          Category(
+          ProductCategory(
             id: '4006',
             name: const I18NString(
                 chinese: 'Surging Sparks',
@@ -238,7 +239,7 @@ class MockCategoryData {
                 japanese: 'サージングスパーク'),
             categoryTypes: const [CategoryType.series2],
             parentCategories: [
-              Category(
+              ProductCategory(
                 id: '3002',
                 name: const I18NString(
                     chinese: 'MEGA', english: 'MEGA', japanese: 'メガ'),
@@ -252,7 +253,7 @@ class MockCategoryData {
 
       case '3003': // Stellar Crown
         return [
-          Category(
+          ProductCategory(
             id: '4007',
             name: const I18NString(
                 chinese: 'Stella Crown',
@@ -260,7 +261,7 @@ class MockCategoryData {
                 japanese: 'ステラクラウン'),
             categoryTypes: const [CategoryType.series2],
             parentCategories: [
-              Category(
+              ProductCategory(
                 id: '3003',
                 name: const I18NString(
                     chinese: 'Stellar Crown',
@@ -272,7 +273,7 @@ class MockCategoryData {
             ],
             auditMetadata: auditMetadata,
           ),
-          Category(
+          ProductCategory(
             id: '4008',
             name: const I18NString(
                 chinese: 'Shrouded Fable',
@@ -280,7 +281,7 @@ class MockCategoryData {
                 japanese: 'シュラウデッドフェーブル'),
             categoryTypes: const [CategoryType.series2],
             parentCategories: [
-              Category(
+              ProductCategory(
                 id: '3003',
                 name: const I18NString(
                     chinese: 'Stellar Crown',
@@ -292,7 +293,7 @@ class MockCategoryData {
             ],
             auditMetadata: auditMetadata,
           ),
-          Category(
+          ProductCategory(
             id: '4009',
             name: const I18NString(
                 chinese: 'Temporal Forces',
@@ -300,7 +301,7 @@ class MockCategoryData {
                 japanese: 'テンポラルフォース'),
             categoryTypes: const [CategoryType.series2],
             parentCategories: [
-              Category(
+              ProductCategory(
                 id: '3003',
                 name: const I18NString(
                     chinese: 'Stellar Crown',
@@ -320,7 +321,7 @@ class MockCategoryData {
   }
 
   /// 根据类目ID查找类目
-  static Category? findCategoryById(String categoryId) {
+  static ProductCategory? findCategoryById(String categoryId) {
     // 先在三级类目中查找
     final thirdCategory = getThirdLevelCategories()
         .where((cat) => cat.id == categoryId)
@@ -345,8 +346,8 @@ class MockCategoryData {
   }
 
   /// 获取所有类目的扁平列表
-  static List<Category> getAllCategories() {
-    final allCategories = <Category>[];
+  static List<ProductCategory> getAllCategories() {
+    final allCategories = <ProductCategory>[];
 
     // 添加三级类目
     allCategories.addAll(getThirdLevelCategories());

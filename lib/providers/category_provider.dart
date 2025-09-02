@@ -1,6 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../models/productcategory/product_category.dart';
+import '../models/productcategory/data.dart';
 import '../viewmodels/category_viewmodel.dart';
 
 // ============================================================================
@@ -26,7 +26,7 @@ const String _defaultSecondCategoryId = 'tempSecondCategoryId';
 /// 获取当前选中的三级类目
 /// 用于需要监听选中类目变化的组件
 final selectedThirdCategoryProvider =
-    Provider.family<Category?, String>((ref, secondCategoryId) {
+    Provider.family<ProductCategory?, String>((ref, secondCategoryId) {
   final state = ref.watch(categoryViewModelProvider(secondCategoryId));
   return state.selectedThirdCategory;
 });
@@ -34,7 +34,7 @@ final selectedThirdCategoryProvider =
 /// 获取当前四级类目列表
 /// 用于右侧四级类目列表的渲染
 final fourthLevelCategoriesProvider =
-    Provider.family<List<Category>, String>((ref, secondCategoryId) {
+    Provider.family<List<ProductCategory>, String>((ref, secondCategoryId) {
   final state = ref.watch(categoryViewModelProvider(secondCategoryId));
   return state.fourthLevelCategories;
 });
@@ -42,7 +42,7 @@ final fourthLevelCategoriesProvider =
 /// 获取三级类目列表
 /// 用于左侧三级类目列表的渲染
 final thirdLevelCategoriesProvider =
-    Provider.family<List<Category>, String>((ref, secondCategoryId) {
+    Provider.family<List<ProductCategory>, String>((ref, secondCategoryId) {
   final state = ref.watch(categoryViewModelProvider(secondCategoryId));
   return state.thirdLevelCategories;
 });
@@ -68,15 +68,17 @@ final categoryErrorProvider =
 // ============================================================================
 
 /// 默认参数的便捷Providers（向后兼容）
-final selectedThirdCategoryProviderCompat = Provider<Category?>((ref) {
+final selectedThirdCategoryProviderCompat = Provider<ProductCategory?>((ref) {
   return ref.watch(selectedThirdCategoryProvider(_defaultSecondCategoryId));
 });
 
-final fourthLevelCategoriesProviderCompat = Provider<List<Category>>((ref) {
+final fourthLevelCategoriesProviderCompat =
+    Provider<List<ProductCategory>>((ref) {
   return ref.watch(fourthLevelCategoriesProvider(_defaultSecondCategoryId));
 });
 
-final thirdLevelCategoriesProviderCompat = Provider<List<Category>>((ref) {
+final thirdLevelCategoriesProviderCompat =
+    Provider<List<ProductCategory>>((ref) {
   return ref.watch(thirdLevelCategoriesProvider(_defaultSecondCategoryId));
 });
 
