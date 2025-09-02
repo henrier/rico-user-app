@@ -1,4 +1,7 @@
-import '../../models/category_model.dart';
+import '../../models/audit_metadata.dart';
+import '../../models/i18n_string.dart';
+import '../../models/productcategory/product_category.dart';
+import '../../models/user_info.dart';
 
 /// 模拟类目数据
 /// 用于开发和测试阶段，提供静态的类目数据

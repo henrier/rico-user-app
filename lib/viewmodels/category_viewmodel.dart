@@ -1,7 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../common/utils/logger.dart';
-import '../models/category_model.dart';
+import '../models/productcategory/product_category.dart';
 import '../services/category_service.dart';
 
 /// 类目页面的ViewModel状态

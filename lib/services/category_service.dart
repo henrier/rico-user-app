@@ -1,7 +1,7 @@
 import 'package:dio/dio.dart';
 
 import '../common/utils/logger.dart';
-import '../models/category_model.dart';
+import '../models/productcategory/product_category.dart';
 
 /// API响应格式
 class ApiResponse<T> {

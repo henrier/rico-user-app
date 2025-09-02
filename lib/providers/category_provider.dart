@@ -1,6 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
-import '../models/category_model.dart';
+import '../models/productcategory/product_category.dart';
 import '../viewmodels/category_viewmodel.dart';
 
 // ============================================================================

@@ -1,34 +1,5 @@
-/// 多语言名称
-class I18NString {
-  final String chinese;
-  final String english;
-  final String japanese;
-
-  const I18NString({
-    required this.chinese,
-    required this.english,
-    required this.japanese,
-  });
-
-  factory I18NString.fromJson(Map<String, dynamic> json) {
-    return I18NString(
-      chinese: json['chinese'] ?? '',
-      english: json['english'] ?? '',
-      japanese: json['japanese'] ?? '',
-    );
-  }
-
-  Map<String, dynamic> toJson() {
-    return {
-      'chinese': chinese,
-      'english': english,
-      'japanese': japanese,
-    };
-  }
-
-  @override
-  String toString() => chinese.isNotEmpty ? chinese : english;
-}
+import '../audit_metadata.dart';
+import '../i18n_string.dart';
 
 /// 类目类型枚举
 enum CategoryType {
@@ -46,68 +17,6 @@ enum CategoryType {
       (type) => type.value == value,
       orElse: () => CategoryType.ip,
     );
-  }
-}
-
-/// 审计信息
-class AuditMetadata {
-  final DateTime createdAt;
-  final DateTime updatedAt;
-  final UserInfo? createdBy;
-  final UserInfo? updatedBy;
-
-  const AuditMetadata({
-    required this.createdAt,
-    required this.updatedAt,
-    this.createdBy,
-    this.updatedBy,
-  });
-
-  factory AuditMetadata.fromJson(Map<String, dynamic> json) {
-    return AuditMetadata(
-      createdAt: DateTime.parse(json['createdAt']),
-      updatedAt: DateTime.parse(json['updatedAt']),
-      createdBy: json['createdBy'] != null
-          ? UserInfo.fromJson(json['createdBy'] as Map<String, dynamic>)
-          : null,
-      updatedBy: json['updatedBy'] != null
-          ? UserInfo.fromJson(json['updatedBy'] as Map<String, dynamic>)
-          : null,
-    );
-  }
-
-  Map<String, dynamic> toJson() {
-    return {
-      'createdAt': createdAt.toIso8601String(),
-      'updatedAt': updatedAt.toIso8601String(),
-      'createdBy': createdBy?.toJson(),
-      'updatedBy': updatedBy?.toJson(),
-    };
-  }
-}
-
-/// 用户信息
-class UserInfo {
-  final String id;
-  final String name;
-
-  const UserInfo({
-    required this.id,
-    required this.name,
-  });
-
-  factory UserInfo.fromJson(Map<String, dynamic> json) {
-    return UserInfo(
-      id: json['id'] ?? '',
-      name: json['name'] ?? '',
-    );
-  }
-
-  Map<String, dynamic> toJson() {
-    return {
-      'id': id,
-      'name': name,
-    };
   }
 }
 
