@@ -64,13 +64,15 @@ class HomeScreen extends ConsumerWidget {
                     ),
                     const SizedBox(height: AppConstants.smallPadding),
                     Text(
-                      user != null ? 'Hello, ${user.fullName}' : 'Hello, User',
+                      user != null
+                          ? 'Hello, ${user.displayName}'
+                          : 'Hello, User',
                       style: Theme.of(context).textTheme.bodyLarge,
                     ),
-                    if (user?.email != null) ...[
+                    if (user?.phone != null) ...[
                       const SizedBox(height: AppConstants.smallPadding),
                       Text(
-                        user!.email,
+                        user!.phone,
                         style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                               color: Colors.grey[600],
                             ),

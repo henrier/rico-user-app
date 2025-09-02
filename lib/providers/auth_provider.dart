@@ -41,11 +41,11 @@ class AuthNotifier extends StateNotifier<AuthState> {
   // 构造函数：调用 super() 设置初始状态
   AuthNotifier(this._authApi) : super(const AuthState());
 
-  Future<void> login(String email, String password) async {
+  Future<void> login(String phone, String password) async {
     try {
       state = state.copyWith(isLoading: true, error: null);
 
-      final user = await _authApi.login(email, password);
+      final user = await _authApi.login(phone, password);
 
       state = state.copyWith(
         user: user,
@@ -53,7 +53,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
         isAuthenticated: true,
       );
 
-      AppLogger.i('User logged in successfully: ${user.email}');
+      AppLogger.i('User logged in successfully: ${user.phone}');
     } catch (e) {
       state = state.copyWith(
         isLoading: false,
@@ -79,7 +79,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
         isAuthenticated: true,
       );
 
-      AppLogger.i('Quick login successful: ${user.email}');
+      AppLogger.i('Quick login successful: ${user.phone}');
     } catch (e) {
       state = state.copyWith(
         isLoading: false,
@@ -91,29 +91,10 @@ class AuthNotifier extends StateNotifier<AuthState> {
     }
   }
 
-  Future<void> register(String email, String password, String username) async {
-    try {
-      state = state.copyWith(isLoading: true, error: null);
-
-      final user = await _authApi.register(email, password, username);
-
-      state = state.copyWith(
-        user: user,
-        isLoading: false,
-        isAuthenticated: true,
-      );
-
-      AppLogger.i('User registered successfully: ${user.email}');
-    } catch (e) {
-      state = state.copyWith(
-        isLoading: false,
-        error: e.toString(),
-        isAuthenticated: false,
-      );
-
-      AppLogger.e('Registration failed', e);
-    }
-  }
+  // 注册功能暂时不需要，因为我们使用的是现有的后端用户系统
+  // Future<void> register(String email, String password, String username) async {
+  //   // 注册逻辑可以在需要时实现
+  // }
 
   Future<void> logout() async {
     try {
@@ -140,9 +121,30 @@ class AuthNotifier extends StateNotifier<AuthState> {
           user: user,
           isAuthenticated: true,
         );
+        AppLogger.i('Auth status check successful: user is authenticated');
+      } else {
+        state = state.copyWith(
+          user: null,
+          isAuthenticated: false,
+        );
+        AppLogger.i('Auth status check: user is not authenticated');
       }
     } catch (e) {
       AppLogger.e('Auth status check failed', e);
+      state = state.copyWith(
+        user: null,
+        isAuthenticated: false,
+      );
+    }
+  }
+
+  // 获取当前用户权限
+  Future<List<String>> getCurrentUserPermissions() async {
+    try {
+      return await _authApi.getCurrentUserPermissions();
+    } catch (e) {
+      AppLogger.e('Get user permissions failed', e);
+      return [];
     }
   }
 }

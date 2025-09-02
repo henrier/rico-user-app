@@ -5,6 +5,7 @@
 
 import 'package:dio/dio.dart';
 
+import '../../api/base_api.dart';
 import '../../common/utils/logger.dart';
 import '../api_response.dart';
 import '../cardeffectfields/data.dart';
@@ -13,16 +14,18 @@ import 'data.dart';
 
 /// 商品信息API服务
 /// 对应 TypeScript 中的各个服务函数
-class ProductInfoService {
+class ProductInfoService extends BaseApi {
   static const String _baseUrl = 'http://localhost:8081'; // 本地开发服务器
   static const String _apiPath = '/api/products/product-infos';
 
   final Dio _dio;
 
-  ProductInfoService({Dio? dio}) : _dio = dio ?? _createDio();
+  ProductInfoService({Dio? dio}) : _dio = dio ?? Dio() {
+    _setupDio();
+  }
 
-  static Dio _createDio() {
-    final dio = Dio(BaseOptions(
+  void _setupDio() {
+    _dio.options = BaseOptions(
       baseUrl: _baseUrl,
       connectTimeout: const Duration(seconds: 10),
       receiveTimeout: const Duration(seconds: 10),
@@ -30,16 +33,37 @@ class ProductInfoService {
         'Accept': 'application/json',
         'Content-Type': 'application/json',
       },
+    );
+
+    // 添加token拦截器
+    _dio.interceptors.add(InterceptorsWrapper(
+      onRequest: (options, handler) async {
+        // 获取token并添加到请求头
+        final token = await getToken();
+        if (token != null) {
+          options.headers['Authorization'] = 'Bearer $token';
+          AppLogger.d('添加Authorization头: Bearer ${token.substring(0, 20)}...');
+        } else {
+          AppLogger.w('未找到token，请求可能需要认证');
+        }
+        handler.next(options);
+      },
+      onError: (error, handler) async {
+        // 处理401错误（token失效）
+        if (error.response?.statusCode == 401) {
+          AppLogger.w('收到401错误，token可能已失效');
+          await clearToken();
+        }
+        handler.next(error);
+      },
     ));
 
     // 添加日志拦截器
-    dio.interceptors.add(LogInterceptor(
+    _dio.interceptors.add(LogInterceptor(
       requestBody: true,
       responseBody: true,
       logPrint: (obj) => AppLogger.d(obj.toString()),
     ));
-
-    return dio;
   }
 
   // ============================================================================

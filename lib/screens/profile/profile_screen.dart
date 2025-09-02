@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import '../../providers/auth_provider.dart';
+
 import '../../common/constants/app_constants.dart';
+import '../../providers/auth_provider.dart';
 
 class ProfileScreen extends ConsumerWidget {
   const ProfileScreen({super.key});
@@ -46,37 +47,42 @@ class ProfileScreen extends ConsumerWidget {
                           CircleAvatar(
                             radius: 60,
                             backgroundColor: Theme.of(context).primaryColor,
-                            backgroundImage: user.profileImageUrl != null
-                                ? NetworkImage(user.profileImageUrl!)
+                            backgroundImage: user.avatar != null
+                                ? NetworkImage(user.avatar!)
                                 : null,
-                            child: user.profileImageUrl == null
+                            child: user.avatar == null
                                 ? Icon(
                                     Icons.person,
                                     size: 60,
-                                    color: Theme.of(context).colorScheme.onPrimary,
+                                    color:
+                                        Theme.of(context).colorScheme.onPrimary,
                                   )
                                 : null,
                           ),
                           const SizedBox(height: AppConstants.defaultPadding),
-                          
+
                           // User Name
                           Text(
-                            user.fullName,
-                            style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                              fontWeight: FontWeight.bold,
-                            ),
+                            user.displayName,
+                            style: Theme.of(context)
+                                .textTheme
+                                .headlineSmall
+                                ?.copyWith(
+                                  fontWeight: FontWeight.bold,
+                                ),
                           ),
                           const SizedBox(height: AppConstants.smallPadding),
-                          
-                          // Username
+
+                          // Phone Number
                           Text(
-                            '@${user.username}',
-                            style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                              color: Theme.of(context).primaryColor,
-                            ),
+                            user.phone,
+                            style:
+                                Theme.of(context).textTheme.bodyLarge?.copyWith(
+                                      color: Theme.of(context).primaryColor,
+                                    ),
                           ),
                           const SizedBox(height: AppConstants.smallPadding),
-                          
+
                           // Status
                           Container(
                             padding: const EdgeInsets.symmetric(
@@ -84,11 +90,12 @@ class ProfileScreen extends ConsumerWidget {
                               vertical: AppConstants.smallPadding,
                             ),
                             decoration: BoxDecoration(
-                              color: user.isActive ? Colors.green : Colors.grey,
+                              color:
+                                  !user.disabled ? Colors.green : Colors.grey,
                               borderRadius: BorderRadius.circular(20),
                             ),
                             child: Text(
-                              user.isActive ? 'Active' : 'Inactive',
+                              !user.disabled ? 'Active' : 'Disabled',
                               style: const TextStyle(
                                 color: Colors.white,
                                 fontWeight: FontWeight.bold,
@@ -108,22 +115,29 @@ class ProfileScreen extends ConsumerWidget {
                     children: [
                       _buildInfoTile(
                         context,
-                        icon: Icons.email,
-                        title: 'Email',
-                        subtitle: user.email,
+                        icon: Icons.phone,
+                        title: 'Phone',
+                        subtitle: user.phone,
                       ),
                       _buildInfoTile(
                         context,
                         icon: Icons.person,
-                        title: 'First Name',
-                        subtitle: user.firstName ?? 'Not provided',
+                        title: 'Name',
+                        subtitle: user.name,
                       ),
                       _buildInfoTile(
                         context,
-                        icon: Icons.person_outline,
-                        title: 'Last Name',
-                        subtitle: user.lastName ?? 'Not provided',
+                        icon: Icons.badge,
+                        title: 'User ID',
+                        subtitle: user.id,
                       ),
+                      if (user.remark != null)
+                        _buildInfoTile(
+                          context,
+                          icon: Icons.note,
+                          title: 'Remark',
+                          subtitle: user.remark!,
+                        ),
                     ],
                   ),
                   const SizedBox(height: AppConstants.largePadding),
@@ -133,18 +147,20 @@ class ProfileScreen extends ConsumerWidget {
                     context,
                     title: 'Account Information',
                     children: [
-                      _buildInfoTile(
-                        context,
-                        icon: Icons.calendar_today,
-                        title: 'Member Since',
-                        subtitle: _formatDate(user.createdAt),
-                      ),
-                      _buildInfoTile(
-                        context,
-                        icon: Icons.update,
-                        title: 'Last Updated',
-                        subtitle: _formatDate(user.updatedAt),
-                      ),
+                      if (user.auditMetadata != null) ...[
+                        _buildInfoTile(
+                          context,
+                          icon: Icons.calendar_today,
+                          title: 'Member Since',
+                          subtitle: _formatDate(user.auditMetadata!.createdAt),
+                        ),
+                        _buildInfoTile(
+                          context,
+                          icon: Icons.update,
+                          title: 'Last Updated',
+                          subtitle: _formatDate(user.auditMetadata!.updatedAt),
+                        ),
+                      ],
                       _buildInfoTile(
                         context,
                         icon: Icons.fingerprint,
@@ -158,33 +174,38 @@ class ProfileScreen extends ConsumerWidget {
                   // Action Buttons
                   Card(
                     child: Padding(
-                      padding: const EdgeInsets.all(AppConstants.defaultPadding),
+                      padding:
+                          const EdgeInsets.all(AppConstants.defaultPadding),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.stretch,
                         children: [
                           Text(
                             'Actions',
-                            style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                              fontWeight: FontWeight.bold,
-                            ),
+                            style: Theme.of(context)
+                                .textTheme
+                                .titleLarge
+                                ?.copyWith(
+                                  fontWeight: FontWeight.bold,
+                                ),
                           ),
                           const SizedBox(height: AppConstants.defaultPadding),
-                          
                           ElevatedButton.icon(
                             onPressed: () {
                               ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(content: Text('Edit profile coming soon')),
+                                const SnackBar(
+                                    content: Text('Edit profile coming soon')),
                               );
                             },
                             icon: const Icon(Icons.edit),
                             label: const Text('Edit Profile'),
                           ),
                           const SizedBox(height: AppConstants.smallPadding),
-                          
                           ElevatedButton.icon(
                             onPressed: () {
                               ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(content: Text('Change password coming soon')),
+                                const SnackBar(
+                                    content:
+                                        Text('Change password coming soon')),
                               );
                             },
                             icon: const Icon(Icons.lock),
@@ -194,7 +215,6 @@ class ProfileScreen extends ConsumerWidget {
                             ),
                           ),
                           const SizedBox(height: AppConstants.smallPadding),
-                          
                           ElevatedButton.icon(
                             onPressed: () {
                               _showDeleteAccountDialog(context, ref);
@@ -229,8 +249,8 @@ class ProfileScreen extends ConsumerWidget {
             Text(
               title,
               style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                fontWeight: FontWeight.bold,
-              ),
+                    fontWeight: FontWeight.bold,
+                  ),
             ),
             const SizedBox(height: AppConstants.defaultPadding),
             ...children,
@@ -262,14 +282,14 @@ class ProfileScreen extends ConsumerWidget {
                 Text(
                   title,
                   style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                    fontWeight: FontWeight.w500,
-                  ),
+                        fontWeight: FontWeight.w500,
+                      ),
                 ),
                 Text(
                   subtitle,
                   style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                    color: Colors.grey[600],
-                  ),
+                        color: Colors.grey[600],
+                      ),
                 ),
               ],
             ),
@@ -301,7 +321,8 @@ class ProfileScreen extends ConsumerWidget {
               onPressed: () {
                 Navigator.of(context).pop();
                 ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Delete account feature coming soon')),
+                  const SnackBar(
+                      content: Text('Delete account feature coming soon')),
                 );
               },
               style: TextButton.styleFrom(foregroundColor: Colors.red),

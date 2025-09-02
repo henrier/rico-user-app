@@ -250,6 +250,7 @@ class SpuSelectionViewModel extends StateNotifier<SpuSelectionViewModelState> {
 }
 
 /// SPU选择ViewModel Provider
+/// 现在ProductInfoService已经自动支持token认证
 final spuSelectionViewModelProvider = StateNotifierProvider.family<
     SpuSelectionViewModel, SpuSelectionViewModelState, String?>(
   (ref, categoryId) {

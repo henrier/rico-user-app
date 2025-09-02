@@ -6,12 +6,14 @@ import '../models/productinfo/data.dart';
 import '../models/productinfo/service.dart';
 
 /// 商品信息服务Provider
+/// 现在服务类已经自动支持token认证
 final productInfoServiceProvider = Provider<ProductInfoService>((ref) {
   return ProductInfoService();
 });
 
 /// 商品信息分页数据Provider
-final productInfoPageProvider = FutureProvider.family<PageData<ProductInfo>, ProductInfoPageParams>(
+final productInfoPageProvider =
+    FutureProvider.family<PageData<ProductInfo>, ProductInfoPageParams>(
   (ref, params) async {
     final service = ref.read(productInfoServiceProvider);
     try {
@@ -60,10 +62,10 @@ final productInfoLevelsProvider = FutureProvider<List<String>>((ref) async {
 class ProductInfoCacheState {
   /// 缓存的商品信息列表
   final Map<String, List<ProductInfo>> cachedLists;
-  
+
   /// 缓存的商品信息详情
   final Map<String, ProductInfo> cachedDetails;
-  
+
   /// 最后更新时间
   final DateTime lastUpdated;
 
@@ -88,18 +90,20 @@ class ProductInfoCacheState {
 
 /// 商品信息缓存Provider
 class ProductInfoCacheNotifier extends StateNotifier<ProductInfoCacheState> {
-  ProductInfoCacheNotifier() : super(ProductInfoCacheState(lastUpdated: DateTime.now()));
+  ProductInfoCacheNotifier()
+      : super(ProductInfoCacheState(lastUpdated: DateTime.now()));
 
   /// 缓存商品信息列表
   void cacheProductInfoList(String key, List<ProductInfo> productInfos) {
-    final newCachedLists = Map<String, List<ProductInfo>>.from(state.cachedLists);
+    final newCachedLists =
+        Map<String, List<ProductInfo>>.from(state.cachedLists);
     newCachedLists[key] = productInfos;
-    
+
     state = state.copyWith(
       cachedLists: newCachedLists,
       lastUpdated: DateTime.now(),
     );
-    
+
     AppLogger.d('缓存商品信息列表: $key, 数量: ${productInfos.length}');
   }
 
@@ -116,12 +120,12 @@ class ProductInfoCacheNotifier extends StateNotifier<ProductInfoCacheState> {
   void cacheProductInfoDetail(String id, ProductInfo productInfo) {
     final newCachedDetails = Map<String, ProductInfo>.from(state.cachedDetails);
     newCachedDetails[id] = productInfo;
-    
+
     state = state.copyWith(
       cachedDetails: newCachedDetails,
       lastUpdated: DateTime.now(),
     );
-    
+
     AppLogger.d('缓存商品信息详情: ${productInfo.displayName}');
   }
 
@@ -142,14 +146,15 @@ class ProductInfoCacheNotifier extends StateNotifier<ProductInfoCacheState> {
 
   /// 清除特定列表缓存
   void clearListCache(String key) {
-    final newCachedLists = Map<String, List<ProductInfo>>.from(state.cachedLists);
+    final newCachedLists =
+        Map<String, List<ProductInfo>>.from(state.cachedLists);
     newCachedLists.remove(key);
-    
+
     state = state.copyWith(
       cachedLists: newCachedLists,
       lastUpdated: DateTime.now(),
     );
-    
+
     AppLogger.d('清除商品信息列表缓存: $key');
   }
 
@@ -165,12 +170,14 @@ class ProductInfoCacheNotifier extends StateNotifier<ProductInfoCacheState> {
 }
 
 /// 商品信息缓存Provider
-final productInfoCacheProvider = StateNotifierProvider<ProductInfoCacheNotifier, ProductInfoCacheState>(
+final productInfoCacheProvider =
+    StateNotifierProvider<ProductInfoCacheNotifier, ProductInfoCacheState>(
   (ref) => ProductInfoCacheNotifier(),
 );
 
 /// 商品信息搜索Provider
-final productInfoSearchProvider = FutureProvider.family<List<ProductInfo>, String>(
+final productInfoSearchProvider =
+    FutureProvider.family<List<ProductInfo>, String>(
   (ref, keyword) async {
     if (keyword.trim().isEmpty) {
       return [];
@@ -179,7 +186,7 @@ final productInfoSearchProvider = FutureProvider.family<List<ProductInfo>, Strin
     final service = ref.read(productInfoServiceProvider);
     try {
       AppLogger.i('搜索商品信息: $keyword');
-      
+
       final params = ProductInfoPageParams(
         current: 1,
         pageSize: 50, // 搜索时返回更多结果
@@ -187,7 +194,7 @@ final productInfoSearchProvider = FutureProvider.family<List<ProductInfo>, Strin
         nameChinese: keyword,
         code: keyword,
       );
-      
+
       final result = await service.getProductInfoPage(params);
       AppLogger.i('搜索到${result.list.length}个商品信息');
       return result.list;
@@ -203,20 +210,20 @@ final productInfoStatsProvider = FutureProvider<ProductInfoStats>((ref) async {
   final service = ref.read(productInfoServiceProvider);
   try {
     AppLogger.i('获取商品信息统计');
-    
+
     // 获取总数统计
     const totalParams = ProductInfoPageParams(current: 1, pageSize: 1);
     final totalResult = await service.getProductInfoPage(totalParams);
-    
+
     // 获取等级统计
     final levels = await service.getProductInfoDistinctLevels();
-    
+
     final stats = ProductInfoStats(
       totalCount: totalResult.total,
       levelCount: levels.length,
       levels: levels,
     );
-    
+
     AppLogger.i('商品信息统计: 总数=${stats.totalCount}, 等级数=${stats.levelCount}');
     return stats;
   } catch (e) {
@@ -229,10 +236,10 @@ final productInfoStatsProvider = FutureProvider<ProductInfoStats>((ref) async {
 class ProductInfoStats {
   /// 商品总数
   final int totalCount;
-  
+
   /// 等级数量
   final int levelCount;
-  
+
   /// 等级列表
   final List<String> levels;
 
