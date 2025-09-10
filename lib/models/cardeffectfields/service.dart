@@ -5,6 +5,7 @@
 
 import 'package:dio/dio.dart';
 
+import '../../common/constants/app_constants.dart';
 import '../../common/utils/logger.dart';
 import '../api_response.dart';
 import '../page_data.dart';
@@ -13,7 +14,7 @@ import 'data.dart';
 /// 卡牌效果字段模板API服务
 /// 对应 TypeScript 中的各个服务函数
 class CardEffectFieldsService {
-  static const String _baseUrl = 'http://localhost:8081'; // 本地开发服务器
+  static const String _baseUrl = AppConstants.baseUrl;
   static const String _apiPath = '/api/products/card-effect-fieldses';
 
   final Dio _dio;

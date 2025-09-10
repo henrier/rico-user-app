@@ -6,6 +6,7 @@ import '../providers/auth_provider.dart';
 import '../screens/auth/login_screen.dart';
 import '../screens/category/category_selection_screen.dart';
 import '../screens/home/home_screen.dart';
+import '../screens/product/spu_search_screen.dart';
 import '../screens/product/spu_selection_screen.dart';
 import '../screens/profile/profile_screen.dart';
 import '../screens/settings/settings_screen.dart';
@@ -84,6 +85,11 @@ final routerProvider = Provider<GoRouter>((ref) {
                 categoryId: categoryId,
               );
             },
+          ),
+          GoRoute(
+            path: 'spu-search',
+            name: 'spu-search',
+            builder: (context, state) => const SpuSearchScreen(),
           ),
         ],
       ),

@@ -44,10 +44,8 @@ class CategorySelectionScreen extends ConsumerWidget {
           IconButton(
             icon: const Icon(Icons.search, color: Colors.black),
             onPressed: () {
-              // TODO: 实现搜索功能
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('搜索功能开发中')),
-              );
+              // 跳转到SPU搜索页面
+              context.push('/home/spu-search');
             },
           ),
         ],

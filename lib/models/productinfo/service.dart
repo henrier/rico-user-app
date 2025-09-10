@@ -6,6 +6,7 @@
 import 'package:dio/dio.dart';
 
 import '../../api/base_api.dart';
+import '../../common/constants/app_constants.dart';
 import '../../common/utils/logger.dart';
 import '../api_response.dart';
 import '../cardeffectfields/data.dart';
@@ -15,7 +16,7 @@ import 'data.dart';
 /// 商品信息API服务
 /// 对应 TypeScript 中的各个服务函数
 class ProductInfoService extends BaseApi {
-  static const String _baseUrl = 'http://localhost:8081'; // 本地开发服务器
+  static const String _baseUrl = AppConstants.baseUrl;
   static const String _apiPath = '/api/products/product-infos';
 
   final Dio _dio;
@@ -595,6 +596,48 @@ class ProductInfoService extends BaseApi {
       rethrow;
     } catch (e) {
       AppLogger.e('查询distinct level值失败', e);
+      rethrow;
+    }
+  }
+
+  /// 分页查询商品信息（使用合并名称查询）
+  /// 对应 TypeScript: getProductInfoPageByName
+  Future<PageData<ProductInfo>> getProductInfoPageByName(
+      ProductInfoManualPageParams params) async {
+    try {
+      AppLogger.i('正在分页查询商品信息（使用合并名称查询）');
+
+      final response = await _dio.get(
+        '$_apiPath/page-by-name',
+        queryParameters: params.toJson(),
+      );
+
+      AppLogger.d('响应状态码: ${response.statusCode}');
+      AppLogger.d('响应数据: ${response.data}');
+
+      final apiResponse = ApiResponse.fromJson(
+        response.data as Map<String, dynamic>,
+        (data) => PageData.fromJson(
+          data as Map<String, dynamic>,
+          (item) => ProductInfo.fromJson(item as Map<String, dynamic>),
+        ),
+      );
+
+      if (apiResponse.success && apiResponse.data != null) {
+        final pageData = apiResponse.data!;
+        AppLogger.i('成功获取${pageData.list.length}个商品信息（按名称查询）');
+        return pageData;
+      } else {
+        throw DioException(
+          requestOptions: response.requestOptions,
+          message: 'API返回错误: ${apiResponse.errorMessage ?? "未知错误"}',
+        );
+      }
+    } on DioException catch (e) {
+      AppLogger.e('网络请求失败', e);
+      rethrow;
+    } catch (e) {
+      AppLogger.e('分页查询商品信息（按名称）失败', e);
       rethrow;
     }
   }

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
 import '../../common/constants/app_constants.dart';
 import '../../models/productinfo/data.dart';
@@ -104,7 +105,7 @@ class _SpuSelectionScreenState extends ConsumerState<SpuSelectionScreen> {
         // 搜索图标
         IconButton(
           icon: const Icon(Icons.search, color: Colors.black),
-          onPressed: () => _showSearchDialog(),
+          onPressed: () => context.push('/home/spu-search'),
         ),
       ],
     );
@@ -277,44 +278,6 @@ class _SpuSelectionScreenState extends ConsumerState<SpuSelectionScreen> {
     );
   }
 
-  /// 显示搜索对话框
-  void _showSearchDialog() {
-    showDialog(
-      context: context,
-      builder: (BuildContext context) {
-        return AlertDialog(
-          title: const Text('搜索SPU'),
-          content: TextField(
-            controller: _searchController,
-            decoration: const InputDecoration(
-              hintText: '请输入SPU名称或编码',
-              border: OutlineInputBorder(),
-            ),
-            autofocus: true,
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(context).pop(),
-              child: const Text('取消'),
-            ),
-            ElevatedButton(
-              onPressed: () {
-                final keyword = _searchController.text.trim();
-                if (keyword.isNotEmpty) {
-                  final viewModel = ref.read(
-                      spuSelectionViewModelProvider(widget.categoryId)
-                          .notifier);
-                  viewModel.searchSpu(keyword);
-                }
-                Navigator.of(context).pop();
-              },
-              child: const Text('搜索'),
-            ),
-          ],
-        );
-      },
-    );
-  }
 
   /// 显示筛选对话框
   void _showFilterDialog() {

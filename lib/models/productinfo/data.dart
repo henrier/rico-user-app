@@ -465,3 +465,105 @@ class ProductInfoPageParams {
     };
   }
 }
+
+/// 手动分页查询商品信息参数（合并名称查询）
+/// 对应 TypeScript: ProductInfoManualPageParams
+class ProductInfoManualPageParams {
+  /// 当前页
+  final int current;
+
+  /// 分页大小
+  final int pageSize;
+
+  /// 名称（合并查询中文名、英文名、日文名）
+  final String? name;
+
+  /// 编码
+  final String? code;
+
+  /// 等级
+  final String? level;
+
+  /// 所属类目
+  final List<String>? categories;
+
+  /// 卡牌效果模板
+  final String? cardEffectTemplate;
+
+  /// 字段名（模糊查询）
+  final String? fieldName;
+
+  /// 字段类型
+  final String? fieldType;
+
+  /// 显示名称（模糊查询）
+  final String? displayName;
+
+  /// 字段值（模糊查询）
+  final String? fieldValue;
+
+  /// 图片
+  final List<String>? images;
+
+  /// 创建时间范围开始
+  final String? createdAtStart;
+
+  /// 创建时间范围结束
+  final String? createdAtEnd;
+
+  /// 更新时间范围开始
+  final String? updatedAtStart;
+
+  /// 更新时间范围结束
+  final String? updatedAtEnd;
+
+  /// 创建者（模糊查询）
+  final String? createdBy;
+
+  /// 更新者（模糊查询）
+  final String? updatedBy;
+
+  const ProductInfoManualPageParams({
+    this.current = 1,
+    this.pageSize = 20,
+    this.name,
+    this.code,
+    this.level,
+    this.categories,
+    this.cardEffectTemplate,
+    this.fieldName,
+    this.fieldType,
+    this.displayName,
+    this.fieldValue,
+    this.images,
+    this.createdAtStart,
+    this.createdAtEnd,
+    this.updatedAtStart,
+    this.updatedAtEnd,
+    this.createdBy,
+    this.updatedBy,
+  });
+
+  Map<String, dynamic> toJson() {
+    return {
+      'current': current,
+      'pageSize': pageSize,
+      if (name != null) 'name': name,
+      if (code != null) 'code': code,
+      if (level != null) 'level': level,
+      if (categories != null) 'categories': categories,
+      if (cardEffectTemplate != null) 'cardEffectTemplate': cardEffectTemplate,
+      if (fieldName != null) 'fieldName': fieldName,
+      if (fieldType != null) 'fieldType': fieldType,
+      if (displayName != null) 'displayName': displayName,
+      if (fieldValue != null) 'fieldValue': fieldValue,
+      if (images != null) 'images': images,
+      if (createdAtStart != null) 'createdAtStart': createdAtStart,
+      if (createdAtEnd != null) 'createdAtEnd': createdAtEnd,
+      if (updatedAtStart != null) 'updatedAtStart': updatedAtStart,
+      if (updatedAtEnd != null) 'updatedAtEnd': updatedAtEnd,
+      if (createdBy != null) 'createdBy': createdBy,
+      if (updatedBy != null) 'updatedBy': updatedBy,
+    };
+  }
+}

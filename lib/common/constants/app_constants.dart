@@ -4,7 +4,7 @@ class AppConstants {
   static const String appVersion = '1.0.0';
 
   // API Configuration
-  static const String baseUrl = 'http://localhost:8081';
+  static const String baseUrl = 'http://106.15.56.101:8081';
   static const String apiVersion = 'api';
   static const Duration apiTimeout = Duration(seconds: 30);
 
