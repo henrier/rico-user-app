@@ -4,8 +4,10 @@ import 'package:go_router/go_router.dart';
 
 import '../../common/constants/app_constants.dart';
 import '../../models/productinfo/data.dart';
+import '../../models/productinfo/service.dart';
 import '../../viewmodels/spu_selection_viewmodel.dart';
 import '../../widgets/product_info_item.dart';
+import '../../widgets/spu_select_filter.dart';
 
 /// SPU选择页面
 /// 对应Figma设计中的"商品目录 - 按步骤点击 - 展示 Singles"页面
@@ -279,42 +281,90 @@ class _SpuSelectionScreenState extends ConsumerState<SpuSelectionScreen> {
   }
 
 
-  /// 显示筛选对话框
-  void _showFilterDialog() {
+  /// 显示筛选抽屉（右侧）
+  void _showFilterDialog() async {
     final state = ref.read(spuSelectionViewModelProvider(widget.categoryId));
 
+    // 显示加载指示器
     showDialog(
       context: context,
-      builder: (BuildContext context) {
-        return AlertDialog(
-          title: const Text('筛选条件'),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const Text('筛选功能开发中...'),
-              const SizedBox(height: 16),
-              if (state.filter.hasFilters)
-                ElevatedButton(
-                  onPressed: () {
-                    final viewModel = ref.read(
-                        spuSelectionViewModelProvider(widget.categoryId)
-                            .notifier);
-                    viewModel.clearFilter();
-                    Navigator.of(context).pop();
-                  },
-                  child: const Text('清除筛选'),
-                ),
-            ],
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(context).pop(),
-              child: const Text('关闭'),
-            ),
-          ],
-        );
-      },
+      barrierDismissible: false,
+      builder: (context) => const Center(child: CircularProgressIndicator()),
     );
+
+    try {
+      // 从服务加载可选等级
+      final productInfoService = ProductInfoService();
+      final distinctLevels = await productInfoService.getProductInfoDistinctLevels();
+
+      // 关闭加载
+      if (mounted) Navigator.of(context).pop();
+
+      // 组装筛选面板数据
+      final sections = [
+        SpuSelectFilterSection(
+          title: 'Level',
+          options: distinctLevels
+              .map((level) => SpuSelectFilterOption(id: level, label: level))
+              .toList(),
+        ),
+      ];
+
+      // 初始选中（回显）
+      final initialSelections = <String, Set<String>>{};
+      if (state.filter.levels.isNotEmpty) {
+        initialSelections['Level'] = state.filter.levels.toSet();
+      }
+
+      // 打开右侧筛选抽屉
+      final result = await showSpuSelectFilter(
+        context,
+        sections: sections,
+        initialSelections: initialSelections.isNotEmpty ? initialSelections : null,
+        title: 'Filtering',
+        clearText: 'Clear',
+        confirmText: 'Confirm',
+      );
+
+      if (result != null) {
+        final viewModel =
+            ref.read(spuSelectionViewModelProvider(widget.categoryId).notifier);
+
+        final selectedLevels = result['Level'] ?? <String>{};
+        final isClearing = selectedLevels.isEmpty;
+
+        if (isClearing) {
+          await viewModel.clearFilter();
+        } else {
+          final newFilter = state.filter.copyWith(levels: selectedLevels.toList());
+          await viewModel.applyFilter(newFilter);
+        }
+
+        if (mounted) {
+          final selectedCount = result.values.fold<int>(0, (sum, set) => sum + set.length);
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(selectedCount > 0
+                  ? '已应用 $selectedCount 个筛选条件，列表已更新'
+                  : '已清除所有筛选条件，列表已重置'),
+              duration: const Duration(seconds: 2),
+              backgroundColor: selectedCount > 0 ? Colors.green : Colors.orange,
+            ),
+          );
+        }
+      }
+    } catch (e) {
+      // 关闭加载
+      if (mounted) Navigator.of(context).pop();
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('加载筛选选项失败: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
   }
 }
 
