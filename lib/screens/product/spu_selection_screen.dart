@@ -3,7 +3,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../models/productinfo/data.dart';
+import '../../models/productinfo/service.dart';
 import '../../viewmodels/spu_selection_viewmodel.dart';
+import '../../widgets/spu_select_filter.dart';
 
 /// SPU选择页面
 /// 对应Figma设计中的"商品目录 - 按步骤点击 - 展示 Singles"页面
@@ -919,150 +921,127 @@ class _SpuSelectionScreenState extends ConsumerState<SpuSelectionScreen> {
   }
 
   /// 显示筛选对话框
-  void _showFilterDialog() {
-    final state = ref.read(spuSelectionViewModelProvider(widget.categoryId));
-
+  void _showFilterDialog() async {
+    // 显示加载指示器
     showDialog(
       context: context,
-      builder: (BuildContext context) {
-        return Dialog(
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(20),
+      barrierDismissible: false,
+      builder: (context) => const Center(
+        child: CircularProgressIndicator(),
+      ),
+    );
+
+    try {
+      // 调用服务获取动态数据
+      final productInfoService = ProductInfoService();
+      final distinctLevels = await productInfoService.getProductInfoDistinctLevels();
+      
+      // 关闭加载指示器
+      if (mounted) Navigator.of(context).pop();
+
+      // 构建筛选选项
+      final sections = [
+        // 等级筛选（动态数据）
+        if (distinctLevels.isNotEmpty)
+          SpuSelectFilterSection(
+            title: 'Level',
+            options: distinctLevels.map((level) => 
+              SpuSelectFilterOption(id: level, label: level)
+            ).toList(),
           ),
-          child: Container(
-            padding: const EdgeInsets.all(24),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(20),
+      ];
+
+      // 获取当前状态
+      final state = ref.read(spuSelectionViewModelProvider(widget.categoryId));
+      
+      // 构建当前选择状态
+      final currentSelections = <String, Set<String>>{};
+      if (distinctLevels.isNotEmpty) {
+        currentSelections['Level'] = Set<String>.from(state.filter.levels);
+      }
+
+      // 显示筛选对话框
+      final result = await showSpuSelectFilter(
+        context,
+        sections: sections,
+        initialSelections: currentSelections,
+        title: 'Filtering',
+        clearText: 'Clear',
+        confirmText: 'Confirm',
+      );
+
+      if (result != null) {
+        // 处理筛选结果
+        final selectedLevels = result['Level']?.toList() ?? <String>[];
+        
+        // 检查是否有筛选条件
+        final hasFilters = selectedLevels.isNotEmpty;
+        
+        final viewModel = ref.read(
+            spuSelectionViewModelProvider(widget.categoryId).notifier);
+        
+        if (hasFilters) {
+          // 创建筛选对象并应用筛选条件
+          final filter = SpuSelectionFilter(
+            levels: selectedLevels,
+            categories: const [],
+            languages: const [],
+          );
+          
+          await viewModel.applyFilter(filter);
+          
+          // 显示筛选结果反馈
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text('已应用 ${selectedLevels.length} 个筛选条件'),
+                duration: const Duration(seconds: 2),
+                backgroundColor: Colors.green,
+                behavior: SnackBarBehavior.floating,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(10),
+                ),
+              ),
+            );
+          }
+        } else {
+          // 清除筛选条件
+          await viewModel.clearFilter();
+          
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text('已清除所有筛选条件'),
+                duration: const Duration(seconds: 2),
+                backgroundColor: Colors.orange,
+                behavior: SnackBarBehavior.floating,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(10),
+                ),
+              ),
+            );
+          }
+        }
+      }
+    } catch (e) {
+      // 关闭加载指示器
+      if (mounted) Navigator.of(context).pop();
+      
+      // 显示错误信息
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('加载筛选选项失败: $e'),
+            backgroundColor: Colors.red,
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(10),
             ),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                // 标题
-                Row(
-                  children: [
-                    Container(
-                      padding: const EdgeInsets.all(8),
-                      decoration: BoxDecoration(
-                        color: Theme.of(context).primaryColor.withOpacity(0.1),
-                        borderRadius: BorderRadius.circular(10),
-                      ),
-                      child: Icon(
-                        Icons.tune,
-                        color: Theme.of(context).primaryColor,
-                        size: 24,
-                      ),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: Text(
-                        '筛选条件',
-                        style: TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.w600,
-                          color: Colors.grey[900],
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 20),
-                // 内容
-                Container(
-                  padding: const EdgeInsets.all(20),
-                  decoration: BoxDecoration(
-                    color: Colors.grey[50],
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: Column(
-                    children: [
-                      Icon(
-                        Icons.construction,
-                        size: 48,
-                        color: Colors.grey[400],
-                      ),
-                      const SizedBox(height: 12),
-                      Text(
-                        '筛选功能开发中...',
-                        style: TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.w500,
-                          color: Colors.grey[600],
-                        ),
-                      ),
-                      const SizedBox(height: 8),
-                      Text(
-                        '敬请期待更多筛选选项',
-                        style: TextStyle(
-                          fontSize: 14,
-                          color: Colors.grey[500],
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                const SizedBox(height: 24),
-                // 按钮
-                Row(
-                  children: [
-                    if (state.filter.hasFilters) ...[
-                      Expanded(
-                        child: TextButton(
-                          onPressed: () {
-                            final viewModel = ref.read(
-                                spuSelectionViewModelProvider(widget.categoryId)
-                                    .notifier);
-                            viewModel.clearFilter();
-                            Navigator.of(context).pop();
-                          },
-                          style: TextButton.styleFrom(
-                            padding: const EdgeInsets.symmetric(vertical: 12),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(10),
-                              side: BorderSide(color: Colors.red[300]!),
-                            ),
-                          ),
-                          child: Text(
-                            '清除筛选',
-                            style: TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.w500,
-                              color: Colors.red[600],
-                            ),
-                          ),
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                    ],
-                    Expanded(
-                      child: ElevatedButton(
-                        onPressed: () => Navigator.of(context).pop(),
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Theme.of(context).primaryColor,
-                          foregroundColor: Colors.white,
-                          padding: const EdgeInsets.symmetric(vertical: 12),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(10),
-                          ),
-                          elevation: 0,
-                        ),
-                        child: const Text(
-                          '关闭',
-                          style: TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ],
-            ),
+            duration: const Duration(seconds: 3),
           ),
         );
-      },
-    );
+      }
+    }
   }
 }
 
