@@ -3,8 +3,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../common/constants/app_constants.dart';
 import '../../models/productinfo/data.dart';
+import '../../models/productinfo/service.dart';
 import '../../viewmodels/spu_search_viewmodel.dart';
 import '../../widgets/product_info_item.dart';
+import '../../widgets/spu_select_filter.dart';
 
 /// SPU搜索页面
 /// 对应Figma设计中的搜索界面
@@ -121,12 +123,7 @@ class _SpuSearchScreenState extends ConsumerState<SpuSearchScreen> {
       ),
       alignment: Alignment.centerRight,
       child: GestureDetector(
-        onTap: () {
-          // TODO: 接入真实筛选
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('筛选功能开发中')),
-          );
-        },
+        onTap: () => _showFilterDialog(),
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: const [
@@ -550,5 +547,85 @@ class _SpuSearchScreenState extends ConsumerState<SpuSearchScreen> {
         );
       },
     );
+  }
+
+  /// 显示筛选对话框
+  void _showFilterDialog() async {
+    // 显示加载指示器
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => const Center(
+        child: CircularProgressIndicator(),
+      ),
+    );
+
+    try {
+      // 调用服务获取动态数据
+      final productInfoService = ProductInfoService();
+      final distinctLevels = await productInfoService.getProductInfoDistinctLevels();
+      
+      // 关闭加载指示器
+      if (mounted) Navigator.of(context).pop();
+
+      // 构建筛选选项
+      final sections = [
+        // 等级筛选（动态数据）
+        SpuSelectFilterSection(
+          title: 'Level',
+          options: distinctLevels.map((level) => 
+            SpuSelectFilterOption(id: level, label: level)
+          ).toList(),
+        ),
+      ];
+
+      // 显示筛选对话框
+      final result = await showSpuSelectFilter(
+        context,
+        sections: sections,
+        title: 'Filtering',
+        clearText: 'Clear',
+        confirmText: 'Confirm',
+      );
+
+      if (result != null) {
+        // 处理筛选结果
+        final selectedLevels = result['Level'] ?? <String>{};
+        
+        // 检查是否是清空操作
+        final isClearing = selectedLevels.isEmpty;
+        
+        // 显示筛选结果反馈
+        final selectedCount = result.values.fold<int>(0, (sum, set) => sum + set.length);
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(selectedCount > 0 
+                ? '已应用 $selectedCount 个筛选条件'
+                : '已清除所有筛选条件'),
+              duration: const Duration(seconds: 2),
+              backgroundColor: selectedCount > 0 ? Colors.green : Colors.orange,
+            ),
+          );
+        }
+
+        // TODO: 这里可以根据筛选结果重新搜索
+        // 例如：将筛选条件传递给搜索ViewModel进行筛选搜索
+      }
+    } catch (e) {
+      // 关闭加载指示器
+      if (mounted) Navigator.of(context).pop();
+      
+      // 显示错误信息
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('加载筛选选项失败: $e'),
+            backgroundColor: Colors.red,
+            duration: const Duration(seconds: 3),
+          ),
+        );
+      }
+    }
   }
 }
