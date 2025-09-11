@@ -660,8 +660,8 @@ class ProductInfoManualPageParams {
   /// 编码
   final String? code;
 
-  /// 等级
-  final String? level;
+  /// 等级（支持多个值的完全匹配查询）
+  final List<String>? level;
 
   /// 所属类目
   final List<String>? categories;
