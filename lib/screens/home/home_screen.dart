@@ -160,6 +160,13 @@ class HomeScreen extends ConsumerWidget {
                     subtitle: '批量调整商品列表',
                     onTap: () => context.pushNamed('batch-add-product'),
                   ),
+                    _buildActionCard(
+                    context,
+                    icon: Icons.add_business,
+                    title: '商品管理',
+                    subtitle: '商品管理列表',
+                    onTap: () => context.pushNamed('product-management-demo'),
+                  ),
                 ],
               ),
             ),
