@@ -37,9 +37,14 @@ class _ProductDetailCreateScreenState
   String _selectedType = 'Raw';
   String _selectedCondition = '';
   String _selectedGradedBy = '';
+  String _selectedGrade = '';
+  String _serialNumber = '';
   List<File> _selectedImages = [];
   bool _setCoverPhoto = false;
   final ImagePicker _imagePicker = ImagePicker();
+  
+  // 序列号输入控制器
+  final TextEditingController _serialNumberController = TextEditingController();
 
   // 设计图中的络色
   static const Color designGreen = Color(0xFF0DEE80);
@@ -59,6 +64,7 @@ class _ProductDetailCreateScreenState
     _priceController.dispose();
     _stockController.dispose();
     _notesController.dispose();
+    _serialNumberController.dispose();
     super.dispose();
   }
 
@@ -83,8 +89,8 @@ class _ProductDetailCreateScreenState
                 _buildTypeConditionSection(),
                 // 分隔条
                 _buildSectionDivider(),
-                // Price & Stock 区域
-                _buildPriceStockSection(),
+                // Price & Stock 区域（在Raw和Sealed类型时显示）
+                if (_selectedType == 'Raw' || _selectedType == 'Sealed') _buildPriceStockSection(),
                 // 分隔条
                 _buildSectionDivider(),
                 // Notes to Buyer 区域
@@ -93,16 +99,15 @@ class _ProductDetailCreateScreenState
                 _buildSectionDivider(),
                 // Upload Item Photo 区域
                 _buildPhotoUploadSection(),
-                // 底部间距
-                SizedBox(height: 120.h),
+                // Done按钮区域
+                _buildDoneButtonSection(),
+                // 底部安全区域间距
+                SizedBox(height: MediaQuery.of(context).padding.bottom + 20.h),
               ],
             ),
           ),
         ],
       ),
-      // 固定底部按钮
-      floatingActionButton: _buildDoneButton(),
-      floatingActionButtonLocation: FloatingActionButtonLocation.centerFloat,
     );
   }
 
@@ -378,11 +383,25 @@ class _ProductDetailCreateScreenState
           // Type选择
           _buildTypeSelection(),
           SizedBox(height: 40.h),
-          // Condition选择（仅在Raw类型时显示）
-          if (_selectedType == 'Raw') _buildConditionSelection(),
+          // Condition选择（在Raw和Sealed类型时显示）
+          if (_selectedType == 'Raw' || _selectedType == 'Sealed') _buildConditionSelection(),
+          // Graded相关字段（仅在Graded类型时显示）
+          if (_selectedType == 'Graded') ..._buildGradedFields(),
           SizedBox(height: 40.h),
           // 注意事项
           _buildNoticeSection(),
+          // Serial Number输入（仅在Graded类型时显示）
+          if (_selectedType == 'Graded') ...[
+            // 分隔条
+            Container(
+              height: 5.h,
+              color: const Color(0xFFF4F4F6),
+            ),
+            _buildSerialNumberInput(),
+            SizedBox(height: 40.h),
+            // Price区域（仅在Graded类型时显示）
+            _buildGradedPriceSection(),
+          ],
         ],
       ),
     );
@@ -405,9 +424,9 @@ class _ProductDetailCreateScreenState
           spacing: 20.w,
           runSpacing: 12.h,
           children: [
-            _buildTypeChip('Raw', true),
-            _buildTypeChip('Graded', false),
-            _buildTypeChip('Sealed', false),
+            _buildTypeChip('Raw', _selectedType == 'Raw'),
+            _buildTypeChip('Graded', _selectedType == 'Graded'),
+            _buildTypeChip('Sealed', _selectedType == 'Sealed'),
           ],
         ),
       ],
@@ -436,9 +455,12 @@ class _ProductDetailCreateScreenState
       onTap: () {
         setState(() {
           _selectedType = type;
-          // 切换类型时清空条件选择
+          // 切换类型时清空相关选择
           _selectedCondition = '';
           _selectedGradedBy = '';
+          _selectedGrade = '';
+          _serialNumber = '';
+          _serialNumberController.clear();
         });
       },
       child: Container(
@@ -469,7 +491,7 @@ class _ProductDetailCreateScreenState
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          'Graded by',
+          'Condition',
           style: TextStyle(
             fontSize: 24.sp,
             color: const Color(0xFF919191),
@@ -485,6 +507,151 @@ class _ProductDetailCreateScreenState
             _buildConditionChip('Lightly Played'),
             _buildConditionChip('Damaged'),
           ],
+        ),
+      ],
+    );
+  }
+
+  /// 构建Graded相关字段
+  List<Widget> _buildGradedFields() {
+    return [
+      // Graded by 选择
+      _buildGradedBySelection(),
+      SizedBox(height: 40.h),
+      // Grades 选择
+      _buildGradesSelection(),
+    ];
+  }
+
+  /// 构建Graded by选择区域
+  Widget _buildGradedBySelection() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'Graded by',
+          style: TextStyle(
+            fontSize: 24.sp,
+            color: const Color(0xFF919191),
+          ),
+        ),
+        SizedBox(height: 20.h),
+        Wrap(
+          spacing: 20.w,
+          runSpacing: 12.h,
+          children: [
+            _buildGradedByChip('PSA'),
+            _buildGradedByChip('BGS'),
+            _buildGradedByChip('CGC'),
+            _buildGradedByChip('PGC'),
+          ],
+        ),
+      ],
+    );
+  }
+
+  /// 构建Grades选择区域
+  Widget _buildGradesSelection() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'Grades',
+          style: TextStyle(
+            fontSize: 24.sp,
+            color: const Color(0xFF919191),
+          ),
+        ),
+        SizedBox(height: 20.h),
+        Wrap(
+          spacing: 20.w,
+          runSpacing: 12.h,
+          children: [
+            _buildGradeChip('Black Label'),
+          ],
+        ),
+      ],
+    );
+  }
+
+  /// 构建Serial Number输入区域
+  Widget _buildSerialNumberInput() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Text(
+              'Serial Number',
+              style: TextStyle(
+                fontSize: 28.sp,
+                fontWeight: FontWeight.w500,
+                color: Colors.black,
+              ),
+            ),
+            Text(
+              ' *',
+              style: TextStyle(
+                fontSize: 28.sp,
+                color: Colors.red,
+              ),
+            ),
+            const Spacer(),
+            GestureDetector(
+              onTap: () {
+                // TODO: 显示帮助信息
+              },
+              child: Row(
+                children: [
+                  Icon(
+                    Icons.help_outline,
+                    size: 24.sp,
+                    color: Colors.green[600],
+                  ),
+                  SizedBox(width: 8.w),
+                  Text(
+                    'Where to find',
+                    style: TextStyle(
+                      fontSize: 24.sp,
+                      color: Colors.green[600],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+        SizedBox(height: 20.h),
+        Container(
+          height: 72.h,
+          decoration: BoxDecoration(
+            color: const Color(0xFFF3F3F5),
+            borderRadius: BorderRadius.circular(59.r),
+          ),
+          child: TextField(
+            controller: _serialNumberController,
+            onChanged: (value) {
+              setState(() {
+                _serialNumber = value;
+              });
+            },
+            decoration: InputDecoration(
+              hintText: 'Enter serial number',
+              hintStyle: TextStyle(
+                fontSize: 24.sp,
+                color: const Color(0xFF919191),
+              ),
+              border: InputBorder.none,
+              contentPadding: EdgeInsets.symmetric(
+                horizontal: 30.w,
+                vertical: 20.h,
+              ),
+            ),
+            style: TextStyle(
+              fontSize: 24.sp,
+              color: Colors.black,
+            ),
+          ),
         ),
       ],
     );
@@ -529,6 +696,99 @@ class _ProductDetailCreateScreenState
         child: Center(
           child: Text(
             condition,
+            style: TextStyle(
+              fontSize: 24.sp,
+              fontWeight: isSelected ? FontWeight.w500 : FontWeight.normal,
+              color: Colors.black,
+              fontFamily: 'Roboto',
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  /// 构建Graded by选择芯片
+  Widget _buildGradedByChip(String gradedBy) {
+    final isSelected = _selectedGradedBy == gradedBy;
+    
+    // 根据设计图设置不同宽度
+    double width;
+    switch (gradedBy) {
+      case 'PSA':
+        width = 110.w;
+        break;
+      case 'BGS':
+        width = 110.w;
+        break;
+      case 'CGC':
+        width = 110.w;
+        break;
+      case 'PGC':
+        width = 110.w;
+        break;
+      default:
+        width = 110.w;
+    }
+    
+    return GestureDetector(
+      onTap: () {
+        setState(() {
+          _selectedGradedBy = isSelected ? '' : gradedBy;
+        });
+      },
+      child: Container(
+        height: 54.h,
+        width: width,
+        decoration: BoxDecoration(
+          color: isSelected ? designGreen : const Color(0xFFF4F4F4),
+          borderRadius: BorderRadius.circular(47.r),
+        ),
+        child: Center(
+          child: Text(
+            gradedBy,
+            style: TextStyle(
+              fontSize: 24.sp,
+              fontWeight: isSelected ? FontWeight.w500 : FontWeight.normal,
+              color: Colors.black,
+              fontFamily: 'Roboto',
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  /// 构建Grade选择芯片
+  Widget _buildGradeChip(String grade) {
+    final isSelected = _selectedGrade == grade;
+    
+    // 根据设计图设置不同宽度
+    double width;
+    switch (grade) {
+      case 'Black Label':
+        width = 208.w; // 根据设计图调整
+        break;
+      default:
+        width = 208.w;
+    }
+    
+    return GestureDetector(
+      onTap: () {
+        setState(() {
+          _selectedGrade = isSelected ? '' : grade;
+        });
+      },
+      child: Container(
+        height: 54.h,
+        width: width,
+        decoration: BoxDecoration(
+          color: isSelected ? designGreen : const Color(0xFFF4F4F4),
+          borderRadius: BorderRadius.circular(47.r),
+        ),
+        child: Center(
+          child: Text(
+            grade,
             style: TextStyle(
               fontSize: 24.sp,
               fontWeight: isSelected ? FontWeight.w500 : FontWeight.normal,
@@ -674,6 +934,88 @@ class _ProductDetailCreateScreenState
               ],
             ),
           ),
+        ),
+      ],
+    );
+  }
+
+  /// 构建Graded类型的价格区域
+  Widget _buildGradedPriceSection() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Text(
+              'Price',
+              style: TextStyle(
+                fontSize: 28.sp,
+                fontWeight: FontWeight.w500,
+                color: Colors.black,
+              ),
+            ),
+            Text(
+              ' *',
+              style: TextStyle(
+                fontSize: 28.sp,
+                color: Colors.red,
+              ),
+            ),
+          ],
+        ),
+        SizedBox(height: 20.h),
+        Row(
+          children: [
+            Text(
+              'Set Price',
+              style: TextStyle(
+                fontSize: 24.sp,
+                color: const Color(0xFF919191),
+                fontFamily: 'Roboto',
+              ),
+            ),
+          ],
+        ),
+        SizedBox(height: 13.h),
+        Row(
+          children: [
+            Text(
+              'RM',
+              style: TextStyle(
+                fontSize: 24.sp,
+                color: Colors.black,
+                fontFamily: 'Roboto',
+              ),
+            ),
+            SizedBox(width: 48.w),
+            Container(
+              width: 113.w,
+              height: 54.h,
+              decoration: BoxDecoration(
+                color: const Color(0xFFF4F4F4),
+                borderRadius: BorderRadius.circular(47.r),
+              ),
+              child: TextField(
+                controller: _priceController,
+                textAlign: TextAlign.center,
+                keyboardType: TextInputType.number,
+                decoration: InputDecoration(
+                  border: InputBorder.none,
+                  hintText: '0',
+                  hintStyle: TextStyle(
+                    fontSize: 24.sp,
+                    color: const Color(0xFF919191),
+                    fontFamily: 'Roboto',
+                  ),
+                ),
+                style: TextStyle(
+                  fontSize: 24.sp,
+                  color: Colors.black,
+                  fontFamily: 'Roboto',
+                ),
+              ),
+            ),
+          ],
         ),
       ],
     );
@@ -1081,28 +1423,33 @@ class _ProductDetailCreateScreenState
     );
   }
 
-  /// 构建Done按钮
-  Widget _buildDoneButton() {
+  /// 构建Done按钮区域
+  Widget _buildDoneButtonSection() {
     return Container(
-      width: 540.w,
-      height: 96.h,
-      margin: EdgeInsets.only(bottom: 68.h), // 按设计图底部间距
-      child: ElevatedButton(
-        onPressed: _onDonePressed,
-        style: ElevatedButton.styleFrom(
-          backgroundColor: designGreen,
-          foregroundColor: Colors.black,
-          elevation: 0,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(100.r),
-          ),
-        ),
-        child: Text(
-          'Done',
-          style: TextStyle(
-            fontSize: 30.sp,
-            fontWeight: FontWeight.w600,
-            fontFamily: 'Roboto',
+      width: double.infinity,
+      padding: EdgeInsets.all(30.w),
+      child: Center(
+        child: Container(
+          width: 540.w,
+          height: 96.h,
+          child: ElevatedButton(
+            onPressed: _onDonePressed,
+            style: ElevatedButton.styleFrom(
+              backgroundColor: designGreen,
+              foregroundColor: Colors.black,
+              elevation: 0,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(100.r),
+              ),
+            ),
+            child: Text(
+              'Done',
+              style: TextStyle(
+                fontSize: 30.sp,
+                fontWeight: FontWeight.w600,
+                fontFamily: 'Roboto',
+              ),
+            ),
           ),
         ),
       ),
@@ -1132,6 +1479,21 @@ class _ProductDetailCreateScreenState
     if (_selectedType == 'Raw' && _selectedCondition.isEmpty) {
       _showErrorSnackBar('请选择商品品质');
       return;
+    }
+
+    if (_selectedType == 'Graded') {
+      if (_selectedGradedBy.isEmpty) {
+        _showErrorSnackBar('请选择评级机构');
+        return;
+      }
+      if (_selectedGrade.isEmpty) {
+        _showErrorSnackBar('请选择等级');
+        return;
+      }
+      if (_serialNumber.isEmpty) {
+        _showErrorSnackBar('请输入序列号');
+        return;
+      }
     }
 
     // 构建商品详情数据
@@ -1164,6 +1526,8 @@ class _ProductDetailCreateScreenState
       'type': _selectedType,
       'condition': _selectedCondition,
       'gradedBy': _selectedGradedBy,
+      'grade': _selectedGrade,
+      'serialNumber': _serialNumber,
       'price': double.parse(_priceController.text),
       'stock': int.parse(_stockController.text),
       'notes': _notesController.text.trim(),
@@ -1224,6 +1588,18 @@ class _ProductDetailCreateScreenState
                 if (productDetail['condition'].isNotEmpty) ...[
                   const SizedBox(height: 8),
                   _buildConfirmRow('品质', productDetail['condition']),
+                ],
+                if (productDetail['gradedBy'].isNotEmpty) ...[
+                  const SizedBox(height: 8),
+                  _buildConfirmRow('评级机构', productDetail['gradedBy']),
+                ],
+                if (productDetail['grade'].isNotEmpty) ...[
+                  const SizedBox(height: 8),
+                  _buildConfirmRow('等级', productDetail['grade']),
+                ],
+                if (productDetail['serialNumber'].isNotEmpty) ...[
+                  const SizedBox(height: 8),
+                  _buildConfirmRow('序列号', productDetail['serialNumber']),
                 ],
                 const SizedBox(height: 8),
                 _buildConfirmRow('价格', 'RM ${productDetail['price']}'),
