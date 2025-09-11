@@ -76,8 +76,8 @@ class _SpuSearchScreenState extends ConsumerState<SpuSearchScreen> {
         children: [
           // 搜索框区域
           _buildSearchArea(),
-          // 筛选栏（始终显示）
-          _buildFilterBar(),
+          // 筛选栏（仅在有查询时显示）
+          if (!state.isEmpty) _buildFilterBar(),
           // 分隔线
           Container(
             height: 1,
@@ -230,24 +230,6 @@ class _SpuSearchScreenState extends ConsumerState<SpuSearchScreen> {
                     color: Colors.white,
                     fontSize: 16,
                     fontWeight: FontWeight.w500,
-                  ),
-                ),
-              ),
-            ),
-          ),
-          const SizedBox(width: 12),
-          // 取消按钮
-          GestureDetector(
-            onTap: () => Navigator.of(context).pop(),
-            child: Container(
-              height: 48,
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              child: const Center(
-                child: Text(
-                  'Cancel',
-                  style: TextStyle(
-                    color: Colors.grey,
-                    fontSize: 16,
                   ),
                 ),
               ),
