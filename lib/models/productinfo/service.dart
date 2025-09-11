@@ -323,6 +323,108 @@ class ProductInfoService extends BaseApi {
     }
   }
 
+  /// 修改建议售价
+  /// 对应 TypeScript: updateProductInfoSuggestedPrice
+  Future<void> updateProductInfoSuggestedPrice(
+      String productInfoId, UpdateProductInfoSuggestedPriceParams params) async {
+    try {
+      AppLogger.i('正在修改商品信息建议售价: $productInfoId');
+
+      final response = await _dio.put(
+        '$_apiPath/$productInfoId/suggested-price',
+        data: params.toJson(),
+      );
+
+      final apiResponse = ApiResponse.fromJson(
+        response.data as Map<String, dynamic>,
+        (data) => null,
+      );
+
+      if (apiResponse.success) {
+        AppLogger.i('成功修改商品信息建议售价');
+      } else {
+        throw DioException(
+          requestOptions: response.requestOptions,
+          message: 'API返回错误: ${apiResponse.errorMessage ?? "未知错误"}',
+        );
+      }
+    } on DioException catch (e) {
+      AppLogger.e('网络请求失败', e);
+      rethrow;
+    } catch (e) {
+      AppLogger.e('修改商品信息建议售价失败', e);
+      rethrow;
+    }
+  }
+
+  /// 修改卡片语言
+  /// 对应 TypeScript: updateProductInfoCardLanguage
+  Future<void> updateProductInfoCardLanguage(
+      String productInfoId, UpdateProductInfoCardLanguageParams params) async {
+    try {
+      AppLogger.i('正在修改商品信息卡片语言: $productInfoId');
+
+      final response = await _dio.put(
+        '$_apiPath/$productInfoId/card-language',
+        data: params.toJson(),
+      );
+
+      final apiResponse = ApiResponse.fromJson(
+        response.data as Map<String, dynamic>,
+        (data) => null,
+      );
+
+      if (apiResponse.success) {
+        AppLogger.i('成功修改商品信息卡片语言');
+      } else {
+        throw DioException(
+          requestOptions: response.requestOptions,
+          message: 'API返回错误: ${apiResponse.errorMessage ?? "未知错误"}',
+        );
+      }
+    } on DioException catch (e) {
+      AppLogger.e('网络请求失败', e);
+      rethrow;
+    } catch (e) {
+      AppLogger.e('修改商品信息卡片语言失败', e);
+      rethrow;
+    }
+  }
+
+  /// 修改类型
+  /// 对应 TypeScript: updateProductInfoType
+  Future<void> updateProductInfoType(
+      String productInfoId, UpdateProductInfoTypeParams params) async {
+    try {
+      AppLogger.i('正在修改商品信息类型: $productInfoId');
+
+      final response = await _dio.put(
+        '$_apiPath/$productInfoId/type',
+        data: params.toJson(),
+      );
+
+      final apiResponse = ApiResponse.fromJson(
+        response.data as Map<String, dynamic>,
+        (data) => null,
+      );
+
+      if (apiResponse.success) {
+        AppLogger.i('成功修改商品信息类型');
+      } else {
+        throw DioException(
+          requestOptions: response.requestOptions,
+          message: 'API返回错误: ${apiResponse.errorMessage ?? "未知错误"}',
+        );
+      }
+    } on DioException catch (e) {
+      AppLogger.e('网络请求失败', e);
+      rethrow;
+    } catch (e) {
+      AppLogger.e('修改商品信息类型失败', e);
+      rethrow;
+    }
+  }
+
   /// 修改卡牌效果模板
   /// 对应 TypeScript: updateProductInfoCardEffectTemplate
   Future<void> updateProductInfoCardEffectTemplate(String productInfoId,

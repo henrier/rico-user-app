@@ -8,6 +8,66 @@ import '../cardeffectfields/data.dart';
 import '../i18n_string.dart';
 import '../productcategory/data.dart';
 
+// ============================================================================
+// 枚举类型定义
+// ============================================================================
+
+/// 卡片语言枚举
+/// 对应 TypeScript: CardLanguageKey
+enum CardLanguage {
+  zh('ZH'),
+  en('EN'),
+  fr('FR'),
+  ja('JA');
+
+  const CardLanguage(this.value);
+  final String value;
+
+  /// 卡片语言枚举选项（用于UI显示）
+  static const List<Map<String, String>> options = [
+    {'label': '中', 'value': 'ZH'},
+    {'label': '英', 'value': 'EN'},
+    {'label': '法', 'value': 'FR'},
+    {'label': '日', 'value': 'JA'},
+  ];
+
+  static CardLanguage fromString(String value) {
+    return CardLanguage.values.firstWhere(
+      (language) => language.value == value,
+      orElse: () => CardLanguage.zh,
+    );
+  }
+
+  @override
+  String toString() => value;
+}
+
+/// 商品类型枚举
+/// 对应 TypeScript: TypeKey
+enum ProductType {
+  raw('RAW'),
+  sealed('SEALED');
+
+  const ProductType(this.value);
+  final String value;
+
+  /// 类型枚举选项（用于UI显示）
+  static const List<Map<String, String>> options = [
+    {'label': '单卡', 'value': 'RAW'},
+    {'label': '原盒', 'value': 'SEALED'},
+  ];
+
+  static ProductType fromString(String value) {
+    return ProductType.values.firstWhere(
+      (type) => type.value == value,
+      orElse: () => ProductType.raw,
+    );
+  }
+
+  @override
+  String toString() => value;
+}
+
 /// 商品信息详情视图对象
 /// 对应 TypeScript: ProductInfoVO
 class ProductInfo {
@@ -22,6 +82,15 @@ class ProductInfo {
 
   /// 等级
   final String level;
+
+  /// 建议售价
+  final double suggestedPrice;
+
+  /// 卡片语言
+  final CardLanguage cardLanguage;
+
+  /// 类型
+  final ProductType type;
 
   /// 所属类目
   final List<ProductCategory> categories;
@@ -43,6 +112,9 @@ class ProductInfo {
     required this.name,
     required this.code,
     this.level = '',
+    this.suggestedPrice = 0.0,
+    this.cardLanguage = CardLanguage.zh,
+    this.type = ProductType.raw,
     this.categories = const [],
     this.cardEffectTemplate,
     this.cardEffects = const [],
@@ -57,6 +129,13 @@ class ProductInfo {
       name: I18NString.fromJson(json['name'] ?? {}),
       code: json['code'] ?? '',
       level: json['level'] ?? '',
+      suggestedPrice: (json['suggestedPrice'] as num?)?.toDouble() ?? 0.0,
+      cardLanguage: json['cardLanguage'] != null
+          ? CardLanguage.fromString(json['cardLanguage'] as String)
+          : CardLanguage.zh,
+      type: json['type'] != null
+          ? ProductType.fromString(json['type'] as String)
+          : ProductType.raw,
       categories: (json['categories'] as List<dynamic>?)
               ?.map((category) =>
                   ProductCategory.fromJson(category as Map<String, dynamic>))
@@ -83,6 +162,9 @@ class ProductInfo {
       'name': name.toJson(),
       'code': code,
       'level': level,
+      'suggestedPrice': suggestedPrice,
+      'cardLanguage': cardLanguage.value,
+      'type': type.value,
       'categories': categories.map((category) => category.toJson()).toList(),
       if (cardEffectTemplate != null)
         'cardEffectTemplate': cardEffectTemplate!.toJson(),
@@ -97,6 +179,9 @@ class ProductInfo {
     I18NString? name,
     String? code,
     String? level,
+    double? suggestedPrice,
+    CardLanguage? cardLanguage,
+    ProductType? type,
     List<ProductCategory>? categories,
     CardEffectFields? cardEffectTemplate,
     List<DynamicField>? cardEffects,
@@ -108,6 +193,9 @@ class ProductInfo {
       name: name ?? this.name,
       code: code ?? this.code,
       level: level ?? this.level,
+      suggestedPrice: suggestedPrice ?? this.suggestedPrice,
+      cardLanguage: cardLanguage ?? this.cardLanguage,
+      type: type ?? this.type,
       categories: categories ?? this.categories,
       cardEffectTemplate: cardEffectTemplate ?? this.cardEffectTemplate,
       cardEffects: cardEffects ?? this.cardEffects,
@@ -140,7 +228,7 @@ class ProductInfo {
 
   @override
   String toString() {
-    return 'ProductInfo(id: $id, name: ${name.toString()}, code: $code, level: $level)';
+    return 'ProductInfo(id: $id, name: ${name.toString()}, code: $code, level: $level, suggestedPrice: $suggestedPrice, cardLanguage: $cardLanguage, type: $type)';
   }
 }
 
@@ -157,15 +245,20 @@ class CreateProductInfoParams {
   /// 编码
   final String code;
 
+  /// 类型
+  final ProductType type;
+
   const CreateProductInfoParams({
     required this.name,
     required this.code,
+    required this.type,
   });
 
   Map<String, dynamic> toJson() {
     return {
       'name': name.toJson(),
       'code': code,
+      'type': type.value,
     };
   }
 }
@@ -181,6 +274,15 @@ class CreateProductInfoWithAllFieldsParams {
 
   /// 等级
   final String? level;
+
+  /// 建议售价
+  final double? suggestedPrice;
+
+  /// 卡片语言
+  final CardLanguage? cardLanguage;
+
+  /// 类型
+  final ProductType type;
 
   /// 所属类目
   final List<String>? categories;
@@ -198,6 +300,9 @@ class CreateProductInfoWithAllFieldsParams {
     required this.name,
     required this.code,
     this.level,
+    this.suggestedPrice,
+    this.cardLanguage,
+    required this.type,
     this.categories,
     this.cardEffectTemplate,
     this.cardEffects,
@@ -209,6 +314,9 @@ class CreateProductInfoWithAllFieldsParams {
       'name': name.toJson(),
       'code': code,
       if (level != null) 'level': level,
+      if (suggestedPrice != null) 'suggestedPrice': suggestedPrice,
+      if (cardLanguage != null) 'cardLanguage': cardLanguage!.value,
+      'type': type.value,
       if (categories != null) 'categories': categories,
       if (cardEffectTemplate != null) 'cardEffectTemplate': cardEffectTemplate,
       if (cardEffects != null)
@@ -265,6 +373,57 @@ class UpdateProductInfoLevelParams {
   Map<String, dynamic> toJson() {
     return {
       'level': level,
+    };
+  }
+}
+
+/// 修改建议售价参数
+/// 对应 TypeScript: UpdateProductInfoSuggestedPriceParams
+class UpdateProductInfoSuggestedPriceParams {
+  /// 建议售价
+  final double suggestedPrice;
+
+  const UpdateProductInfoSuggestedPriceParams({
+    required this.suggestedPrice,
+  });
+
+  Map<String, dynamic> toJson() {
+    return {
+      'suggestedPrice': suggestedPrice,
+    };
+  }
+}
+
+/// 修改卡片语言参数
+/// 对应 TypeScript: UpdateProductInfoCardLanguageParams
+class UpdateProductInfoCardLanguageParams {
+  /// 卡片语言
+  final CardLanguage cardLanguage;
+
+  const UpdateProductInfoCardLanguageParams({
+    required this.cardLanguage,
+  });
+
+  Map<String, dynamic> toJson() {
+    return {
+      'cardLanguage': cardLanguage.value,
+    };
+  }
+}
+
+/// 修改类型参数
+/// 对应 TypeScript: UpdateProductInfoTypeParams
+class UpdateProductInfoTypeParams {
+  /// 类型
+  final ProductType type;
+
+  const UpdateProductInfoTypeParams({
+    required this.type,
+  });
+
+  Map<String, dynamic> toJson() {
+    return {
+      'type': type.value,
     };
   }
 }
@@ -378,6 +537,18 @@ class ProductInfoPageParams {
   /// 等级
   final String? level;
 
+  /// 建议售价最小值
+  final double? minSuggestedPrice;
+
+  /// 建议售价最大值
+  final double? maxSuggestedPrice;
+
+  /// 卡片语言
+  final CardLanguage? cardLanguage;
+
+  /// 类型
+  final ProductType? type;
+
   /// 所属类目
   final List<String>? categories;
 
@@ -425,6 +596,10 @@ class ProductInfoPageParams {
     this.nameJapanese,
     this.code,
     this.level,
+    this.minSuggestedPrice,
+    this.maxSuggestedPrice,
+    this.cardLanguage,
+    this.type,
     this.categories,
     this.cardEffectTemplate,
     this.fieldName,
@@ -449,6 +624,10 @@ class ProductInfoPageParams {
       if (nameJapanese != null) 'nameJapanese': nameJapanese,
       if (code != null) 'code': code,
       if (level != null) 'level': level,
+      if (minSuggestedPrice != null) 'minSuggestedPrice': minSuggestedPrice,
+      if (maxSuggestedPrice != null) 'maxSuggestedPrice': maxSuggestedPrice,
+      if (cardLanguage != null) 'cardLanguage': cardLanguage!.value,
+      if (type != null) 'type': type!.value,
       if (categories != null) 'categories': categories,
       if (cardEffectTemplate != null) 'cardEffectTemplate': cardEffectTemplate,
       if (fieldName != null) 'fieldName': fieldName,

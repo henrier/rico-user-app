@@ -1,6 +1,6 @@
-import { DynamicFieldTemplate } from '@/components/DynamicField/types';
 import { request } from '@umijs/max';
 import { ProductInfoAPI } from './data';
+import { DynamicFieldTemplate } from '@/components/DynamicField/types';
 
 /** 创建商品信息 */
 export async function createProductInfo(params: ProductInfoAPI.CreateProductInfoParams) {
@@ -52,6 +52,30 @@ export async function updateProductInfoCode(productInfoId: string, params: Produ
 /** 修改等级 */
 export async function updateProductInfoLevel(productInfoId: string, params: ProductInfoAPI.UpdateProductInfoLevelParams) {
   return request<API.ApiResponse<null>>(`/api/products/product-infos/${productInfoId}/level`, {
+    method: 'PUT',
+    data: params,
+  });
+}
+
+/** 修改建议售价 */
+export async function updateProductInfoSuggestedPrice(productInfoId: string, params: ProductInfoAPI.UpdateProductInfoSuggestedPriceParams) {
+  return request<API.ApiResponse<null>>(`/api/products/product-infos/${productInfoId}/suggested-price`, {
+    method: 'PUT',
+    data: params,
+  });
+}
+
+/** 修改卡片语言 */
+export async function updateProductInfoCardLanguage(productInfoId: string, params: ProductInfoAPI.UpdateProductInfoCardLanguageParams) {
+  return request<API.ApiResponse<null>>(`/api/products/product-infos/${productInfoId}/card-language`, {
+    method: 'PUT',
+    data: params,
+  });
+}
+
+/** 修改类型 */
+export async function updateProductInfoType(productInfoId: string, params: ProductInfoAPI.UpdateProductInfoTypeParams) {
+  return request<API.ApiResponse<null>>(`/api/products/product-infos/${productInfoId}/type`, {
     method: 'PUT',
     data: params,
   });
@@ -112,9 +136,4 @@ export async function getProductInfoCardEffectsTemplates(cardEffectTemplateId: s
   });
 }
 
-/** 查询所有商品信息的 distinct level 值 */
-export async function getProductInfoDistinctLevels() {
-  return request<API.ApiResponse<string[]>>('/api/products/product-infos/levels/distinct', {
-    method: 'GET',
-  });
-}
+ 

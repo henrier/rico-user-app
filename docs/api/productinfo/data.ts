@@ -6,15 +6,28 @@ import { DynamicField } from '@/components/DynamicField/types';
 
 export namespace ProductInfoAPI {
 
+  /** 卡片语言枚举值 */
+  type CardLanguageKey = 'ZH' | 'EN' | 'FR' | 'JA';
+
+  /** 卡片语言枚举选项 */
+  export const cardLanguageOptions = [
+    { label: '中', value: 'ZH' },
+    { label: '英', value: 'EN' },
+    { label: '法', value: 'FR' },
+    { label: '日', value: 'JA' }
+  ];
+
+  /** 类型枚举值 */
+  type TypeKey = 'RAW' | 'SEALED';
+
+  /** 类型枚举选项 */
+  export const typeOptions = [
+    { label: '单卡', value: 'RAW' },
+    { label: '原盒', value: 'SEALED' }
+  ];
+
   /** 名称 */
-  export interface I18NStringVO {
-    /** 中文 */
-    chinese: string;
-    /** 英文 */
-    english: string;
-    /** 日文 */
-    japanese: string;
-  }
+  export type I18NStringVO = ProductCategoryAPI.I18NStringVO;
 
   /** 商品信息详情视图 */
   export interface ProductInfoVO {
@@ -26,6 +39,12 @@ export namespace ProductInfoAPI {
     code: string;
     /** 等级 */
     level: string;
+    /** 建议售价 */
+    suggestedPrice: number;
+    /** 卡片语言 */
+    cardLanguage: CardLanguageKey;
+    /** 类型 */
+    type: TypeKey;
     /** 所属类目 */
     categories: ProductCategoryAPI.ProductCategoryVO[];
     /** 卡牌效果模板 */
@@ -44,6 +63,8 @@ export namespace ProductInfoAPI {
     name: I18NStringVO;
     /** 编码 */
     code: string;
+    /** 类型 */
+    type: TypeKey;
   }
 
   /** 创建商品信息（全参数）参数 */
@@ -54,6 +75,12 @@ export namespace ProductInfoAPI {
     code: string;
     /** 等级 */
     level?: string;
+    /** 建议售价 */
+    suggestedPrice?: number;
+    /** 卡片语言 */
+    cardLanguage?: CardLanguageKey;
+    /** 类型 */
+    type: TypeKey;
     /** 所属类目 */
     categories?: string[];
     /** 卡牌效果模板 */
@@ -80,6 +107,24 @@ export namespace ProductInfoAPI {
   export interface UpdateProductInfoLevelParams {
     /** 等级 */
     level: string;
+  }
+
+  /** 修改建议售价参数 */
+  export interface UpdateProductInfoSuggestedPriceParams {
+    /** 建议售价 */
+    suggestedPrice: number;
+  }
+
+  /** 修改卡片语言参数 */
+  export interface UpdateProductInfoCardLanguageParams {
+    /** 卡片语言 */
+    cardLanguage: CardLanguageKey;
+  }
+
+  /** 修改类型参数 */
+  export interface UpdateProductInfoTypeParams {
+    /** 类型 */
+    type: TypeKey;
   }
 
   /** 修改卡牌效果模板参数 */
@@ -124,6 +169,14 @@ export namespace ProductInfoAPI {
     code?: string;
     /** 等级 */
     level?: string;
+    /** 建议售价最小值 */
+    minSuggestedPrice?: number;
+    /** 建议售价最大值 */
+    maxSuggestedPrice?: number;
+    /** 卡片语言 */
+    cardLanguage?: CardLanguageKey;
+    /** 类型 */
+    type?: TypeKey;
     /** 所属类目 */
     categories?: string[];
     /** 卡牌效果模板 */
