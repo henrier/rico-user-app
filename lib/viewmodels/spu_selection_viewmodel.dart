@@ -1,6 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../common/utils/logger.dart';
+import '../models/page_data.dart';
 import '../models/productinfo/data.dart';
 import '../models/productinfo/service.dart';
 
@@ -135,10 +136,19 @@ class SpuSelectionViewModel extends StateNotifier<SpuSelectionViewModelState> {
         return;
       }
 
-      final params = _buildPageParams();
-      AppLogger.i('正在加载SPU列表: 页码=${params.current}, 类目ID=${state.categoryId}');
-
-      final pageData = await _productInfoService.getProductInfoPage(params);
+      // 根据筛选条件决定调用的接口：
+      // - 多等级筛选时使用支持多值的手动分页接口
+      // - 其他情况使用常规分页接口
+      PageData<ProductInfo> pageData;
+      if (state.filter.levels.length > 1) {
+        final manualParams = _buildManualPageParams();
+        AppLogger.i('正在加载SPU列表(多等级): 页码=${manualParams.current}, 等级数=${state.filter.levels.length}');
+        pageData = await _productInfoService.getProductInfoPageByName(manualParams);
+      } else {
+        final params = _buildPageParams();
+        AppLogger.i('正在加载SPU列表: 页码=${params.current}, 类目ID=${state.categoryId}');
+        pageData = await _productInfoService.getProductInfoPage(params);
+      }
 
       final newSpuList =
           refresh ? pageData.list : [...state.spuList, ...pageData.list];
@@ -187,6 +197,27 @@ class SpuSelectionViewModel extends StateNotifier<SpuSelectionViewModelState> {
       type: state.selectedType,
       // 筛选条件
       level: state.filter.levels.isNotEmpty ? state.filter.levels.first : null,
+    );
+  }
+
+  /// 构建“手动分页”查询参数（支持多个等级）
+  ProductInfoManualPageParams _buildManualPageParams() {
+    // 构建类目筛选列表
+    List<String> categoryFilter = [];
+
+    if (state.categoryId != null) {
+      categoryFilter.add(state.categoryId!);
+    }
+    if (state.filter.categories.isNotEmpty) {
+      categoryFilter.addAll(state.filter.categories);
+    }
+
+    return ProductInfoManualPageParams(
+      current: state.currentPage,
+      pageSize: state.pageSize,
+      name: state.searchKeyword.isNotEmpty ? state.searchKeyword : null,
+      level: state.filter.levels.isNotEmpty ? List<String>.from(state.filter.levels) : null,
+      categories: categoryFilter.isNotEmpty ? categoryFilter : null,
     );
   }
 
