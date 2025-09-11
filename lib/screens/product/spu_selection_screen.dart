@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
 import '../../models/productinfo/data.dart';
 import '../../viewmodels/spu_selection_viewmodel.dart';
@@ -157,7 +158,7 @@ class _SpuSelectionScreenState extends ConsumerState<SpuSelectionScreen> {
               color: Theme.of(context).primaryColor,
               size: 22,
             ),
-            onPressed: () => _showSearchDialog(),
+            onPressed: () => context.pushNamed('spu-search'),
             padding: EdgeInsets.zero,
           ),
         ),
