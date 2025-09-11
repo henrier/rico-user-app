@@ -561,10 +561,15 @@ class _SpuSearchScreenState extends ConsumerState<SpuSearchScreen> {
         ),
       ];
 
-      // 显示筛选对话框
+      // 获取当前的筛选状态
+      final currentState = ref.read(spuSearchViewModelProvider);
+      final currentFilterConditions = currentState.filterConditions;
+
+      // 显示筛选对话框，传入当前筛选状态
       final result = await showSpuSelectFilter(
         context,
         sections: sections,
+        initialSelections: currentFilterConditions,
         title: 'Filtering',
         clearText: 'Clear',
         confirmText: 'Confirm',
@@ -574,25 +579,36 @@ class _SpuSearchScreenState extends ConsumerState<SpuSearchScreen> {
         // 处理筛选结果
         final selectedLevels = result['Level'] ?? <String>{};
         
-        // 检查是否是清空操作
-        final isClearing = selectedLevels.isEmpty;
-        
         // 显示筛选结果反馈
         final selectedCount = result.values.fold<int>(0, (sum, set) => sum + set.length);
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
               content: Text(selectedCount > 0 
-                ? '已应用 $selectedCount 个筛选条件'
-                : '已清除所有筛选条件'),
-              duration: const Duration(seconds: 2),
-              backgroundColor: selectedCount > 0 ? Colors.green : Colors.orange,
+                ? '正在应用 $selectedCount 个筛选条件...'
+                : '已清除所有筛选条件，重新搜索...'),
+              duration: const Duration(seconds: 1),
+              backgroundColor: selectedCount > 0 ? Colors.blue : Colors.orange,
             ),
           );
         }
 
-        // TODO: 这里可以根据筛选结果重新搜索
-        // 例如：将筛选条件传递给搜索ViewModel进行筛选搜索
+        // 应用筛选条件并重新搜索
+        final viewModel = ref.read(spuSearchViewModelProvider.notifier);
+        await viewModel.applyFilter(result);
+        
+        // 显示完成反馈
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(selectedCount > 0 
+                ? '筛选完成！找到符合条件的商品'
+                : '已重新搜索所有结果'),
+              duration: const Duration(seconds: 2),
+              backgroundColor: Colors.green,
+            ),
+          );
+        }
       }
     } catch (e) {
       // 关闭加载指示器

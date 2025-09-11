@@ -22,6 +22,9 @@ class SpuSearchState {
   /// 搜索关键字
   final String searchKeyword;
 
+  /// 筛选条件
+  final Map<String, Set<String>> filterConditions;
+
   /// 错误信息
   final String? errorMessage;
 
@@ -34,6 +37,7 @@ class SpuSearchState {
     this.hasMore = true,
     this.currentPage = 1,
     this.searchKeyword = '',
+    this.filterConditions = const {},
     this.errorMessage,
     this.isEmpty = true,
   });
@@ -44,6 +48,7 @@ class SpuSearchState {
     bool? hasMore,
     int? currentPage,
     String? searchKeyword,
+    Map<String, Set<String>>? filterConditions,
     String? errorMessage,
     bool? isEmpty,
   }) {
@@ -53,6 +58,7 @@ class SpuSearchState {
       hasMore: hasMore ?? this.hasMore,
       currentPage: currentPage ?? this.currentPage,
       searchKeyword: searchKeyword ?? this.searchKeyword,
+      filterConditions: filterConditions ?? this.filterConditions,
       errorMessage: errorMessage,
       isEmpty: isEmpty ?? this.isEmpty,
     );
@@ -84,10 +90,10 @@ class SpuSearchViewModel extends StateNotifier<SpuSearchState> {
 
       AppLogger.i('开始搜索商品: $keyword');
 
-      final params = ProductInfoManualPageParams(
-        current: 1,
-        pageSize: 20,
-        name: keyword.trim(), // 使用name字段进行合并名称搜索
+      final params = _buildSearchParams(
+        keyword: keyword.trim(),
+        page: 1,
+        filterConditions: state.filterConditions,
       );
 
       final pageData = await _productInfoService.getProductInfoPageByName(params);
@@ -122,10 +128,10 @@ class SpuSearchViewModel extends StateNotifier<SpuSearchState> {
       state = state.copyWith(isLoading: true);
 
       final nextPage = state.currentPage + 1;
-      final params = ProductInfoManualPageParams(
-        current: nextPage,
-        pageSize: 20,
-        name: state.searchKeyword,
+      final params = _buildSearchParams(
+        keyword: state.searchKeyword,
+        page: nextPage,
+        filterConditions: state.filterConditions,
       );
 
       final pageData = await _productInfoService.getProductInfoPageByName(params);
@@ -162,6 +168,76 @@ class SpuSearchViewModel extends StateNotifier<SpuSearchState> {
     if (state.searchKeyword.isNotEmpty) {
       await searchProducts(state.searchKeyword);
     }
+  }
+
+  /// 应用筛选条件并重新搜索
+  Future<void> applyFilter(Map<String, Set<String>> filterConditions) async {
+    if (state.searchKeyword.isEmpty) {
+      AppLogger.w('没有搜索关键字，无法应用筛选');
+      return;
+    }
+
+    try {
+      // 更新筛选条件并开始搜索
+      state = state.copyWith(
+        isLoading: true,
+        errorMessage: null,
+        currentPage: 1,
+        filterConditions: filterConditions,
+      );
+
+      AppLogger.i('应用筛选条件重新搜索: ${state.searchKeyword}');
+
+      final params = _buildSearchParams(
+        keyword: state.searchKeyword,
+        page: 1,
+        filterConditions: filterConditions,
+      );
+
+      final pageData = await _productInfoService.getProductInfoPageByName(params);
+
+      // 计算是否还有更多数据
+      final hasMore = pageData.current * pageData.pageSize < pageData.total;
+
+      state = state.copyWith(
+        productList: pageData.list,
+        isLoading: false,
+        hasMore: hasMore,
+        currentPage: 1,
+      );
+
+      AppLogger.i('筛选搜索完成，找到${pageData.list.length}个商品');
+    } catch (e) {
+      AppLogger.e('筛选搜索失败', e);
+      state = state.copyWith(
+        isLoading: false,
+        errorMessage: '筛选搜索失败: ${e.toString()}',
+      );
+    }
+  }
+
+  /// 构建搜索参数
+  ProductInfoManualPageParams _buildSearchParams({
+    required String keyword,
+    required int page,
+    Map<String, Set<String>>? filterConditions,
+  }) {
+    // 获取Level筛选条件
+    final levelFilters = filterConditions?['Level'];
+    
+    // 将Set<String>转换为List<String>以支持多个level值
+    final selectedLevels = levelFilters?.isNotEmpty == true 
+        ? levelFilters!.toList() 
+        : null;
+    
+    AppLogger.d('构建搜索参数 - 关键字: $keyword, 页码: $page, Level筛选: $selectedLevels');
+
+    return ProductInfoManualPageParams(
+      current: page,
+      pageSize: 20,
+      name: keyword,
+      level: selectedLevels, // 使用level字段进行筛选，支持多个值
+    );
   }
 }
 
