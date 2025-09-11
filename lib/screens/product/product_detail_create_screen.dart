@@ -87,12 +87,22 @@ class _ProductDetailCreateScreenState
                 _buildSectionDivider(),
                 // Type & Condition 区域
                 _buildTypeConditionSection(),
+                 // 分隔条
+                _buildSectionDivider(),
+                if (_selectedType == 'Graded') ...[
+                // Serial Number区域容器
+                _buildSerialNumberInput(),
+                // 分隔条
+                _buildSectionDivider(),
+                // Price区域（仅在Graded类型时显示）
+                _buildGradedPriceSection(),
+                ],
                 // 分隔条
                 _buildSectionDivider(),
                 // Price & Stock 区域（在Raw和Sealed类型时显示）
                 if (_selectedType == 'Raw' || _selectedType == 'Sealed') _buildPriceStockSection(),
                 // 分隔条
-                _buildSectionDivider(),
+                if (_selectedType == 'Raw' || _selectedType == 'Sealed') _buildSectionDivider(),
                 // Notes to Buyer 区域
                 _buildNotesSection(),
                 // 分隔条
@@ -384,24 +394,14 @@ class _ProductDetailCreateScreenState
           _buildTypeSelection(),
           SizedBox(height: 40.h),
           // Condition选择（在Raw和Sealed类型时显示）
-          if (_selectedType == 'Raw' || _selectedType == 'Sealed') _buildConditionSelection(),
+          if (_selectedType == 'Raw') _buildConditionSelection(),
           // Graded相关字段（仅在Graded类型时显示）
           if (_selectedType == 'Graded') ..._buildGradedFields(),
-          SizedBox(height: 40.h),
+          if (_selectedType == 'Raw' || _selectedType == 'Graded') SizedBox(height: 40.h),
           // 注意事项
           _buildNoticeSection(),
           // Serial Number输入（仅在Graded类型时显示）
-          if (_selectedType == 'Graded') ...[
-            // 分隔条
-            Container(
-              height: 5.h,
-              color: const Color(0xFFF4F4F6),
-            ),
-            _buildSerialNumberInput(),
-            SizedBox(height: 40.h),
-            // Price区域（仅在Graded类型时显示）
-            _buildGradedPriceSection(),
-          ],
+
         ],
       ),
     );
@@ -576,84 +576,114 @@ class _ProductDetailCreateScreenState
 
   /// 构建Serial Number输入区域
   Widget _buildSerialNumberInput() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          children: [
-            Text(
-              'Serial Number',
-              style: TextStyle(
-                fontSize: 28.sp,
-                fontWeight: FontWeight.w500,
-                color: Colors.black,
+    return Container(
+      color: Colors.white,
+      padding: EdgeInsets.symmetric(horizontal: 30.w, vertical: 30.h),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Text(
+                'Serial Number',
+                style: TextStyle(
+                  fontSize: 28.sp,
+                  fontWeight: FontWeight.w500,
+                  color: Colors.black,
+                ),
               ),
-            ),
-            Text(
-              ' *',
-              style: TextStyle(
-                fontSize: 28.sp,
-                color: Colors.red,
+              Text(
+                ' *',
+                style: TextStyle(
+                  fontSize: 28.sp,
+                  color: Colors.red,
+                ),
               ),
-            ),
-            const Spacer(),
-            GestureDetector(
-              onTap: () {
-                // TODO: 显示帮助信息
-              },
-              child: Row(
-                children: [
-                  Icon(
-                    Icons.help_outline,
-                    size: 24.sp,
-                    color: Colors.green[600],
-                  ),
-                  SizedBox(width: 8.w),
-                  Text(
-                    'Where to find',
-                    style: TextStyle(
-                      fontSize: 24.sp,
+              const Spacer(),
+              GestureDetector(
+                onTap: () {
+                  // TODO: 显示帮助信息
+                },
+                child: Row(
+                  children: [
+                    Icon(
+                      Icons.help_outline,
+                      size: 24.sp,
                       color: Colors.green[600],
                     ),
+                    SizedBox(width: 8.w),
+                    Text(
+                      'Where to find',
+                      style: TextStyle(
+                        fontSize: 24.sp,
+                        color: Colors.green[600],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          SizedBox(height: 20.h),
+          Container(
+            height: 72.h,
+            decoration: BoxDecoration(
+              color: const Color(0xFFF3F3F5),
+              borderRadius: BorderRadius.circular(59.r),
+            ),
+            child: Row(
+              children: [
+                Expanded(
+                  child: TextField(
+                    controller: _serialNumberController,
+                    onChanged: (value) {
+                      setState(() {
+                        _serialNumber = value;
+                      });
+                    },
+                    decoration: InputDecoration(
+                      hintText: 'Enter serial number',
+                      hintStyle: TextStyle(
+                        fontSize: 24.sp,
+                        color: const Color(0xFF919191),
+                      ),
+                      border: InputBorder.none,
+                      contentPadding: EdgeInsets.symmetric(
+                        horizontal: 30.w,
+                        vertical: 20.h,
+                      ),
+                    ),
+                    style: TextStyle(
+                      fontSize: 24.sp,
+                      color: Colors.black,
+                    ),
                   ),
-                ],
-              ),
-            ),
-          ],
-        ),
-        SizedBox(height: 20.h),
-        Container(
-          height: 72.h,
-          decoration: BoxDecoration(
-            color: const Color(0xFFF3F3F5),
-            borderRadius: BorderRadius.circular(59.r),
-          ),
-          child: TextField(
-            controller: _serialNumberController,
-            onChanged: (value) {
-              setState(() {
-                _serialNumber = value;
-              });
-            },
-            decoration: InputDecoration(
-              hintText: 'Enter serial number',
-              hintStyle: TextStyle(
-                fontSize: 24.sp,
-                color: const Color(0xFF919191),
-              ),
-              border: InputBorder.none,
-              contentPadding: EdgeInsets.symmetric(
-                horizontal: 30.w,
-                vertical: 20.h,
-              ),
-            ),
-            style: TextStyle(
-              fontSize: 24.sp,
-              color: Colors.black,
+                ),
+                // 相机图标
+                GestureDetector(
+                  onTap: () {
+                    // TODO: 实现相机扫描功能
+                  },
+                  child: Container(
+                    width: 44.w,
+                    height: 44.h,
+                    margin: EdgeInsets.only(right: 14.w),
+                    decoration: BoxDecoration(
+                      color: Colors.transparent,
+                      borderRadius: BorderRadius.circular(22.r),
+                    ),
+                    child: Icon(
+                      Icons.camera_alt_outlined,
+                      size: 28.sp,
+                      color: Colors.grey[600],
+                    ),
+                  ),
+                ),
+              ],
             ),
           ),
-        ),
-      ],
+        ],
+      ),
     );
   }
 
@@ -941,83 +971,87 @@ class _ProductDetailCreateScreenState
 
   /// 构建Graded类型的价格区域
   Widget _buildGradedPriceSection() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Row(
-          children: [
-            Text(
-              'Price',
-              style: TextStyle(
-                fontSize: 28.sp,
-                fontWeight: FontWeight.w500,
-                color: Colors.black,
-              ),
-            ),
-            Text(
-              ' *',
-              style: TextStyle(
-                fontSize: 28.sp,
-                color: Colors.red,
-              ),
-            ),
-          ],
-        ),
-        SizedBox(height: 20.h),
-        Row(
-          children: [
-            Text(
-              'Set Price',
-              style: TextStyle(
-                fontSize: 24.sp,
-                color: const Color(0xFF919191),
-                fontFamily: 'Roboto',
-              ),
-            ),
-          ],
-        ),
-        SizedBox(height: 13.h),
-        Row(
-          children: [
-            Text(
-              'RM',
-              style: TextStyle(
-                fontSize: 24.sp,
-                color: Colors.black,
-                fontFamily: 'Roboto',
-              ),
-            ),
-            SizedBox(width: 48.w),
-            Container(
-              width: 113.w,
-              height: 54.h,
-              decoration: BoxDecoration(
-                color: const Color(0xFFF4F4F4),
-                borderRadius: BorderRadius.circular(47.r),
-              ),
-              child: TextField(
-                controller: _priceController,
-                textAlign: TextAlign.center,
-                keyboardType: TextInputType.number,
-                decoration: InputDecoration(
-                  border: InputBorder.none,
-                  hintText: '0',
-                  hintStyle: TextStyle(
-                    fontSize: 24.sp,
-                    color: const Color(0xFF919191),
-                    fontFamily: 'Roboto',
-                  ),
+    return Container(
+      color: Colors.white,
+      padding: EdgeInsets.symmetric(horizontal: 30.w, vertical: 30.h),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Text(
+                'Price',
+                style: TextStyle(
+                  fontSize: 28.sp,
+                  fontWeight: FontWeight.w500,
+                  color: Colors.black,
                 ),
+              ),
+              Text(
+                ' *',
+                style: TextStyle(
+                  fontSize: 28.sp,
+                  color: Colors.red,
+                ),
+              ),
+            ],
+          ),
+          SizedBox(height: 20.h),
+          Row(
+            children: [
+              Text(
+                'Set Price',
+                style: TextStyle(
+                  fontSize: 24.sp,
+                  color: const Color(0xFF919191),
+                  fontFamily: 'Roboto',
+                ),
+              ),
+            ],
+          ),
+          SizedBox(height: 13.h),
+          Row(
+            children: [
+              Text(
+                'RM',
                 style: TextStyle(
                   fontSize: 24.sp,
                   color: Colors.black,
                   fontFamily: 'Roboto',
                 ),
               ),
-            ),
-          ],
-        ),
-      ],
+              SizedBox(width: 48.w),
+              Container(
+                width: 113.w,
+                height: 54.h,
+                decoration: BoxDecoration(
+                  color: const Color(0xFFF4F4F4),
+                  borderRadius: BorderRadius.circular(47.r),
+                ),
+                child: TextField(
+                  controller: _priceController,
+                  textAlign: TextAlign.center,
+                  keyboardType: TextInputType.number,
+                  decoration: InputDecoration(
+                    border: InputBorder.none,
+                    hintText: '0',
+                    hintStyle: TextStyle(
+                      fontSize: 24.sp,
+                      color: const Color(0xFF919191),
+                      fontFamily: 'Roboto',
+                    ),
+                  ),
+                  style: TextStyle(
+                    fontSize: 24.sp,
+                    color: Colors.black,
+                    fontFamily: 'Roboto',
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
     );
   }
 
