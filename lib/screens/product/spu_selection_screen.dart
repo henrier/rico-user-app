@@ -168,6 +168,15 @@ class _SpuSelectionScreenState extends ConsumerState<SpuSelectionScreen> {
     );
   }
 
+  /// 获取ProductType对应的label
+  String _getProductTypeLabel(ProductType type) {
+    final option = ProductType.options.firstWhere(
+      (option) => option['value'] == type.value,
+      orElse: () => {'label': type.value, 'value': type.value},
+    );
+    return option['label'] ?? type.value;
+  }
+
   /// 构建分类标签区域
   Widget _buildCategoryTabs() {
     final state = ref.watch(spuSelectionViewModelProvider(widget.categoryId));
@@ -177,16 +186,18 @@ class _SpuSelectionScreenState extends ConsumerState<SpuSelectionScreen> {
       padding: const EdgeInsets.symmetric(vertical: 16),
       child: Row(
         children: [
-          // Singles标签 - 按照设计图样式
+          // 单卡标签 - 使用枚举的label
           _buildCategoryTab(
-            ProductType.singles,
-            state.selectedType == ProductType.singles,
+            ProductType.raw,
+            state.selectedType == ProductType.raw,
+            _getProductTypeLabel(ProductType.raw),
           ),
           const SizedBox(width: 12),
-          // Sealed Products标签 - 按照设计图样式
+          // 原盒标签 - 使用枚举的label
           _buildCategoryTab(
-            ProductType.sealedProducts,
-            state.selectedType == ProductType.sealedProducts,
+            ProductType.sealed,
+            state.selectedType == ProductType.sealed,
+            _getProductTypeLabel(ProductType.sealed),
           ),
           const Spacer(),
           // 筛选按钮
@@ -197,7 +208,7 @@ class _SpuSelectionScreenState extends ConsumerState<SpuSelectionScreen> {
   }
 
   /// 构建单个分类标签 - 按照设计图样式
-  Widget _buildCategoryTab(ProductType type, bool isSelected) {
+  Widget _buildCategoryTab(ProductType type, bool isSelected, String displayText) {
     // 定义设计图中的绿色
     const Color designGreen = Color(0xFF00D86F);
 
@@ -221,7 +232,7 @@ class _SpuSelectionScreenState extends ConsumerState<SpuSelectionScreen> {
         ),
         child: Center(
           child: Text(
-            type.displayName,
+            displayText,
             style: TextStyle(
               fontSize: 16, // 稍大的字体
               color: isSelected ? designGreen : Colors.grey[600],

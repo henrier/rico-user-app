@@ -35,7 +35,7 @@ class SpuSelectionViewModelState {
 
   const SpuSelectionViewModelState({
     this.spuList = const [],
-    this.selectedType = ProductType.singles,
+    this.selectedType = ProductType.raw,
     this.currentPage = 1,
     this.pageSize = 20,
     this.hasMore = true,
@@ -70,16 +70,6 @@ class SpuSelectionViewModelState {
   }
 }
 
-/// 商品类型枚举
-enum ProductType {
-  singles('Singles', 'singles'),
-  sealedProducts('Sealed Products', 'sealed');
-
-  const ProductType(this.displayName, this.value);
-
-  final String displayName;
-  final String value;
-}
 
 /// SPU选择筛选参数
 class SpuSelectionFilter {
@@ -193,6 +183,8 @@ class SpuSelectionViewModel extends StateNotifier<SpuSelectionViewModelState> {
       // 搜索关键词
       nameEnglish: state.searchKeyword.isNotEmpty ? state.searchKeyword : null,
       nameChinese: state.searchKeyword.isNotEmpty ? state.searchKeyword : null,
+      // 商品类型筛选
+      type: state.selectedType,
       // 筛选条件
       level: state.filter.levels.isNotEmpty ? state.filter.levels.first : null,
     );
@@ -202,7 +194,7 @@ class SpuSelectionViewModel extends StateNotifier<SpuSelectionViewModelState> {
   Future<void> selectProductType(ProductType type) async {
     if (state.selectedType == type) return;
 
-    AppLogger.i('切换商品类型: ${type.displayName}');
+    AppLogger.i('切换商品类型: ${type.value}');
     state = state.copyWith(selectedType: type);
     await loadSpuList(refresh: true);
   }
