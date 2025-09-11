@@ -30,7 +30,7 @@ class RicoUserApp extends ConsumerWidget {
     
     return ScreenUtilInit(
       // 设计稿的设备尺寸（宽度，高度）
-      designSize: const Size(375, 812), // iPhone X 尺寸作为设计基准
+      designSize: const Size(750,1624), // iPhone X 尺寸作为设计基准
       // 最小文字适配，设置字体大小根据系统的"字体大小"辅助选项来进行缩放
       minTextAdapt: true,
       // 支持分屏尺寸

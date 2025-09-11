@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'dart:io';
 
 /// 商品详情新增页面
@@ -93,7 +94,7 @@ class _ProductDetailCreateScreenState
                 // Upload Item Photo 区域
                 _buildPhotoUploadSection(),
                 // 底部间距
-                const SizedBox(height: 120),
+                SizedBox(height: 120.h),
               ],
             ),
           ),
@@ -111,31 +112,31 @@ class _ProductDetailCreateScreenState
       backgroundColor: Colors.white,
       elevation: 0,
       pinned: true,
-      toolbarHeight: 88, // 设计图中的高度
+      toolbarHeight: 88.h, // 设计图中的高度
       leading: Container(
-        margin: const EdgeInsets.only(left: 26, top: 12, bottom: 12),
-        width: 56,
-        height: 56,
+        margin: EdgeInsets.only(left: 26.w, top: 12.h, bottom: 12.h),
+        width: 56.w,
+        height: 56.h,
         decoration: BoxDecoration(
           color: Colors.grey[50],
-          borderRadius: BorderRadius.circular(12),
+          borderRadius: BorderRadius.circular(12.r),
           border: Border.all(color: Colors.grey[200]!),
         ),
         child: IconButton(
           icon: Icon(
             Icons.arrow_back_ios,
             color: Colors.grey[700],
-            size: 20,
+            size: 20.sp,
           ),
           onPressed: () => context.pop(),
           padding: EdgeInsets.zero,
         ),
       ),
-      title: const Text(
+      title: Text(
         'Edit Listing',
         style: TextStyle(
-          color: Color(0xFF212222),
-          fontSize: 36,
+          color: const Color(0xFF212222),
+          fontSize: 36.sp,
           fontWeight: FontWeight.w500,
           fontFamily: 'Roboto',
         ),
@@ -144,9 +145,9 @@ class _ProductDetailCreateScreenState
       surfaceTintColor: Colors.transparent,
       // 添加底部边框
       bottom: PreferredSize(
-        preferredSize: const Size.fromHeight(1),
+        preferredSize: Size.fromHeight(1.h),
         child: Container(
-          height: 1,
+          height: 1.h,
           color: Colors.grey[200],
         ),
       ),
@@ -157,23 +158,23 @@ class _ProductDetailCreateScreenState
   Widget _buildProductInfoSection() {
     return Container(
       color: Colors.white,
-      height: 257, // 设计图中的高度
-      padding: const EdgeInsets.symmetric(horizontal: 30, vertical: 30),
+      height: 257.h, // 设计图中的高度
+      padding: EdgeInsets.symmetric(horizontal: 30.w, vertical: 30.h),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           // 商品图片 - 按设计图尺寸
           Container(
-            width: 136,
-            height: 188,
+            width: 136.w,
+            height: 188.h,
             decoration: BoxDecoration(
               color: Colors.grey[50],
-              borderRadius: BorderRadius.circular(12),
+              borderRadius: BorderRadius.circular(12.r),
               border: Border.all(color: Colors.grey[200]!),
             ),
             child: widget.spuImageUrl.isNotEmpty
                 ? ClipRRect(
-                    borderRadius: BorderRadius.circular(12),
+                    borderRadius: BorderRadius.circular(12.r),
                     child: Image.network(
                       widget.spuImageUrl,
                       fit: BoxFit.cover,
@@ -183,59 +184,59 @@ class _ProductDetailCreateScreenState
                   )
                 : _buildPlaceholderImage(),
           ),
-          const SizedBox(width: 24), // 设计图中的间距
+          SizedBox(width: 24.w), // 设计图中的间距
           // 商品信息
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const SizedBox(height: 12), // 顶部对齐调整
+                SizedBox(height: 12.h), // 顶部对齐调整
                 // 商品名称 - 精确字体大小
                 Text(
                   widget.spuName,
-                  style: const TextStyle(
-                    fontSize: 32,
+                  style: TextStyle(
+                    fontSize: 32.sp,
                     fontWeight: FontWeight.w500,
-                    color: Color(0xFF212222),
+                    color: const Color(0xFF212222),
                     height: 1.2,
                     fontFamily: 'Roboto',
                   ),
                   maxLines: 2,
                   overflow: TextOverflow.ellipsis,
                 ),
-                const SizedBox(height: 8),
+                SizedBox(height: 8.h),
                 // 商品编码和稀有度 - 分开显示
                 Row(
                   children: [
                     Text(
                       widget.spuCode,
-                      style: const TextStyle(
-                        fontSize: 24,
-                        color: Color(0xFF919191),
+                      style: TextStyle(
+                        fontSize: 24.sp,
+                        color: const Color(0xFF919191),
                         fontFamily: 'Roboto',
                       ),
                     ),
-                    const SizedBox(width: 24),
-                    const Text(
+                    SizedBox(width: 24.w),
+                    Text(
                       'Rainbow',
                       style: TextStyle(
-                        fontSize: 24,
-                        color: Color(0xFF919191),
+                        fontSize: 24.sp,
+                        color: const Color(0xFF919191),
                         fontFamily: 'Roboto',
                       ),
                     ),
                   ],
                 ),
-                const SizedBox(height: 32), // 增加间距
+                SizedBox(height: 32.h), // 增加间距
                 // 标签区域 - 按设计图样式
                 Row(
                   children: [
                     _buildInfoTag('Pokémon'),
-                    const SizedBox(width: 12),
+                    SizedBox(width: 12.w),
                     _buildInfoTag('EN'),
                   ],
                 ),
-                const SizedBox(height: 24),
+                SizedBox(height: 24.h),
                 // Card Info 按钮
                 Align(
                   alignment: Alignment.centerRight,
@@ -258,13 +259,13 @@ class _ProductDetailCreateScreenState
           end: Alignment.bottomRight,
           colors: [Colors.grey[100]!, Colors.grey[200]!],
         ),
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(12.r),
       ),
       child: Center(
         child: Icon(
           Icons.image_outlined,
           color: Colors.grey[400],
-          size: 48,
+          size: 48.sp,
         ),
       ),
     );
@@ -273,18 +274,18 @@ class _ProductDetailCreateScreenState
   /// 构建信息标签
   Widget _buildInfoTag(String text) {
     return Container(
-      height: 36,
-      padding: const EdgeInsets.symmetric(horizontal: 12),
+      height: 36.h,
+      padding: EdgeInsets.symmetric(horizontal: 12.w),
       decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: Colors.grey[300]!, width: 2),
+        borderRadius: BorderRadius.circular(8.r),
+        border: Border.all(color: Colors.grey[300]!, width: 2.w),
       ),
       child: Center(
         child: Text(
           text,
-          style: const TextStyle(
-            fontSize: 22,
-            color: Color(0xFF919191),
+          style: TextStyle(
+            fontSize: 22.sp,
+            color: const Color(0xFF919191),
             fontFamily: 'Roboto',
           ),
         ),
@@ -295,29 +296,29 @@ class _ProductDetailCreateScreenState
   /// 构建Card Info按钮
   Widget _buildCardInfoButton() {
     return Container(
-      height: 44,
-      width: 169, // 设计图中的宽度
+      height: 44.h,
+      width: 169.w, // 设计图中的宽度
       decoration: BoxDecoration(
         color: const Color(0xFFF4F4F6),
-        borderRadius: BorderRadius.circular(22),
+        borderRadius: BorderRadius.circular(22.r),
       ),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          const Text(
+          Text(
             'Card Info',
             style: TextStyle(
-              fontSize: 24,
+              fontSize: 24.sp,
               color: Colors.black,
               fontFamily: 'Roboto',
             ),
           ),
-          const SizedBox(width: 8),
+          SizedBox(width: 8.w),
           Transform.rotate(
             angle: 0.785398, // 45度旋转，匹配设计图
             child: Icon(
               Icons.add,
-              size: 16,
+              size: 16.sp,
               color: Colors.grey[600],
             ),
           ),
@@ -329,7 +330,7 @@ class _ProductDetailCreateScreenState
   /// 构建分隔条
   Widget _buildSectionDivider() {
     return Container(
-      height: 20,
+      height: 20.h,
       color: const Color(0xFFF4F4F6),
     );
   }
@@ -338,7 +339,7 @@ class _ProductDetailCreateScreenState
   Widget _buildTypeConditionSection() {
     return Container(
       color: Colors.white,
-      padding: const EdgeInsets.all(30),
+      padding: EdgeInsets.all(30.w),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -346,10 +347,10 @@ class _ProductDetailCreateScreenState
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              const Text(
+              Text(
                 'Type & Condition',
                 style: TextStyle(
-                  fontSize: 28,
+                  fontSize: 28.sp,
                   fontWeight: FontWeight.w500,
                   color: Colors.black,
                 ),
@@ -358,14 +359,14 @@ class _ProductDetailCreateScreenState
                 children: [
                   Icon(
                     Icons.help_outline,
-                    size: 24,
+                    size: 24.sp,
                     color: Colors.green[600],
                   ),
-                  const SizedBox(width: 8),
+                  SizedBox(width: 8.w),
                   Text(
                     'Condition guide',
                     style: TextStyle(
-                      fontSize: 24,
+                      fontSize: 24.sp,
                       color: Colors.green[600],
                     ),
                   ),
@@ -373,13 +374,13 @@ class _ProductDetailCreateScreenState
               ),
             ],
           ),
-          const SizedBox(height: 40),
+          SizedBox(height: 40.h),
           // Type选择
           _buildTypeSelection(),
-          const SizedBox(height: 40),
+          SizedBox(height: 40.h),
           // Condition选择（仅在Raw类型时显示）
           if (_selectedType == 'Raw') _buildConditionSelection(),
-          const SizedBox(height: 40),
+          SizedBox(height: 40.h),
           // 注意事项
           _buildNoticeSection(),
         ],
@@ -392,17 +393,17 @@ class _ProductDetailCreateScreenState
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text(
+        Text(
           'Type',
           style: TextStyle(
-            fontSize: 24,
-            color: Color(0xFF919191),
+            fontSize: 24.sp,
+            color: const Color(0xFF919191),
           ),
         ),
-        const SizedBox(height: 20),
+        SizedBox(height: 20.h),
         Wrap(
-          spacing: 20,
-          runSpacing: 12,
+          spacing: 20.w,
+          runSpacing: 12.h,
           children: [
             _buildTypeChip('Raw', true),
             _buildTypeChip('Graded', false),
@@ -419,16 +420,16 @@ class _ProductDetailCreateScreenState
     double width;
     switch (type) {
       case 'Raw':
-        width = 110;
+        width = 110.w;
         break;
       case 'Graded':
-        width = 141;
+        width = 141.w;
         break;
       case 'Sealed':
-        width = 137;
+        width = 137.w;
         break;
       default:
-        width = 110;
+        width = 110.w;
     }
 
     return GestureDetector(
@@ -441,17 +442,17 @@ class _ProductDetailCreateScreenState
         });
       },
       child: Container(
-        height: 54,
+        height: 54.h,
         width: width,
         decoration: BoxDecoration(
           color: isSelected ? designGreen : const Color(0xFFF4F4F4),
-          borderRadius: BorderRadius.circular(47),
+          borderRadius: BorderRadius.circular(47.r),
         ),
         child: Center(
           child: Text(
             type,
             style: TextStyle(
-              fontSize: 24,
+              fontSize: 24.sp,
               fontWeight: isSelected ? FontWeight.w500 : FontWeight.normal,
               color: Colors.black,
               fontFamily: 'Roboto',
@@ -467,17 +468,17 @@ class _ProductDetailCreateScreenState
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text(
+        Text(
           'Graded by',
           style: TextStyle(
-            fontSize: 24,
-            color: Color(0xFF919191),
+            fontSize: 24.sp,
+            color: const Color(0xFF919191),
           ),
         ),
-        const SizedBox(height: 20),
+        SizedBox(height: 20.h),
         Wrap(
-          spacing: 20,
-          runSpacing: 12,
+          spacing: 20.w,
+          runSpacing: 12.h,
           children: [
             _buildConditionChip('Mint'),
             _buildConditionChip('Near Mint'),
@@ -497,19 +498,19 @@ class _ProductDetailCreateScreenState
     double width;
     switch (condition) {
       case 'Mint':
-        width = 113;
+        width = 113.w;
         break;
       case 'Near Mint':
-        width = 169;
+        width = 169.w;
         break;
       case 'Lightly Played':
-        width = 212;
+        width = 212.w;
         break;
       case 'Damaged':
-        width = 167;
+        width = 167.w;
         break;
       default:
-        width = 113;
+        width = 113.w;
     }
     
     return GestureDetector(
@@ -519,17 +520,17 @@ class _ProductDetailCreateScreenState
         });
       },
       child: Container(
-        height: 54,
+        height: 54.h,
         width: width,
         decoration: BoxDecoration(
           color: isSelected ? designGreen : const Color(0xFFF4F4F4),
-          borderRadius: BorderRadius.circular(47),
+          borderRadius: BorderRadius.circular(47.r),
         ),
         child: Center(
           child: Text(
             condition,
             style: TextStyle(
-              fontSize: 24,
+              fontSize: 24.sp,
               fontWeight: isSelected ? FontWeight.w500 : FontWeight.normal,
               color: Colors.black,
               fontFamily: 'Roboto',
@@ -547,15 +548,15 @@ class _ProductDetailCreateScreenState
       children: [
         Icon(
           Icons.info_outline,
-          size: 24,
+          size: 24.sp,
           color: Colors.grey[400],
         ),
-        const SizedBox(width: 12),
+        SizedBox(width: 12.w),
         Expanded(
           child: Text(
             'Note: Make sure your information is accurate. Sellers will be responsible for any disputes caused by incorrect details.',
             style: TextStyle(
-              fontSize: 24,
+              fontSize: 24.sp,
               color: Colors.grey[400],
               height: 1.4,
             ),
@@ -569,23 +570,23 @@ class _ProductDetailCreateScreenState
   Widget _buildPriceStockSection() {
     return Container(
       color: Colors.white,
-      padding: const EdgeInsets.all(30),
+      padding: EdgeInsets.all(30.w),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           // 标题
-          const Text(
+          Text(
             'Price & Stock',
             style: TextStyle(
-              fontSize: 28,
+              fontSize: 28.sp,
               fontWeight: FontWeight.w500,
               color: Colors.black,
             ),
           ),
-          const SizedBox(height: 40),
+          SizedBox(height: 40.h),
           // 价格设置
           _buildPriceSection(),
-          const SizedBox(height: 40),
+          SizedBox(height: 40.h),
           // 库存设置
           _buildStockSection(),
         ],
@@ -598,51 +599,51 @@ class _ProductDetailCreateScreenState
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Row(
+        Row(
           children: [
             Text(
               'Set Price',
               style: TextStyle(
-                fontSize: 24,
-                color: Color(0xFF919191),
+                fontSize: 24.sp,
+                color: const Color(0xFF919191),
                 fontFamily: 'Roboto',
               ),
             ),
             Text(
               '*',
               style: TextStyle(
-                fontSize: 24,
-                color: Color(0xFFD83333),
+                fontSize: 24.sp,
+                color: const Color(0xFFD83333),
                 fontFamily: 'Roboto',
               ),
             ),
           ],
         ),
-        const SizedBox(height: 13), // 按设计图调整间距
+        SizedBox(height: 13.h), // 按设计图调整间距
         Row(
           children: [
-            const Text(
+            Text(
               'RM',
               style: TextStyle(
-                fontSize: 24,
+                fontSize: 24.sp,
                 color: Colors.black,
                 fontFamily: 'Roboto',
               ),
             ),
-            const SizedBox(width: 48), // 增加RM和输入框的间距
+            SizedBox(width: 48.w), // 增加RM和输入框的间距
             Container(
-              width: 113,
-              height: 54,
+              width: 113.w,
+              height: 54.h,
               decoration: BoxDecoration(
                 color: const Color(0xFFF4F4F4),
-                borderRadius: BorderRadius.circular(47),
+                borderRadius: BorderRadius.circular(47.r),
               ),
               child: TextField(
                 controller: _priceController,
                 textAlign: TextAlign.center,
                 keyboardType: TextInputType.number,
-                style: const TextStyle(
-                  fontSize: 24,
+                style: TextStyle(
+                  fontSize: 24.sp,
                   color: Colors.black,
                   fontFamily: 'Roboto',
                 ),
@@ -654,14 +655,14 @@ class _ProductDetailCreateScreenState
             ),
           ],
         ),
-        const SizedBox(height: 57), // 按设计图调整间距
+        SizedBox(height: 57.h), // 按设计图调整间距
         // 建议价格 - 精确定位
         Padding(
-          padding: const EdgeInsets.only(left: 222), // 按设计图定位
+          padding: EdgeInsets.only(left: 222.w), // 按设计图定位
           child: RichText(
-            text: const TextSpan(
-              style: TextStyle(fontSize: 22, fontFamily: 'Roboto'),
-              children: [
+            text: TextSpan(
+              style: TextStyle(fontSize: 22.sp, fontFamily: 'Roboto'),
+              children: const [
                 TextSpan(
                   text: 'RM 12,123',
                   style: TextStyle(color: designOrange),
@@ -683,15 +684,15 @@ class _ProductDetailCreateScreenState
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text(
+        Text(
           'Set Stock',
           style: TextStyle(
-            fontSize: 24,
-            color: Color(0xFF919191),
+            fontSize: 24.sp,
+            color: const Color(0xFF919191),
             fontFamily: 'Roboto',
           ),
         ),
-        const SizedBox(height: 13), // 按设计图调整间距
+        SizedBox(height: 13.h), // 按设计图调整间距
         Row(
           children: [
             // 减少按钮 - 按设计图样式
@@ -703,16 +704,16 @@ class _ProductDetailCreateScreenState
                 }
               },
               child: Container(
-                width: 24,
-                height: 24,
+                width: 24.w,
+                height: 24.h,
                 decoration: const BoxDecoration(
                   color: Colors.transparent,
                 ),
-                child: const Center(
+                child: Center(
                   child: Text(
                     '−',
                     style: TextStyle(
-                      fontSize: 24,
+                      fontSize: 24.sp,
                       fontWeight: FontWeight.bold,
                       color: Colors.black,
                       fontFamily: 'Roboto',
@@ -721,21 +722,21 @@ class _ProductDetailCreateScreenState
                 ),
               ),
             ),
-            const SizedBox(width: 20), // 按设计图调整间距
+            SizedBox(width: 20.w), // 按设计图调整间距
             // 数量输入框
             Container(
-              width: 142,
-              height: 54,
+              width: 142.w,
+              height: 54.h,
               decoration: BoxDecoration(
                 color: const Color(0xFFF4F4F4),
-                borderRadius: BorderRadius.circular(47),
+                borderRadius: BorderRadius.circular(47.r),
               ),
               child: TextField(
                 controller: _stockController,
                 textAlign: TextAlign.center,
                 keyboardType: TextInputType.number,
-                style: const TextStyle(
-                  fontSize: 24,
+                style: TextStyle(
+                  fontSize: 24.sp,
                   color: Colors.black,
                   fontFamily: 'Roboto',
                 ),
@@ -745,7 +746,7 @@ class _ProductDetailCreateScreenState
                 ),
               ),
             ),
-            const SizedBox(width: 20), // 按设计图调整间距
+            SizedBox(width: 20.w), // 按设计图调整间距
             // 增加按钮 - 按设计图样式
             GestureDetector(
               onTap: () {
@@ -753,16 +754,16 @@ class _ProductDetailCreateScreenState
                 _stockController.text = (currentStock + 1).toString();
               },
               child: Container(
-                width: 24,
-                height: 24,
+                width: 24.w,
+                height: 24.h,
                 decoration: const BoxDecoration(
                   color: Colors.transparent,
                 ),
-                child: const Center(
+                child: Center(
                   child: Text(
                     '+',
                     style: TextStyle(
-                      fontSize: 24,
+                      fontSize: 24.sp,
                       fontWeight: FontWeight.bold,
                       color: Colors.black,
                       fontFamily: 'Roboto',
@@ -781,54 +782,54 @@ class _ProductDetailCreateScreenState
   Widget _buildNotesSection() {
     return Container(
       color: Colors.white,
-      padding: const EdgeInsets.all(30),
+      padding: EdgeInsets.all(30.w),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
+          Text(
             'Notes to Buyer',
             style: TextStyle(
-              fontSize: 28,
+              fontSize: 28.sp,
               fontWeight: FontWeight.w500,
               color: Colors.black,
             ),
           ),
-          const SizedBox(height: 40),
+          SizedBox(height: 40.h),
           Container(
-            height: 183,
+            height: 183.h,
             decoration: BoxDecoration(
               color: const Color(0xFFF3F3F5),
-              borderRadius: BorderRadius.circular(20),
+              borderRadius: BorderRadius.circular(20.r),
             ),
             child: TextField(
               controller: _notesController,
               maxLines: null,
               expands: true,
               maxLength: 50,
-              style: const TextStyle(
-                fontSize: 24,
+              style: TextStyle(
+                fontSize: 24.sp,
                 color: Colors.black,
               ),
-              decoration: const InputDecoration(
+              decoration: InputDecoration(
                 hintText: 'Up to 50 characters',
                 hintStyle: TextStyle(
-                  fontSize: 24,
-                  color: Color(0xFF919191),
+                  fontSize: 24.sp,
+                  color: const Color(0xFF919191),
                 ),
                 border: InputBorder.none,
-                contentPadding: EdgeInsets.all(20),
+                contentPadding: EdgeInsets.all(20.w),
                 counterText: '', // 隐藏默认计数器
               ),
             ),
           ),
-          const SizedBox(height: 8),
+          SizedBox(height: 8.h),
           Align(
             alignment: Alignment.centerRight,
             child: Text(
               '${_notesController.text.length}/50',
-              style: const TextStyle(
-                fontSize: 24,
-                color: Color(0xFF919191),
+              style: TextStyle(
+                fontSize: 24.sp,
+                color: const Color(0xFF919191),
               ),
             ),
           ),
@@ -841,7 +842,7 @@ class _ProductDetailCreateScreenState
   Widget _buildPhotoUploadSection() {
     return Container(
       color: Colors.white,
-      padding: const EdgeInsets.all(30),
+      padding: EdgeInsets.all(30.w),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -851,8 +852,8 @@ class _ProductDetailCreateScreenState
             children: [
               Text(
                 'Upload Item Photo (${_selectedImages.length}/2)',
-                style: const TextStyle(
-                  fontSize: 28,
+                style: TextStyle(
+                  fontSize: 28.sp,
                   fontWeight: FontWeight.w500,
                   color: Colors.black,
                 ),
@@ -861,14 +862,14 @@ class _ProductDetailCreateScreenState
                 children: [
                   Icon(
                     Icons.help_outline,
-                    size: 24,
+                    size: 24.sp,
                     color: Colors.green[600],
                   ),
-                  const SizedBox(width: 8),
+                  SizedBox(width: 8.w),
                   Text(
                     'Photo Guide',
                     style: TextStyle(
-                      fontSize: 24,
+                      fontSize: 24.sp,
                       color: Colors.green[600],
                     ),
                   ),
@@ -876,10 +877,10 @@ class _ProductDetailCreateScreenState
               ),
             ],
           ),
-          const SizedBox(height: 40),
+          SizedBox(height: 40.h),
           // 照片上传区域
           _buildPhotoUploadArea(),
-          const SizedBox(height: 24),
+          SizedBox(height: 24.h),
           // 设为封面照片选项
           _buildCoverPhotoOption(),
         ],
@@ -896,33 +897,33 @@ class _ProductDetailCreateScreenState
           final index = entry.key;
           final image = entry.value;
           return Container(
-            margin: const EdgeInsets.only(right: 12),
+            margin: EdgeInsets.only(right: 12.w),
             child: _buildImageItem(image, index),
           );
         }).toList(),
         // 添加图片按钮（最多2张）
         if (_selectedImages.length < 2)
           Container(
-            width: 136,
-            height: 188,
+            width: 136.w,
+            height: 188.h,
             decoration: BoxDecoration(
               border: Border.all(
                 color: const Color(0xFFFF6B6B),
-                width: 2,
+                width: 2.w,
                 style: BorderStyle.solid,
               ),
-              borderRadius: BorderRadius.circular(12),
+              borderRadius: BorderRadius.circular(12.r),
             ),
             child: Material(
               color: Colors.transparent,
               child: InkWell(
-                borderRadius: BorderRadius.circular(12),
+                borderRadius: BorderRadius.circular(12.r),
                 onTap: _pickImage,
-                child: const Center(
+                child: Center(
                   child: Icon(
                     Icons.add,
-                    size: 48,
-                    color: Color(0xFFFF6B6B),
+                    size: 48.sp,
+                    color: const Color(0xFFFF6B6B),
                   ),
                 ),
               ),
@@ -935,41 +936,41 @@ class _ProductDetailCreateScreenState
   /// 构建单个图片项
   Widget _buildImageItem(File image, int index) {
     return Container(
-      width: 136,
-      height: 188,
+      width: 136.w,
+      height: 188.h,
       decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(12.r),
         border: Border.all(color: Colors.grey[300]!),
       ),
       child: Stack(
         children: [
           // 图片
           ClipRRect(
-            borderRadius: BorderRadius.circular(12),
+            borderRadius: BorderRadius.circular(12.r),
             child: Image.file(
               image,
-              width: 136,
-              height: 188,
+              width: 136.w,
+              height: 188.h,
               fit: BoxFit.cover,
             ),
           ),
           // 删除按钮
           Positioned(
-            top: 8,
-            right: 8,
+            top: 8.h,
+            right: 8.w,
             child: GestureDetector(
               onTap: () => _removeImage(index),
               child: Container(
-                width: 24,
-                height: 24,
+                width: 24.w,
+                height: 24.h,
                 decoration: const BoxDecoration(
                   color: Colors.red,
                   shape: BoxShape.circle,
                 ),
-                child: const Icon(
+                child: Icon(
                   Icons.close,
                   color: Colors.white,
-                  size: 16,
+                  size: 16.sp,
                 ),
               ),
             ),
@@ -1024,9 +1025,9 @@ class _ProductDetailCreateScreenState
       context: context,
       builder: (BuildContext context) {
         return AlertDialog(
-          title: const Text('选择图片来源'),
+          title: Text('选择图片来源', style: TextStyle(fontSize: 18.sp)),
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(16),
+            borderRadius: BorderRadius.circular(16.r),
           ),
           content: Column(
             mainAxisSize: MainAxisSize.min,
@@ -1068,12 +1069,12 @@ class _ProductDetailCreateScreenState
           },
           activeColor: designGreen,
         ),
-        const SizedBox(width: 12),
-        const Text(
+        SizedBox(width: 12.w),
+        Text(
           'set as cover photo',
           style: TextStyle(
-            fontSize: 24,
-            color: Color(0xFF212222),
+            fontSize: 24.sp,
+            color: const Color(0xFF212222),
           ),
         ),
       ],
@@ -1083,9 +1084,9 @@ class _ProductDetailCreateScreenState
   /// 构建Done按钮
   Widget _buildDoneButton() {
     return Container(
-      width: 540,
-      height: 96,
-      margin: const EdgeInsets.only(bottom: 68), // 按设计图底部间距
+      width: 540.w,
+      height: 96.h,
+      margin: EdgeInsets.only(bottom: 68.h), // 按设计图底部间距
       child: ElevatedButton(
         onPressed: _onDonePressed,
         style: ElevatedButton.styleFrom(
@@ -1093,13 +1094,13 @@ class _ProductDetailCreateScreenState
           foregroundColor: Colors.black,
           elevation: 0,
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(100),
+            borderRadius: BorderRadius.circular(100.r),
           ),
         ),
-        child: const Text(
+        child: Text(
           'Done',
           style: TextStyle(
-            fontSize: 30,
+            fontSize: 30.sp,
             fontWeight: FontWeight.w600,
             fontFamily: 'Roboto',
           ),
@@ -1148,7 +1149,7 @@ class _ProductDetailCreateScreenState
         backgroundColor: Colors.red,
         behavior: SnackBarBehavior.floating,
         shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(10),
+          borderRadius: BorderRadius.circular(10.r),
         ),
       ),
     );
@@ -1179,28 +1180,28 @@ class _ProductDetailCreateScreenState
       builder: (BuildContext context) {
         return AlertDialog(
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(20),
+            borderRadius: BorderRadius.circular(20.r),
           ),
           title: Row(
             children: [
               Container(
-                padding: const EdgeInsets.all(8),
+                padding: EdgeInsets.all(8.w),
                 decoration: BoxDecoration(
                   color: designGreen.withOpacity(0.1),
-                  borderRadius: BorderRadius.circular(10),
+                  borderRadius: BorderRadius.circular(10.r),
                 ),
-                child: const Icon(
+                child: Icon(
                   Icons.check_circle_outline,
                   color: designGreen,
-                  size: 24,
+                  size: 24.sp,
                 ),
               ),
-              const SizedBox(width: 12),
-              const Expanded(
+              SizedBox(width: 12.w),
+              Expanded(
                 child: Text(
                   '确认创建商品',
                   style: TextStyle(
-                    fontSize: 18,
+                    fontSize: 18.sp,
                     fontWeight: FontWeight.w600,
                   ),
                 ),
@@ -1208,10 +1209,10 @@ class _ProductDetailCreateScreenState
             ],
           ),
           content: Container(
-            padding: const EdgeInsets.all(16),
+            padding: EdgeInsets.all(16.w),
             decoration: BoxDecoration(
               color: Colors.grey[50],
-              borderRadius: BorderRadius.circular(12),
+              borderRadius: BorderRadius.circular(12.r),
             ),
             child: Column(
               mainAxisSize: MainAxisSize.min,
@@ -1239,16 +1240,16 @@ class _ProductDetailCreateScreenState
             TextButton(
               onPressed: () => Navigator.of(context).pop(),
               style: TextButton.styleFrom(
-                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                padding: EdgeInsets.symmetric(horizontal: 24.w, vertical: 12.h),
                 shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(10),
+                  borderRadius: BorderRadius.circular(10.r),
                   side: BorderSide(color: Colors.grey[300]!),
                 ),
               ),
               child: Text(
                 '取消',
                 style: TextStyle(
-                  fontSize: 16,
+                  fontSize: 16.sp,
                   fontWeight: FontWeight.w500,
                   color: Colors.grey[700],
                 ),
@@ -1262,16 +1263,16 @@ class _ProductDetailCreateScreenState
               style: ElevatedButton.styleFrom(
                 backgroundColor: designGreen,
                 foregroundColor: Colors.black,
-                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                padding: EdgeInsets.symmetric(horizontal: 24.w, vertical: 12.h),
                 shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(10),
+                  borderRadius: BorderRadius.circular(10.r),
                 ),
                 elevation: 0,
               ),
-              child: const Text(
+              child: Text(
                 '确认创建',
                 style: TextStyle(
-                  fontSize: 16,
+                  fontSize: 16.sp,
                   fontWeight: FontWeight.w600,
                 ),
               ),
@@ -1288,22 +1289,22 @@ class _ProductDetailCreateScreenState
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         SizedBox(
-          width: 60,
+          width: 60.w,
           child: Text(
             label,
             style: TextStyle(
-              fontSize: 14,
+              fontSize: 14.sp,
               fontWeight: FontWeight.w500,
               color: Colors.grey[600],
             ),
           ),
         ),
-        const SizedBox(width: 8),
+        SizedBox(width: 8.w),
         Expanded(
           child: Text(
             value,
             style: TextStyle(
-              fontSize: 14,
+              fontSize: 14.sp,
               fontWeight: FontWeight.w600,
               color: Colors.grey[900],
             ),
