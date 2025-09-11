@@ -165,25 +165,65 @@ class _SpuSelectFilterDrawerState extends State<_SpuSelectFilterDrawer> {
                     child: Row(
                       children: [
                         Expanded(
-                          child: OutlinedButton(
-                            onPressed: () {
-                              // 清空所有选择并立即返回空结果
-                              final emptySelections = <String, Set<String>>{};
-                              for (final key in selections.keys) {
-                                emptySelections[key] = <String>{};
-                              }
-                              Navigator.of(context).pop(emptySelections);
-                            },
-                            child: Text(widget.clearText),
+                          child: Container(
+                            height: 56, // 88px equivalent scaled for mobile
+                            decoration: BoxDecoration(
+                              color: const Color(0xFFF4F4F4),
+                              borderRadius: BorderRadius.circular(28),
+                            ),
+                            child: Material(
+                              color: Colors.transparent,
+                              child: InkWell(
+                                borderRadius: BorderRadius.circular(28),
+                                onTap: () {
+                                  // 清空所有选择并立即返回空结果
+                                  final emptySelections = <String, Set<String>>{};
+                                  for (final key in selections.keys) {
+                                    emptySelections[key] = <String>{};
+                                  }
+                                  Navigator.of(context).pop(emptySelections);
+                                },
+                                child: Center(
+                                  child: Text(
+                                    widget.clearText,
+                                    style: theme.textTheme.titleMedium?.copyWith(
+                                      color: const Color(0xFF090909),
+                                      fontWeight: FontWeight.w500,
+                                      fontSize: 18,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ),
                           ),
                         ),
                         const SizedBox(width: constants.AppConstants.defaultPadding),
                         Expanded(
-                          child: ElevatedButton(
-                            onPressed: () {
-                              Navigator.of(context).pop(selections);
-                            },
-                            child: Text(widget.confirmText),
+                          child: Container(
+                            height: 56, // 88px equivalent scaled for mobile
+                            decoration: BoxDecoration(
+                              color: const Color(0xFF0DEE80),
+                              borderRadius: BorderRadius.circular(28),
+                            ),
+                            child: Material(
+                              color: Colors.transparent,
+                              child: InkWell(
+                                borderRadius: BorderRadius.circular(28),
+                                onTap: () {
+                                  Navigator.of(context).pop(selections);
+                                },
+                                child: Center(
+                                  child: Text(
+                                    widget.confirmText,
+                                    style: theme.textTheme.titleMedium?.copyWith(
+                                      color: const Color(0xFF090909),
+                                      fontWeight: FontWeight.w500,
+                                      fontSize: 18,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ),
                           ),
                         ),
                       ],
