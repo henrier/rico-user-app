@@ -148,15 +148,10 @@ class HomeScreen extends ConsumerWidget {
                   ),
                   _buildActionCard(
                     context,
-                    icon: Icons.help,
-                    title: 'Help & Support',
-                    subtitle: 'Get help and support',
-                    onTap: () {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                            content: Text('Help & Support coming soon')),
-                      );
-                    },
+                    icon: Icons.add_box,
+                    title: 'Product Detail Demo',
+                    subtitle: 'Create product listing',
+                    onTap: () => context.pushNamed('product-detail-demo'),
                   ),
                 ],
               ),

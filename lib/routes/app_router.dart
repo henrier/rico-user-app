@@ -8,6 +8,8 @@ import '../screens/category/category_selection_screen.dart';
 import '../screens/home/home_screen.dart';
 import '../screens/product/spu_search_screen.dart';
 import '../screens/product/spu_selection_screen.dart';
+import '../screens/product/product_detail_create_screen.dart';
+import '../screens/product/product_detail_demo_screen.dart';
 import '../screens/profile/profile_screen.dart';
 import '../screens/settings/settings_screen.dart';
 
@@ -90,6 +92,29 @@ final routerProvider = Provider<GoRouter>((ref) {
             path: 'spu-search',
             name: 'spu-search',
             builder: (context, state) => const SpuSearchScreen(),
+          ),
+          GoRoute(
+            path: 'product-detail-create',
+            name: 'product-detail-create',
+            builder: (context, state) {
+              // 从查询参数获取SPU信息
+              final spuId = state.uri.queryParameters['spuId'] ?? '';
+              final spuName = state.uri.queryParameters['spuName'] ?? '';
+              final spuCode = state.uri.queryParameters['spuCode'] ?? '';
+              final spuImageUrl = state.uri.queryParameters['spuImageUrl'] ?? '';
+
+              return ProductDetailCreateScreen(
+                spuId: spuId,
+                spuName: spuName,
+                spuCode: spuCode,
+                spuImageUrl: spuImageUrl,
+              );
+            },
+          ),
+          GoRoute(
+            path: 'product-detail-demo',
+            name: 'product-detail-demo',
+            builder: (context, state) => const ProductDetailDemoScreen(),
           ),
         ],
       ),
