@@ -7,7 +7,13 @@ import 'dart:io';
 
 import '../../models/productinfo/service.dart';
 import '../../models/productinfo/data.dart';
+import '../../models/personalproduct/service.dart';
+import '../../models/personalproduct/data.dart';
+import '../../models/ratingcompany/data.dart';
+import '../../models/audit_metadata.dart';
 import '../../models/i18n_string.dart';
+import '../../providers/auth_provider.dart';
+import '../../common/utils/logger.dart';
 
 /// 商品详情新增页面
 /// 对应Figma设计中的"7 商品详情编辑 - raw 裸卡"页面
@@ -52,6 +58,7 @@ class _ProductDetailCreateScreenState
 
   // API服务
   late final ProductInfoService _productInfoService;
+  late final PersonalProductService _personalProductService;
   
   // 加载状态
   bool _isLoading = false;
@@ -65,6 +72,7 @@ class _ProductDetailCreateScreenState
   void initState() {
     super.initState();
     _productInfoService = ProductInfoService();
+    _personalProductService = PersonalProductService();
     // 监听notes输入变化以更新字符计数
     _notesController.addListener(() {
       setState(() {});
@@ -78,6 +86,7 @@ class _ProductDetailCreateScreenState
     _notesController.dispose();
     _serialNumberController.dispose();
     _productInfoService.dispose();
+    _personalProductService.dispose();
     super.dispose();
   }
 
@@ -1777,19 +1786,74 @@ class _ProductDetailCreateScreenState
     });
 
     try {
-      // 构建创建参数 - 使用createProductInfo接口
-      final createParams = CreateProductInfoParams(
-        name: I18NString(
-          chinese: widget.spuName,
-          english: widget.spuName,
-          japanese: widget.spuName,
-        ),
-        code: widget.spuCode,
-        type: _getProductTypeFromString(_selectedType),
+      // 第一步：确保ProductInfo存在
+      String productInfoId;
+      try {
+        // 尝试获取现有的ProductInfo
+        final existingProductInfo = await _productInfoService.getProductInfoDetail(widget.spuId);
+        productInfoId = existingProductInfo.id;
+        AppLogger.i('使用现有的ProductInfo: $productInfoId');
+      } catch (e) {
+        // 如果ProductInfo不存在，先创建它
+        AppLogger.i('ProductInfo不存在，正在创建: ${widget.spuName}');
+        
+        final createProductInfoParams = CreateProductInfoParams(
+          name: I18NString(
+            chinese: widget.spuName,
+            english: widget.spuName,
+            japanese: widget.spuName,
+          ),
+          code: widget.spuCode,
+          type: _getProductTypeFromString(_selectedType),
+        );
+        
+        productInfoId = await _productInfoService.createProductInfo(createProductInfoParams);
+        AppLogger.i('成功创建ProductInfo: $productInfoId');
+      }
+
+      // 第二步：构建评级卡信息（如果是Graded类型）
+      RatedCard? ratedCard;
+      if (_selectedType == 'Graded' && _selectedGradedBy.isNotEmpty && _selectedGrade.isNotEmpty) {
+        // 创建评级公司对象
+        final ratingCompany = RatingCompany(
+          id: _generateRatingCompanyId(_selectedGradedBy),
+          name: _selectedGradedBy,
+          auditMetadata: AuditMetadata(
+            createdAt: DateTime.now(),
+            updatedAt: DateTime.now(),
+            createdBy: null, // 暂时设为null，实际应用中可以设置为当前用户
+            updatedBy: null,
+          ),
+        );
+
+        ratedCard = RatedCard(
+          ratingCompany: ratingCompany,
+          cardScore: _selectedGrade,
+          gradedCardNumber: _serialNumber,
+          ratingInfos: [],
+        );
+      }
+
+      // 第三步：构建个人商品创建参数
+      final createParams = CreatePersonalProductManualParams(
+        type: _getPersonalProductTypeFromString(_selectedType),
+        owner: _getCurrentUserId(), // 从认证状态获取当前用户ID
+        productInfoId: productInfoId, // 使用确认存在的ProductInfo ID
+        condition: _selectedCondition.isNotEmpty 
+            ? _getPersonalProductConditionFromString(_selectedCondition)
+            : null,
+        ratedCard: ratedCard,
+        price: double.tryParse(_priceController.text),
+        quantity: int.tryParse(_stockController.text) ?? 1,
+        notes: _notesController.text.trim().isNotEmpty ? _notesController.text.trim() : null,
+        images: _selectedImages.isNotEmpty 
+            ? await _processImages(_selectedImages) // 处理图片上传
+            : null,
+        isMainImage: _setCoverPhoto,
       );
 
-      // 调用API创建商品信息
-      final productId = await _productInfoService.createProductInfo(createParams);
+      // 第四步：调用API创建个人商品
+      final personalProductId = await _personalProductService.createPersonalProductForMobile(createParams);
 
       setState(() {
         _isLoading = false;
@@ -1798,17 +1862,23 @@ class _ProductDetailCreateScreenState
       // 显示成功提示
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('商品创建成功，ID: $productId'),
+          content: Text('商品创建成功！已添加到您的商品库'),
           backgroundColor: designGreen,
           behavior: SnackBarBehavior.floating,
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.all(Radius.circular(10)),
+            borderRadius: BorderRadius.circular(10.r),
           ),
         ),
       );
 
-      // 返回上一页
-      context.pop({'productId': productId, ...productDetail});
+      // 返回上一页，传递创建结果
+      context.pop({
+        'personalProductId': personalProductId,
+        'productInfoId': productInfoId,
+        'success': true,
+        'message': '商品创建成功',
+        ...productDetail
+      });
 
     } catch (e) {
       setState(() {
@@ -1819,18 +1889,48 @@ class _ProductDetailCreateScreenState
       // 显示错误提示
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('商品创建失败: $e'),
+          content: Text('个人商品创建失败: $e'),
           backgroundColor: Colors.red,
           behavior: SnackBarBehavior.floating,
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.all(Radius.circular(10)),
+            borderRadius: BorderRadius.circular(10.r),
           ),
         ),
       );
     }
   }
 
-  /// 将字符串类型转换为ProductType枚举
+  /// 将字符串类型转换为PersonalProductType枚举
+  PersonalProductType _getPersonalProductTypeFromString(String type) {
+    switch (type) {
+      case 'Raw':
+        return PersonalProductType.rawCard;
+      case 'Sealed':
+        return PersonalProductType.box;
+      case 'Graded':
+        return PersonalProductType.ratedCard;
+      default:
+        return PersonalProductType.rawCard;
+    }
+  }
+
+  /// 将字符串品相转换为PersonalProductCondition枚举
+  PersonalProductCondition _getPersonalProductConditionFromString(String condition) {
+    switch (condition) {
+      case 'Mint':
+        return PersonalProductCondition.mint;
+      case 'Near Mint':
+        return PersonalProductCondition.nearMint;
+      case 'Lightly Played':
+        return PersonalProductCondition.lightlyPlayed;
+      case 'Damaged':
+        return PersonalProductCondition.damaged;
+      default:
+        return PersonalProductCondition.mint;
+    }
+  }
+
+  /// 将字符串类型转换为ProductType枚举（用于ProductInfo）
   ProductType _getProductTypeFromString(String type) {
     switch (type) {
       case 'Raw':
@@ -1838,10 +1938,45 @@ class _ProductDetailCreateScreenState
       case 'Sealed':
         return ProductType.sealed;
       case 'Graded':
-        return ProductType.raw; // Graded类型暂时映射为raw
+        return ProductType.raw; // Graded类型在ProductInfo中映射为raw
       default:
         return ProductType.raw;
     }
+  }
+
+  /// 生成评级公司ID
+  String _generateRatingCompanyId(String gradedBy) {
+    switch (gradedBy) {
+      case 'PSA':
+        return 'psa_company_id';
+      case 'BGS':
+        return 'bgs_company_id';
+      case 'CGC':
+        return 'cgc_company_id';
+      case 'PGC':
+        return 'pgc_company_id';
+      default:
+        return 'unknown_company_id';
+    }
+  }
+
+  /// 获取当前用户ID
+  String _getCurrentUserId() {
+    final authState = ref.read(authProvider);
+    return authState.user?.id ?? 'default_user_id';
+  }
+
+  /// 处理图片上传
+  /// 在实际应用中，这里应该将图片上传到服务器并返回URL列表
+  /// 目前暂时返回本地路径作为占位符
+  Future<List<String>> _processImages(List<File> imageFiles) async {
+    // TODO: 实现图片上传到服务器的逻辑
+    // 1. 压缩图片
+    // 2. 上传到云存储服务（如阿里云OSS、腾讯云COS等）
+    // 3. 返回上传后的URL列表
+    
+    // 暂时返回本地路径，实际应用中需要替换为服务器URL
+    return imageFiles.map((file) => file.path).toList();
   }
 
   /// 显示评级选择对话框
