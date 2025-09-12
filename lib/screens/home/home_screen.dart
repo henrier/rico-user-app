@@ -165,7 +165,7 @@ class HomeScreen extends ConsumerWidget {
                     icon: Icons.add_business,
                     title: '商品管理',
                     subtitle: '商品管理列表',
-                    onTap: () => context.pushNamed('product-management-demo'),
+                    onTap: () => context.pushNamed('product-management'),
                   ),
                 ],
               ),

@@ -6,6 +6,9 @@ import 'package:go_router/go_router.dart';
 import '../../common/themes/app_theme.dart';
 import '../../widgets/custom_button.dart';
 import '../../widgets/custom_text_field.dart';
+import '../../models/productinfo/service.dart';
+import '../../models/productinfo/data.dart';
+import '../../models/i18n_string.dart';
 
 class BatchAddProductScreen extends ConsumerStatefulWidget {
   const BatchAddProductScreen({super.key});
@@ -26,6 +29,13 @@ class _BatchAddProductScreenState extends ConsumerState<BatchAddProductScreen> {
   bool _isBulkEditMode = false;
   String _bulkEditType = 'Price'; // Price, Stock, Notes
   
+  // API服务
+  late final ProductInfoService _productInfoService;
+  
+  // 加载状态
+  bool _isLoading = false;
+  String? _errorMessage;
+  
   // 商品列表
   final List<ProductItem> _productList = [
     ProductItem(
@@ -38,6 +48,10 @@ class _BatchAddProductScreenState extends ConsumerState<BatchAddProductScreen> {
       stock: 1,
       notes: '',
       imageUrl: 'https://via.placeholder.com/164x228',
+      type: ProductType.raw,
+      cardLanguage: CardLanguage.en,
+      categories: [],
+      images: ['https://via.placeholder.com/164x228'],
     ),
     ProductItem(
       id: '2',
@@ -49,6 +63,10 @@ class _BatchAddProductScreenState extends ConsumerState<BatchAddProductScreen> {
       stock: 1,
       notes: '',
       imageUrl: 'https://via.placeholder.com/164x228',
+      type: ProductType.raw,
+      cardLanguage: CardLanguage.en,
+      categories: [],
+      images: ['https://via.placeholder.com/164x228'],
     ),
     ProductItem(
       id: '3',
@@ -60,8 +78,24 @@ class _BatchAddProductScreenState extends ConsumerState<BatchAddProductScreen> {
       stock: 1,
       notes: '',
       imageUrl: 'https://via.placeholder.com/164x228',
+      type: ProductType.raw,
+      cardLanguage: CardLanguage.en,
+      categories: [],
+      images: ['https://via.placeholder.com/164x228'],
     ),
   ];
+
+  @override
+  void initState() {
+    super.initState();
+    _productInfoService = ProductInfoService();
+  }
+
+  @override
+  void dispose() {
+    _productInfoService.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -692,7 +726,7 @@ class _BatchAddProductScreenState extends ConsumerState<BatchAddProductScreen> {
                       borderRadius: BorderRadius.circular(96.r),
                     ),
                     child: ElevatedButton(
-                      onPressed: () {
+                      onPressed: _isLoading ? null : () {
                         // 发布商品
                         _showPublishDialog();
                       },
@@ -703,14 +737,37 @@ class _BatchAddProductScreenState extends ConsumerState<BatchAddProductScreen> {
                           borderRadius: BorderRadius.circular(96.r),
                         ),
                       ),
-                      child: Text(
-                        'Publish',
-                        style: TextStyle(
-                          fontSize: 32.sp,
-                          fontWeight: FontWeight.w500,
-                          color: Color(0xFF212222),
-                        ),
-                      ),
+                      child: _isLoading 
+                        ? Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              SizedBox(
+                                width: 20.w,
+                                height: 20.h,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2.w,
+                                  valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF212222)),
+                                ),
+                              ),
+                              SizedBox(width: 8.w),
+                              Text(
+                                'Creating...',
+                                style: TextStyle(
+                                  fontSize: 28.sp,
+                                  fontWeight: FontWeight.w500,
+                                  color: Color(0xFF212222),
+                                ),
+                              ),
+                            ],
+                          )
+                        : Text(
+                            'Publish',
+                            style: TextStyle(
+                              fontSize: 32.sp,
+                              fontWeight: FontWeight.w500,
+                              color: Color(0xFF212222),
+                            ),
+                          ),
                     ),
                   ),
                 ),
@@ -726,7 +783,7 @@ class _BatchAddProductScreenState extends ConsumerState<BatchAddProductScreen> {
                       borderRadius: BorderRadius.circular(96.r),
                     ),
                     child: ElevatedButton(
-                      onPressed: () {
+                      onPressed: _isLoading ? null : () {
                         // 创建捆绑
                         _showCreateBundleDialog();
                       },
@@ -792,13 +849,7 @@ class _BatchAddProductScreenState extends ConsumerState<BatchAddProductScreen> {
           TextButton(
             onPressed: () {
               Navigator.pop(context);
-              // 执行发布逻辑
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
-                  content: Text('商品发布成功', style: TextStyle(fontSize: 14.sp)),
-                  backgroundColor: AppTheme.primaryColor,
-                ),
-              );
+              _batchCreateProducts();
             },
             child: Text('确定', style: TextStyle(fontSize: 16.sp)),
           ),
@@ -841,6 +892,147 @@ class _BatchAddProductScreenState extends ConsumerState<BatchAddProductScreen> {
       ),
     );
   }
+
+  /// 批量创建商品信息
+  Future<void> _batchCreateProducts() async {
+    if (_isLoading) return;
+
+    setState(() {
+      _isLoading = true;
+      _errorMessage = null;
+    });
+
+    try {
+      List<String> createdProductIds = [];
+      List<String> errors = [];
+
+      // 为每个商品创建ProductInfo
+      for (int i = 0; i < _productList.length; i++) {
+        final product = _productList[i];
+        
+        try {
+          // 构建创建参数 - 使用createProductInfoWithAllFields接口
+          final createParams = CreateProductInfoWithAllFieldsParams(
+            name: I18NString(
+              chinese: product.name,
+              english: product.name,
+              japanese: product.name,
+            ),
+            code: product.code,
+            level: product.condition,
+            suggestedPrice: product.price,
+            cardLanguage: product.cardLanguage ?? CardLanguage.en,
+            type: product.type,
+            categories: product.categories ?? [],
+            images: product.images ?? (product.imageUrl.isNotEmpty ? [product.imageUrl] : []),
+          );
+
+          // 调用API创建商品信息
+          final productId = await _productInfoService.createProductInfoWithAllFields(createParams);
+          createdProductIds.add(productId);
+          
+        } catch (e) {
+          errors.add('商品 ${i + 1}: ${e.toString()}');
+        }
+      }
+
+      setState(() {
+        _isLoading = false;
+      });
+
+      // 显示结果
+      if (createdProductIds.isNotEmpty) {
+        _showBatchCreateResult(createdProductIds, errors);
+      } else {
+        _showErrorSnackBar('所有商品创建失败');
+      }
+
+    } catch (e) {
+      setState(() {
+        _isLoading = false;
+        _errorMessage = e.toString();
+      });
+      _showErrorSnackBar('批量创建失败: $e');
+    }
+  }
+
+  /// 显示批量创建结果
+  void _showBatchCreateResult(List<String> createdIds, List<String> errors) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Row(
+          children: [
+            Icon(
+              createdIds.isNotEmpty ? Icons.check_circle : Icons.error,
+              color: createdIds.isNotEmpty ? Colors.green : Colors.red,
+              size: 24.sp,
+            ),
+            SizedBox(width: 8.w),
+            Text(
+              '批量创建结果',
+              style: TextStyle(fontSize: 20.sp),
+            ),
+          ],
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            if (createdIds.isNotEmpty) ...[
+              Text(
+                '成功创建 ${createdIds.length} 个商品:',
+                style: TextStyle(fontSize: 16.sp, fontWeight: FontWeight.bold),
+              ),
+              SizedBox(height: 8.h),
+              ...createdIds.map((id) => Padding(
+                padding: EdgeInsets.only(left: 16.w, bottom: 4.h),
+                child: Text(
+                  '• 商品ID: $id',
+                  style: TextStyle(fontSize: 14.sp),
+                ),
+              )),
+            ],
+            if (errors.isNotEmpty) ...[
+              SizedBox(height: 16.h),
+              Text(
+                '失败 ${errors.length} 个商品:',
+                style: TextStyle(fontSize: 16.sp, fontWeight: FontWeight.bold, color: Colors.red),
+              ),
+              SizedBox(height: 8.h),
+              ...errors.map((error) => Padding(
+                padding: EdgeInsets.only(left: 16.w, bottom: 4.h),
+                child: Text(
+                  '• $error',
+                  style: TextStyle(fontSize: 14.sp, color: Colors.red),
+                ),
+              )),
+            ],
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: Text('确定', style: TextStyle(fontSize: 16.sp)),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// 显示错误提示
+  void _showErrorSnackBar(String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message, style: TextStyle(fontSize: 14.sp)),
+        backgroundColor: Colors.red,
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(10.r),
+        ),
+      ),
+    );
+  }
 }
 
 class ProductItem {
@@ -853,6 +1045,12 @@ class ProductItem {
   final int stock;
   final String notes;
   final String imageUrl;
+  
+  // API调用需要的字段
+  final ProductType type;
+  final CardLanguage? cardLanguage;
+  final List<String>? categories;
+  final List<String>? images;
 
   ProductItem({
     required this.id,
@@ -864,5 +1062,9 @@ class ProductItem {
     required this.stock,
     required this.notes,
     required this.imageUrl,
+    this.type = ProductType.raw,
+    this.cardLanguage,
+    this.categories,
+    this.images,
   });
 }

@@ -5,6 +5,10 @@ import 'package:image_picker/image_picker.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'dart:io';
 
+import '../../models/productinfo/service.dart';
+import '../../models/productinfo/data.dart';
+import '../../models/i18n_string.dart';
+
 /// 商品详情新增页面
 /// 对应Figma设计中的"7 商品详情编辑 - raw 裸卡"页面
 class ProductDetailCreateScreen extends ConsumerStatefulWidget {
@@ -46,6 +50,13 @@ class _ProductDetailCreateScreenState
   // 序列号输入控制器
   final TextEditingController _serialNumberController = TextEditingController();
 
+  // API服务
+  late final ProductInfoService _productInfoService;
+  
+  // 加载状态
+  bool _isLoading = false;
+  String? _errorMessage;
+
   // 设计图中的络色
   static const Color designGreen = Color(0xFF0DEE80);
   static const Color designOrange = Color(0xFFF86700);
@@ -53,6 +64,7 @@ class _ProductDetailCreateScreenState
   @override
   void initState() {
     super.initState();
+    _productInfoService = ProductInfoService();
     // 监听notes输入变化以更新字符计数
     _notesController.addListener(() {
       setState(() {});
@@ -65,6 +77,7 @@ class _ProductDetailCreateScreenState
     _stockController.dispose();
     _notesController.dispose();
     _serialNumberController.dispose();
+    _productInfoService.dispose();
     super.dispose();
   }
 
@@ -1467,7 +1480,7 @@ class _ProductDetailCreateScreenState
           width: 540.w,
           height: 96.h,
           child: ElevatedButton(
-            onPressed: _onDonePressed,
+            onPressed: _isLoading ? null : _onDonePressed,
             style: ElevatedButton.styleFrom(
               backgroundColor: designGreen,
               foregroundColor: Colors.black,
@@ -1476,14 +1489,37 @@ class _ProductDetailCreateScreenState
                 borderRadius: BorderRadius.circular(100.r),
               ),
             ),
-            child: Text(
-              'Done',
-              style: TextStyle(
-                fontSize: 30.sp,
-                fontWeight: FontWeight.w600,
-                fontFamily: 'Roboto',
-              ),
-            ),
+            child: _isLoading 
+              ? Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    SizedBox(
+                      width: 20.w,
+                      height: 20.h,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2.w,
+                        valueColor: AlwaysStoppedAnimation<Color>(Colors.black),
+                      ),
+                    ),
+                    SizedBox(width: 8.w),
+                    Text(
+                      'Creating...',
+                      style: TextStyle(
+                        fontSize: 28.sp,
+                        fontWeight: FontWeight.w600,
+                        fontFamily: 'Roboto',
+                      ),
+                    ),
+                  ],
+                )
+              : Text(
+                  'Done',
+                  style: TextStyle(
+                    fontSize: 30.sp,
+                    fontWeight: FontWeight.w600,
+                    fontFamily: 'Roboto',
+                  ),
+                ),
           ),
         ),
       ),
@@ -1725,22 +1761,79 @@ class _ProductDetailCreateScreenState
   }
 
   /// 保存商品详情
-  void _saveProductDetail(Map<String, dynamic> productDetail) {
-    // TODO: 实现实际的保存逻辑，可能需要调用API或保存到本地数据库
-    
-    // 显示成功提示
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('商品详情创建成功'),
-        backgroundColor: designGreen,
-        behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.all(Radius.circular(10)),
-        ),
-      ),
-    );
+  Future<void> _saveProductDetail(Map<String, dynamic> productDetail) async {
+    if (_isLoading) return;
 
-    // 返回上一页
-    context.pop(productDetail);
+    setState(() {
+      _isLoading = true;
+      _errorMessage = null;
+    });
+
+    try {
+      // 构建创建参数 - 使用createProductInfo接口
+      final createParams = CreateProductInfoParams(
+        name: I18NString(
+          chinese: widget.spuName,
+          english: widget.spuName,
+          japanese: widget.spuName,
+        ),
+        code: widget.spuCode,
+        type: _getProductTypeFromString(_selectedType),
+      );
+
+      // 调用API创建商品信息
+      final productId = await _productInfoService.createProductInfo(createParams);
+
+      setState(() {
+        _isLoading = false;
+      });
+
+      // 显示成功提示
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('商品创建成功，ID: $productId'),
+          backgroundColor: designGreen,
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.all(Radius.circular(10)),
+          ),
+        ),
+      );
+
+      // 返回上一页
+      context.pop({'productId': productId, ...productDetail});
+
+    } catch (e) {
+      setState(() {
+        _isLoading = false;
+        _errorMessage = e.toString();
+      });
+      
+      // 显示错误提示
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('商品创建失败: $e'),
+          backgroundColor: Colors.red,
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.all(Radius.circular(10)),
+          ),
+        ),
+      );
+    }
+  }
+
+  /// 将字符串类型转换为ProductType枚举
+  ProductType _getProductTypeFromString(String type) {
+    switch (type) {
+      case 'Raw':
+        return ProductType.raw;
+      case 'Sealed':
+        return ProductType.sealed;
+      case 'Graded':
+        return ProductType.raw; // Graded类型暂时映射为raw
+      default:
+        return ProductType.raw;
+    }
   }
 }
