@@ -1,13 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import '../../common/themes/app_theme.dart';
-import '../../widgets/custom_button.dart';
-import '../../widgets/product_card.dart';
-import '../../widgets/bundle_card.dart';
 import '../../widgets/stats_section.dart';
 import '../../widgets/bottom_action_buttons.dart';
-import 'package:provider/provider.dart';
-import '../../providers/product_info_provider.dart';
 
 class ProductManagementScreen extends StatefulWidget {
   const ProductManagementScreen({super.key});
@@ -19,59 +14,69 @@ class ProductManagementScreen extends StatefulWidget {
 class _ProductManagementScreenState extends State<ProductManagementScreen> {
   String selectedLanguage = 'Pokemon EN';
   String selectedTab = 'Published';
+  String selectedSortOption = 'Latest Listing';
+  bool isDropdownVisible = false;
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.white,
       body: SafeArea(
-        child: Column(
+        child: Stack(
           children: [
-            // 顶部导航栏
-            _buildTopBar(),
-            
-            // 统计信息
-            StatsSection(
-              selectedTab: selectedTab,
-              onTabChanged: (tab) {
-                setState(() {
-                  selectedTab = tab;
-                });
-              },
+            // 主要内容
+            Column(
+              children: [
+                // 顶部导航栏
+                _buildTopBar(),
+                
+                // 统计信息
+                StatsSection(
+                  selectedTab: selectedTab,
+                  onTabChanged: (tab) {
+                    setState(() {
+                      selectedTab = tab;
+                    });
+                  },
+                ),
+                
+                // 分割线
+                Container(
+                  height: 1.h,
+                  color: const Color(0xFFF4F4F6),
+                ),
+                
+                // 操作按钮区域
+                _buildActionSection(),
+                
+                // Bundle Sales 部分
+                _buildBundleSalesSection(),
+                
+                // 商品列表
+                Expanded(
+                  child: _buildProductList(),
+                ),
+                
+                // 底部操作按钮
+                BottomActionButtons(
+                  onAddProduct: () {
+                    // 导航到添加商品页面
+                    Navigator.pushNamed(context, '/home/categories');
+                  },
+                  onBulkAddProduct: () {
+                    // 导航到批量添加商品页面
+                    Navigator.pushNamed(context, '/home/batch-add-product');
+                  },
+                  onCreateBundle: () {
+                    // 导航到创建Bundle页面
+                    Navigator.pushNamed(context, '/home/categories');
+                  },
+                ),
+              ],
             ),
             
-            // 分割线
-            Container(
-              height: 1.h,
-              color: const Color(0xFFF4F4F6),
-            ),
-            
-            // 操作按钮区域
-            _buildActionSection(),
-            
-            // Bundle Sales 部分
-            _buildBundleSalesSection(),
-            
-            // 商品列表
-            Expanded(
-              child: _buildProductList(),
-            ),
-            
-            // 底部操作按钮
-            BottomActionButtons(
-              onAddProduct: () {
-                // 导航到添加商品页面
-                Navigator.pushNamed(context, '/home/categories');
-              },
-              onBulkAddProduct: () {
-                // 导航到批量添加商品页面
-                Navigator.pushNamed(context, '/home/batch-add-product');
-              },
-              onCreateBundle: () {
-                // 导航到创建Bundle页面
-                Navigator.pushNamed(context, '/home/categories');
-              },
-            ),
+            // 下拉菜单覆盖层
+            if (isDropdownVisible) _buildDropdownOverlay(),
           ],
         ),
       ),
@@ -81,17 +86,9 @@ class _ProductManagementScreenState extends State<ProductManagementScreen> {
   Widget _buildTopBar() {
     return Container(
       height: 88.h,
-      color: Colors.white,
+      color: const Color(0xFFF4F4F6),
       child: Stack(
         children: [
-          // 背景装饰
-          Container(
-            height: 88.h,
-            decoration: const BoxDecoration(
-              color: Color(0xFFF4F4F6),
-            ),
-          ),
-          
           // 返回按钮
           Positioned(
             left: 30.w,
@@ -106,8 +103,34 @@ class _ProductManagementScreenState extends State<ProductManagementScreen> {
                   borderRadius: BorderRadius.circular(28.r),
                 ),
                 child: const Icon(
-                  Icons.arrow_back_ios,
+                  Icons.arrow_back_ios_new,
                   color: Color(0xFF212222),
+                  size: 20,
+                ),
+              ),
+            ),
+          ),
+          
+          // 搜索按钮
+          Positioned(
+            left: 105.w,
+            top: 24.h,
+            child: GestureDetector(
+              onTap: () {
+                // 导航到搜索页面
+                Navigator.pushNamed(context, '/home/spu-search');
+              },
+              child: Container(
+                width: 56.w,
+                height: 56.h,
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(28.r),
+                ),
+                child: const Icon(
+                  Icons.search,
+                  color: Color(0xFF212222),
+                  size: 24,
                 ),
               ),
             ),
@@ -130,7 +153,8 @@ class _ProductManagementScreenState extends State<ProductManagementScreen> {
             right: 30.w,
             top: 24.h,
             child: Container(
-              padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 8.h),
+              height: 48.h,
+              padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 12.h),
               decoration: BoxDecoration(
                 border: Border.all(color: const Color(0xFF000000).withOpacity(0.2)),
                 borderRadius: BorderRadius.circular(33.r),
@@ -168,23 +192,90 @@ class _ProductManagementScreenState extends State<ProductManagementScreen> {
       child: Row(
         children: [
           // 批量编辑按钮
-          Container(
-            padding: EdgeInsets.symmetric(horizontal: 24.w, vertical: 12.h),
-            decoration: BoxDecoration(
-              color: const Color(0xFFF4F4F6),
-              borderRadius: BorderRadius.circular(22.r),
+          GestureDetector(
+            onTap: () {
+              // 批量编辑功能
+            },
+            child: Container(
+              height: 44.h,
+              padding: EdgeInsets.symmetric(horizontal: 24.w, vertical: 10.h),
+              decoration: BoxDecoration(
+                color: const Color(0xFFF4F4F6),
+                borderRadius: BorderRadius.circular(22.r),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(
+                    Icons.edit,
+                    size: 22.w,
+                    color: const Color(0xFF212222),
+                  ),
+                  SizedBox(width: 8.w),
+                  Text(
+                    'Bulk Edit',
+                    style: TextStyle(
+                      fontSize: 24.sp,
+                      color: const Color(0xFF212222),
+                    ),
+                  ),
+                ],
+              ),
             ),
+          ),
+          
+          const Spacer(),
+          
+          // 最新列表下拉
+          GestureDetector(
+            onTap: () {
+              setState(() {
+                isDropdownVisible = !isDropdownVisible;
+              });
+            },
             child: Row(
-              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  selectedSortOption,
+                  style: TextStyle(
+                    fontSize: 24.sp,
+                    color: selectedSortOption == 'Latest Listing' 
+                        ? const Color(0xFF00D86F) 
+                        : const Color(0xFF212222),
+                  ),
+                ),
+                SizedBox(width: 8.w),
+                Transform.rotate(
+                  angle: isDropdownVisible ? 3.14159 : 0, // 180度旋转
+                  child: Icon(
+                    Icons.keyboard_arrow_down,
+                    size: 22.w,
+                    color: selectedSortOption == 'Latest Listing' 
+                        ? const Color(0xFF00D86F) 
+                        : const Color(0xFF212222),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          
+          SizedBox(width: 20.w),
+          
+          // 筛选按钮
+          GestureDetector(
+            onTap: () {
+              // 显示筛选选项
+            },
+            child: Row(
               children: [
                 Icon(
-                  Icons.edit,
-                  size: 22.w,
+                  Icons.tune,
+                  size: 30.w,
                   color: const Color(0xFF212222),
                 ),
                 SizedBox(width: 8.w),
                 Text(
-                  'Bulk Edit',
+                  'Filter',
                   style: TextStyle(
                     fontSize: 24.sp,
                     color: const Color(0xFF212222),
@@ -193,146 +284,519 @@ class _ProductManagementScreenState extends State<ProductManagementScreen> {
               ],
             ),
           ),
-          
-          const Spacer(),
-          
-          // 最新列表和筛选
-          Row(
-            children: [
-              Text(
-                'Latest Listing',
-                style: TextStyle(
-                  fontSize: 24.sp,
-                  color: const Color(0xFF212222),
-                ),
-              ),
-              SizedBox(width: 8.w),
-              Icon(
-                Icons.keyboard_arrow_down,
-                size: 22.w,
-                color: const Color(0xFF212222),
-              ),
-              SizedBox(width: 20.w),
-              Icon(
-                Icons.filter_list,
-                size: 30.w,
-                color: const Color(0xFF212222),
-              ),
-              SizedBox(width: 8.w),
-              Text(
-                'Filter',
-                style: TextStyle(
-                  fontSize: 24.sp,
-                  color: const Color(0xFF212222),
-                ),
-              ),
-            ],
-          ),
         ],
       ),
     );
   }
 
   Widget _buildBundleSalesSection() {
-    return Container(
-      padding: EdgeInsets.symmetric(horizontal: 30.w, vertical: 20.h),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Text(
-            'Bundle Sales',
-            style: TextStyle(
-              fontSize: 30.sp,
-              fontWeight: FontWeight.w500,
-              color: const Color(0xFF212222),
-            ),
-          ),
-          Row(
+    return Column(
+      children: [
+        // Bundle Sales 标题栏
+        Container(
+          padding: EdgeInsets.symmetric(horizontal: 30.w, vertical: 20.h),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Text(
-                'More',
+                'Bundle Sales',
                 style: TextStyle(
-                  fontSize: 24.sp,
+                  fontSize: 30.sp,
                   fontWeight: FontWeight.w500,
                   color: const Color(0xFF212222),
                 ),
               ),
-              SizedBox(width: 8.w),
-              Icon(
-                Icons.keyboard_arrow_down,
-                size: 22.w,
-                color: const Color(0xFF212222),
+              GestureDetector(
+                onTap: () {
+                  // 显示更多Bundle选项
+                },
+                child: Row(
+                  children: [
+                    Text(
+                      'More',
+                      style: TextStyle(
+                        fontSize: 24.sp,
+                        fontWeight: FontWeight.w500,
+                        color: const Color(0xFF212222),
+                      ),
+                    ),
+                    SizedBox(width: 8.w),
+                    Icon(
+                      Icons.keyboard_arrow_right,
+                      size: 22.w,
+                      color: const Color(0xFF212222),
+                    ),
+                  ],
+                ),
               ),
             ],
+          ),
+        ),
+        
+        // Bundle 卡片横向滚动列表
+        Container(
+          height: 281.h,
+          child: ListView.builder(
+            scrollDirection: Axis.horizontal,
+            padding: EdgeInsets.only(left: 30.w),
+            itemCount: 2,
+            itemBuilder: (context, index) {
+              return Container(
+                margin: EdgeInsets.only(right: 24.w),
+                child: _buildBundleCard(index + 1),
+              );
+            },
+          ),
+        ),
+      ],
+    );
+  }
+  
+  Widget _buildBundleCard(int bundleNumber) {
+    return Container(
+      width: 432.w,
+      height: 281.h,
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16.r),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.1),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Stack(
+        children: [
+          // 背景卡片图片
+          Positioned(
+            left: 20.w,
+            top: 40.h,
+            child: Row(
+              children: List.generate(4, (index) {
+                return Container(
+                  margin: EdgeInsets.only(right: index < 3 ? 8.w : 0),
+                  width: 98.w,
+                  height: 137.h,
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFF4F4F6),
+                    borderRadius: BorderRadius.circular(8.r),
+                  ),
+                  child: Icon(
+                    Icons.image,
+                    color: Colors.grey[400],
+                    size: 40.w,
+                  ),
+                );
+              }),
+            ),
+          ),
+          
+          // Bundle标题和价格
+          Positioned(
+            left: 30.w,
+            top: 202.h,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Bundle $bundleNumber',
+                  style: TextStyle(
+                    fontSize: 28.sp,
+                    fontWeight: FontWeight.w500,
+                    color: const Color(0xFF212222),
+                  ),
+                ),
+                SizedBox(height: 4.h),
+                Row(
+                  children: [
+                    Text(
+                      'RM 2,500',
+                      style: TextStyle(
+                        fontSize: 30.sp,
+                        fontWeight: FontWeight.w500,
+                        color: const Color(0xFFF86700),
+                      ),
+                    ),
+                    SizedBox(width: 12.w),
+                    Text(
+                      'RM 2,500',
+                      style: TextStyle(
+                        fontSize: 20.sp,
+                        color: const Color(0xFFC1C1C1),
+                        decoration: TextDecoration.lineThrough,
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+          
+          // 倒计时
+          Positioned(
+            left: 50.w,
+            bottom: 20.h,
+            child: Row(
+              children: [
+                _buildTimeBox('12', 'D'),
+                SizedBox(width: 14.w),
+                _buildTimeBox('12', 'H'),
+                SizedBox(width: 14.w),
+                _buildTimeBox('12', 'M'),
+                SizedBox(width: 14.w),
+                _buildTimeBox('12', 'S'),
+              ],
+            ),
           ),
         ],
       ),
     );
   }
-
-  Widget _buildProductList() {
-    return ListView(
-      padding: EdgeInsets.symmetric(horizontal: 30.w),
+  
+  Widget _buildTimeBox(String time, String unit) {
+    return Column(
       children: [
-        // Bundle 卡片
-        BundleCard(
-          title: 'Bundle 1',
-          price: 'RM 2,500',
-          originalPrice: 'RM 2,500',
-          days: '12',
-          hours: '12',
-          minutes: '12',
-          seconds: '12',
+        Container(
+          width: 40.w,
+          height: 40.h,
+          decoration: BoxDecoration(
+            color: const Color(0xFFF4F4F6),
+            borderRadius: BorderRadius.circular(10.r),
+          ),
+          child: Center(
+            child: Text(
+              time,
+              style: TextStyle(
+                fontSize: 24.sp,
+                color: const Color(0xFF212222),
+              ),
+            ),
+          ),
         ),
-        SizedBox(height: 20.h),
-        BundleCard(
-          title: 'Bundle 2',
-          price: 'RM 2,500',
-          originalPrice: 'RM 2,500',
-          days: '12',
-          hours: '12',
-          minutes: '12',
-          seconds: '12',
-        ),
-        SizedBox(height: 20.h),
-        
-        // 商品列表
-        ProductCard(
-          name: 'Umbreon ex',
-          code: 'DRI-031/182',
-          type: 'Holo',
-          price: 'RM 2,500',
-          condition: 'Lightly Played',
-          quantity: 'x1',
-        ),
-        ProductCard(
-          name: 'Umbreon ex',
-          code: 'DRI-031/182',
-          type: 'Holo',
-          price: 'RM 2,500',
-          condition: 'Lightly Played',
-          quantity: 'x1',
-          grade: 'PSA10',
-        ),
-        ProductCard(
-          name: 'Umbreon ex',
-          code: 'DRI-031/182',
-          type: 'Holo',
-          price: 'RM 2,500',
-          condition: 'Lightly Played',
-          quantity: 'x1',
-          grade: 'BGS Black Label',
-        ),
-        ProductCard(
-          name: 'Umbreon ex',
-          code: 'DRI-031/182',
-          type: 'Holo',
-          price: 'RM 2,500',
-          condition: 'Lightly Played',
-          quantity: 'x1',
-          grade: 'BGS Black Label',
+        SizedBox(height: 2.h),
+        Text(
+          unit,
+          style: TextStyle(
+            fontSize: 22.sp,
+            color: const Color(0xFF919191),
+          ),
         ),
       ],
+    );
+  }
+
+  Widget _buildProductList() {
+    return ListView.separated(
+      padding: EdgeInsets.zero,
+      itemCount: 4,
+      separatorBuilder: (context, index) => Container(
+        height: 2.h,
+        color: const Color(0xFFF1F1F3),
+      ),
+      itemBuilder: (context, index) {
+        return _buildProductItem(index);
+      },
+    );
+  }
+  
+  Widget _buildProductItem(int index) {
+    final products = [
+      {
+        'name': 'Umbreon ex',
+        'code': 'DRI-031/182',
+        'type': 'Holo',
+        'price': 'RM 2,500',
+        'condition': 'Lightly Played',
+        'quantity': 'x1',
+        'grade': null,
+      },
+      {
+        'name': 'Umbreon ex',
+        'code': 'DRI-031/182',
+        'type': 'Holo',
+        'price': 'RM 2,500',
+        'condition': 'Lightly Played',
+        'quantity': 'x1',
+        'grade': 'PSA10',
+      },
+      {
+        'name': 'Umbreon ex',
+        'code': 'DRI-031/182',
+        'type': 'Holo',
+        'price': 'RM 2,500',
+        'condition': 'Lightly Played',
+        'quantity': 'x1',
+        'grade': 'BGS Black Label',
+      },
+      {
+        'name': 'Umbreon ex',
+        'code': 'DRI-031/182',
+        'type': 'Holo',
+        'price': 'RM 2,500',
+        'condition': 'Lightly Played',
+        'quantity': 'x1',
+        'grade': 'BGS Black Label',
+      },
+    ];
+    
+    final product = products[index];
+    
+    return Container(
+      height: 274.h,
+      color: Colors.white,
+      padding: EdgeInsets.symmetric(horizontal: 30.w, vertical: 30.h),
+      child: Row(
+        children: [
+          // 商品图片
+          Container(
+            width: 154.w,
+            height: 214.h,
+            decoration: BoxDecoration(
+              color: const Color(0xFFF4F4F6),
+              borderRadius: BorderRadius.circular(8.r),
+            ),
+            child: Icon(
+              Icons.image,
+              color: Colors.grey[400],
+              size: 60.w,
+            ),
+          ),
+          
+          SizedBox(width: 24.w),
+          
+          // 商品信息
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // 商品名称
+                Text(
+                  product['name'] as String,
+                  style: TextStyle(
+                    fontSize: 32.sp,
+                    fontWeight: FontWeight.w500,
+                    color: const Color(0xFF212222),
+                  ),
+                ),
+                
+                SizedBox(height: 8.h),
+                
+                // 商品代码和类型
+                Row(
+                  children: [
+                    Text(
+                      product['code'] as String,
+                      style: TextStyle(
+                        fontSize: 24.sp,
+                        color: const Color(0xFF919191),
+                      ),
+                    ),
+                    Container(
+                      width: 2.w,
+                      height: 19.h,
+                      margin: EdgeInsets.symmetric(horizontal: 10.w),
+                      color: const Color(0xFF919191),
+                    ),
+                    Text(
+                      product['type'] as String,
+                      style: TextStyle(
+                        fontSize: 24.sp,
+                        color: const Color(0xFF919191),
+                      ),
+                    ),
+                  ],
+                ),
+                
+                const Spacer(),
+                
+                // 价格
+                Text(
+                  product['price'] as String,
+                  style: TextStyle(
+                    fontSize: 30.sp,
+                    fontWeight: FontWeight.w500,
+                    color: const Color(0xFFF86700),
+                  ),
+                ),
+                
+                SizedBox(height: 12.h),
+                
+                // 底部信息：品质、评级、数量
+                Row(
+                  children: [
+                    // 品质标签
+                    Container(
+                      height: 36.h,
+                      padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 6.h),
+                      decoration: BoxDecoration(
+                        border: Border.all(color: const Color(0xFFD3D3D3)),
+                        borderRadius: BorderRadius.circular(8.r),
+                      ),
+                      child: Center(
+                        child: Text(
+                          product['condition'] as String,
+                          style: TextStyle(
+                            fontSize: 22.sp,
+                            color: const Color(0xFF919191),
+                          ),
+                        ),
+                      ),
+                    ),
+                    
+                    const Spacer(),
+                    
+                    // 评级标签（如果有）
+                    if (product['grade'] != null) ...[
+                      Container(
+                        height: 34.h,
+                        padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 5.h),
+                        decoration: BoxDecoration(
+                          gradient: product['grade'] == 'PSA10'
+                              ? const LinearGradient(
+                                  colors: [Color(0xFFF86700), Color(0xFFF89900)],
+                                  begin: Alignment.topCenter,
+                                  end: Alignment.bottomCenter,
+                                )
+                              : const LinearGradient(
+                                  colors: [Color(0xFF4D5862), Color(0xFF737373)],
+                                  begin: Alignment.topCenter,
+                                  end: Alignment.bottomCenter,
+                                ),
+                          borderRadius: BorderRadius.circular(8.r),
+                        ),
+                        child: Center(
+                          child: Text(
+                            product['grade'] as String,
+                            style: TextStyle(
+                              fontSize: 24.sp,
+                              fontWeight: product['grade'] == 'PSA10' ? FontWeight.w500 : FontWeight.normal,
+                              color: Colors.white,
+                            ),
+                          ),
+                        ),
+                      ),
+                      SizedBox(width: 12.w),
+                    ] else ...[
+                      // 数量标签（无评级时）
+                      Container(
+                        height: 34.h,
+                        width: 44.w,
+                        decoration: BoxDecoration(
+                          gradient: const LinearGradient(
+                            colors: [Color(0xFF4D5862), Color(0xFF737373)],
+                            begin: Alignment.topCenter,
+                            end: Alignment.bottomCenter,
+                          ),
+                          borderRadius: BorderRadius.circular(8.r),
+                        ),
+                        child: Center(
+                          child: Text(
+                            product['quantity'] as String,
+                            style: TextStyle(
+                              fontSize: 24.sp,
+                              fontWeight: FontWeight.w600,
+                              color: Colors.white,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+  
+  Widget _buildDropdownOverlay() {
+    final sortOptions = [
+      'Latest Listing',
+      'Price: Low to High',
+      'Price: High to Low',
+      'Stock: Low to High',
+      'Stock: High to Low',
+    ];
+    
+    return GestureDetector(
+      onTap: () {
+        setState(() {
+          isDropdownVisible = false;
+        });
+      },
+      child: Container(
+        color: Colors.black.withOpacity(0.7),
+        child: Column(
+          children: [
+            // 保持顶部区域不被遮罩
+            Container(
+              height: 338.h, // 顶部导航栏 + 统计栏 + 操作栏的高度
+              color: Colors.transparent,
+            ),
+            
+            // 下拉菜单区域
+            Container(
+              width: 750.w,
+              decoration: const BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.only(
+                  topLeft: Radius.circular(16),
+                  topRight: Radius.circular(16),
+                ),
+              ),
+              child: Column(
+                children: sortOptions.map((option) {
+                  final isSelected = option == selectedSortOption;
+                  return GestureDetector(
+                    onTap: () {
+                      setState(() {
+                        selectedSortOption = option;
+                        isDropdownVisible = false;
+                      });
+                    },
+                    child: Container(
+                      height: 80.h,
+                      width: double.infinity,
+                      padding: EdgeInsets.symmetric(horizontal: 50.w),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        border: Border(
+                          bottom: BorderSide(
+                            color: Colors.grey.withOpacity(0.1),
+                            width: 1,
+                          ),
+                        ),
+                      ),
+                      child: Align(
+                        alignment: Alignment.centerLeft,
+                        child: Text(
+                          option,
+                          style: TextStyle(
+                            fontSize: 28.sp,
+                            color: isSelected ? const Color(0xFF00D86F) : Colors.black,
+                            fontWeight: isSelected ? FontWeight.w500 : FontWeight.normal,
+                          ),
+                        ),
+                      ),
+                    ),
+                  );
+                }).toList(),
+              ),
+            ),
+            
+            // 剩余空间填充
+            Expanded(
+              child: Container(
+                color: Colors.transparent,
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 

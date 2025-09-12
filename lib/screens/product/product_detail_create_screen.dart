@@ -564,13 +564,13 @@ class _ProductDetailCreateScreenState
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Row(
-          children: [
-            Text(
-              'Graded by',
-              style: TextStyle(
-                fontSize: 24.sp,
-                color: const Color(0xFF919191),
-              ),
+      children: [
+        Text(
+          'Graded by',
+          style: TextStyle(
+            fontSize: 24.sp,
+            color: const Color(0xFF919191),
+          ),
             ),
             SizedBox(width: 10.w),
             if (_isLoadingRatingCompanies)
@@ -604,19 +604,37 @@ class _ProductDetailCreateScreenState
             ),
           )
         else
-          Wrap(
-            spacing: 20.w,
-            runSpacing: 12.h,
+        Wrap(
+          spacing: 20.w,
+          runSpacing: 12.h,
             children: _ratingCompanies
                 .map((company) => _buildGradedByChip(company.name))
                 .toList(),
-          ),
+        ),
       ],
     );
   }
 
   /// 构建Grades选择区域
   Widget _buildGradesSelection() {
+    // 获取当前选中评级公司的分值列表
+    List<String> availableGrades = [];
+    if (_selectedGradedBy.isNotEmpty) {
+      final selectedCompany = _ratingCompanies.firstWhere(
+        (company) => company.name == _selectedGradedBy,
+        orElse: () => RatingCompany(
+          id: '',
+          name: '',
+          score: [],
+          auditMetadata: AuditMetadata(
+            createdAt: DateTime.now(),
+            updatedAt: DateTime.now(),
+          ),
+        ),
+      );
+      availableGrades = selectedCompany.score;
+    }
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -628,14 +646,89 @@ class _ProductDetailCreateScreenState
           ),
         ),
         SizedBox(height: 20.h),
-        Wrap(
-          spacing: 20.w,
-          runSpacing: 12.h,
+        // 下拉选择器
+        _buildGradeDropdown(availableGrades),
+      ],
+    );
+  }
+
+  /// 构建Grade下拉选择器
+  Widget _buildGradeDropdown(List<String> availableGrades) {
+    if (_selectedGradedBy.isEmpty) {
+      // 未选择评级公司时的占位状态
+      return Container(
+        height: 54.h,
+        width: 208.w,
+        decoration: BoxDecoration(
+          color: const Color(0xFFF4F4F4),
+          borderRadius: BorderRadius.circular(47.r),
+        ),
+        child: Center(
+          child: Text(
+            '请先选择评级公司',
+            style: TextStyle(
+              fontSize: 20.sp,
+              color: Colors.grey[600],
+              fontFamily: 'Roboto',
+            ),
+          ),
+        ),
+      );
+    }
+
+    if (availableGrades.isEmpty) {
+      // 评级公司无可用等级时的状态
+      return Container(
+        height: 54.h,
+        width: 208.w,
+        decoration: BoxDecoration(
+          color: const Color(0xFFF4F4F4),
+          borderRadius: BorderRadius.circular(47.r),
+        ),
+        child: Center(
+          child: Text(
+            '暂无可用等级',
+            style: TextStyle(
+              fontSize: 20.sp,
+              color: Colors.orange[700],
+              fontFamily: 'Roboto',
+            ),
+          ),
+        ),
+      );
+    }
+
+    // 正常的下拉选择器
+    return GestureDetector(
+      onTap: () => _showGradeDropdownDialog(availableGrades),
+      child: Container(
+        height: 54.h,
+        width: 208.w,
+        decoration: BoxDecoration(
+          color: _selectedGrade.isNotEmpty ? designGreen : const Color(0xFFF4F4F4),
+          borderRadius: BorderRadius.circular(47.r),
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            _buildGradeChip('Black Label'),
+            Text(
+              _selectedGrade.isNotEmpty ? _selectedGrade : '选择等级',
+              style: TextStyle(
+                fontSize: 24.sp,
+                fontWeight: _selectedGrade.isNotEmpty ? FontWeight.w500 : FontWeight.normal,
+                color: Colors.black,
+                fontFamily: 'Roboto',
+              ),
+            ),
+            SizedBox(width: 8.w),
+            Icon(
+              Icons.keyboard_arrow_down,
+              color: Colors.black,
+              size: 20.sp,
+            ),
           ],
         ),
-      ],
+      ),
     );
   }
 
@@ -830,6 +923,10 @@ class _ProductDetailCreateScreenState
       onTap: () {
         setState(() {
           _selectedGradedBy = isSelected ? '' : gradedBy;
+          // 当选择不同的评级公司时，清空当前选择的等级
+          if (!isSelected) {
+            _selectedGrade = '';
+          }
         });
       },
       child: Container(
@@ -854,54 +951,6 @@ class _ProductDetailCreateScreenState
     );
   }
 
-  /// 构建Grade选择芯片
-  Widget _buildGradeChip(String grade) {
-    final isSelected = _selectedGrade == grade;
-    
-    // 根据设计图设置不同宽度
-    double width;
-    switch (grade) {
-      case 'Black Label':
-        width = 208.w; // 根据设计图调整
-        break;
-      default:
-        width = 208.w;
-    }
-    
-    return GestureDetector(
-      onTap: () {
-        if (grade == 'Black Label') {
-          // 弹出评级选择对话框
-          _showGradeSelectionDialog();
-        } else {
-          setState(() {
-            _selectedGrade = isSelected ? '' : grade;
-          });
-        }
-      },
-      child: Container(
-        height: 54.h,
-        width: width,
-        decoration: BoxDecoration(
-          color: isSelected ? designGreen : const Color(0xFFF4F4F4),
-          borderRadius: BorderRadius.circular(47.r),
-        ),
-        child: Center(
-          child: Text(
-            _selectedGrade.isNotEmpty && grade == 'Black Label' 
-              ? _selectedGrade 
-              : grade,
-            style: TextStyle(
-              fontSize: 24.sp,
-              fontWeight: isSelected ? FontWeight.w500 : FontWeight.normal,
-              color: Colors.black,
-              fontFamily: 'Roboto',
-            ),
-          ),
-        ),
-      ),
-    );
-  }
 
   /// 构建注意事项区域
   Widget _buildNoticeSection() {
@@ -1829,30 +1878,10 @@ class _ProductDetailCreateScreenState
     });
 
     try {
-      // 第一步：确保ProductInfo存在
-      String productInfoId;
-      try {
-        // 尝试获取现有的ProductInfo
-        final existingProductInfo = await _productInfoService.getProductInfoDetail(widget.spuId);
-        productInfoId = existingProductInfo.id;
-        AppLogger.i('使用现有的ProductInfo: $productInfoId');
-      } catch (e) {
-        // 如果ProductInfo不存在，先创建它
-        AppLogger.i('ProductInfo不存在，正在创建: ${widget.spuName}');
-        
-        final createProductInfoParams = CreateProductInfoParams(
-          name: I18NString(
-            chinese: widget.spuName,
-            english: widget.spuName,
-            japanese: widget.spuName,
-          ),
-          code: widget.spuCode,
-          type: _getProductTypeFromString(_selectedType),
-        );
-        
-        productInfoId = await _productInfoService.createProductInfo(createProductInfoParams);
-        AppLogger.i('成功创建ProductInfo: $productInfoId');
-      }
+      // 第一步：使用路由传递的SPU ID作为ProductInfo ID
+      // SPU选择页面传递的spuId实际上就是ProductInfo的ID
+      final String productInfoId = widget.spuId;
+      AppLogger.i('使用路由传递的ProductInfo ID: $productInfoId');
 
       // 第二步：构建评级卡信息（如果是Graded类型）
       RatedCard? ratedCard;
@@ -2006,7 +2035,7 @@ class _ProductDetailCreateScreenState
   Future<void> _loadRatingCompanies() async {
     if (_isLoadingRatingCompanies) return;
     
-    setState(() {
+                                      setState(() {
       _isLoadingRatingCompanies = true;
     });
     
@@ -2047,26 +2076,13 @@ class _ProductDetailCreateScreenState
     }
   }
 
-  /// 处理图片上传
-  /// 在实际应用中，这里应该将图片上传到服务器并返回URL列表
-  /// 目前暂时返回本地路径作为占位符
-  Future<List<String>> _processImages(List<File> imageFiles) async {
-    // TODO: 实现图片上传到服务器的逻辑
-    // 1. 压缩图片
-    // 2. 上传到云存储服务（如阿里云OSS、腾讯云COS等）
-    // 3. 返回上传后的URL列表
-    
-    // 暂时返回本地路径，实际应用中需要替换为服务器URL
-    return imageFiles.map((file) => file.path).toList();
-  }
-
-  /// 显示评级选择对话框
-  void _showGradeSelectionDialog() {
+  /// 显示Grade下拉选择对话框（按Figma设计）
+  void _showGradeDropdownDialog(List<String> availableGrades) {
     String tempSelectedGrade = _selectedGrade;
     
     showDialog(
       context: context,
-      barrierColor: Colors.black.withOpacity(0.7),
+      barrierColor: Colors.black.withOpacity(0.7), // 按设计图的遮罩透明度
       builder: (BuildContext context) {
         return StatefulBuilder(
           builder: (context, setDialogState) {
@@ -2085,13 +2101,13 @@ class _ProductDetailCreateScreenState
                       ),
                     ),
                     
-                    // 对话框内容
+                    // 底部弹出的对话框
                     Positioned(
                       bottom: 0,
                       left: 0,
                       right: 0,
                       child: Container(
-                        height: 623.h,
+                        height: 623.h, // 按设计图高度
                         decoration: BoxDecoration(
                           color: Colors.white,
                           borderRadius: BorderRadius.only(
@@ -2103,7 +2119,7 @@ class _ProductDetailCreateScreenState
                           children: [
                             // 顶部标题栏
                             Container(
-                              height: 88.h,
+                              height: 88.h, // 按设计图高度
                               padding: EdgeInsets.symmetric(horizontal: 30.w),
                               decoration: BoxDecoration(
                                 color: Colors.white,
@@ -2115,13 +2131,13 @@ class _ProductDetailCreateScreenState
                               child: Row(
                                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                 children: [
-                                  // 取消按钮
+                                  // Cancel按钮
                                   GestureDetector(
                                     onTap: () => Navigator.of(context).pop(),
                                     child: Text(
                                       'Cancel',
                                       style: TextStyle(
-                                        fontSize: 30.sp,
+                                        fontSize: 30.sp, // 按设计图字体大小
                                         color: Colors.black,
                                         fontFamily: 'Roboto',
                                       ),
@@ -2132,14 +2148,14 @@ class _ProductDetailCreateScreenState
                                   Text(
                                     'Select Grades',
                                     style: TextStyle(
-                                      fontSize: 32.sp,
+                                      fontSize: 32.sp, // 按设计图字体大小
                                       fontWeight: FontWeight.w500,
                                       color: Colors.black,
                                       fontFamily: 'Roboto',
                                     ),
                                   ),
                                   
-                                  // 确认按钮
+                                  // Confirm按钮
                                   GestureDetector(
                                     onTap: () {
                                       setState(() {
@@ -2150,8 +2166,8 @@ class _ProductDetailCreateScreenState
                                     child: Text(
                                       'Confirm',
                                       style: TextStyle(
-                                        fontSize: 30.sp,
-                                        color: const Color(0xFF00D86F),
+                                        fontSize: 30.sp, // 按设计图字体大小
+                                        color: const Color(0xFF00D86F), // 按设计图颜色
                                         fontWeight: FontWeight.w500,
                                         fontFamily: 'Roboto',
                                       ),
@@ -2161,76 +2177,30 @@ class _ProductDetailCreateScreenState
                               ),
                             ),
                             
-                            // 评级选项列表
+                            // 选项列表
                             Expanded(
                               child: Container(
-                                padding: EdgeInsets.symmetric(horizontal: 75.w),
+                                padding: EdgeInsets.symmetric(horizontal: 75.w), // 按设计图边距
                                 child: Column(
                                   children: [
-                                    SizedBox(height: 60.h),
+                                    SizedBox(height: 60.h), // 顶部间距
                                     
-                                    // Black Label 选项
-                                    _buildGradeOption(
-                                      'Black Label',
-                                      tempSelectedGrade == 'Black Label',
-                                      () {
-                                        setDialogState(() {
-                                          tempSelectedGrade = 'Black Label';
-                                        });
-                                      },
-                                    ),
-                                    
-                                    SizedBox(height: 8.h),
-                                    
-                                    // 10 选项
-                                    _buildGradeOption(
-                                      '10',
-                                      tempSelectedGrade == '10',
-                                      () {
-                                        setDialogState(() {
-                                          tempSelectedGrade = '10';
-                                        });
-                                      },
-                                    ),
-                                    
-                                    SizedBox(height: 8.h),
-                                    
-                                    // 9.5 选项
-                                    _buildGradeOption(
-                                      '9.5',
-                                      tempSelectedGrade == '9.5',
-                                      () {
-                                        setDialogState(() {
-                                          tempSelectedGrade = '9.5';
-                                        });
-                                      },
-                                    ),
-                                    
-                                    SizedBox(height: 8.h),
-                                    
-                                    // 9 选项
-                                    _buildGradeOption(
-                                      '9',
-                                      tempSelectedGrade == '9',
-                                      () {
-                                        setDialogState(() {
-                                          tempSelectedGrade = '9';
-                                        });
-                                      },
-                                    ),
-                                    
-                                    SizedBox(height: 8.h),
-                                    
-                                    // 8.5 选项
-                                    _buildGradeOption(
-                                      '8.5',
-                                      tempSelectedGrade == '8.5',
-                                      () {
-                                        setDialogState(() {
-                                          tempSelectedGrade = '8.5';
-                                        });
-                                      },
-                                    ),
+                                    // 动态生成选项
+                                    ...availableGrades.map((grade) {
+                                      final isSelected = tempSelectedGrade == grade;
+                                      return Container(
+                                        margin: EdgeInsets.only(bottom: 8.h),
+                                        child: _buildGradeOption(
+                                          grade,
+                                          isSelected,
+                                          () {
+                                            setDialogState(() {
+                                              tempSelectedGrade = grade;
+                                            });
+                                          },
+                                        ),
+                                      );
+                                    }).toList(),
                                   ],
                                 ),
                               ),
@@ -2249,24 +2219,26 @@ class _ProductDetailCreateScreenState
     );
   }
 
-  /// 构建评级选项
+  /// 构建Grade选项（按Figma设计）
   Widget _buildGradeOption(String grade, bool isSelected, VoidCallback onTap) {
     return GestureDetector(
       onTap: onTap,
       child: Container(
-        height: 80.h,
-        width: 600.w,
+        height: 80.h, // 按设计图高度
+        width: 600.w, // 按设计图宽度
         decoration: BoxDecoration(
-          color: isSelected ? const Color(0xFFF2F2F2) : Colors.transparent,
+          color: isSelected ? const Color(0xFFF2F2F2) : Colors.transparent, // 按设计图选中背景色
           borderRadius: BorderRadius.circular(20.r),
         ),
         child: Center(
           child: Text(
             grade,
             style: TextStyle(
-              fontSize: grade == 'Black Label' ? 30.sp : 36.sp,
+              fontSize: grade == 'Black Label' ? 30.sp : 36.sp, // Black Label用较小字体
               fontWeight: isSelected ? FontWeight.w500 : FontWeight.normal,
-              color: grade == 'Black Label' ? const Color(0xFF919191) : Colors.black,
+              color: grade == 'Black Label' 
+                  ? const Color(0xFF919191) // Black Label用灰色
+                  : Colors.black, // 其他用黑色
               fontFamily: 'Roboto',
             ),
           ),
@@ -2274,4 +2246,18 @@ class _ProductDetailCreateScreenState
       ),
     );
   }
+
+  /// 处理图片上传
+  /// 在实际应用中，这里应该将图片上传到服务器并返回URL列表
+  /// 目前暂时返回本地路径作为占位符
+  Future<List<String>> _processImages(List<File> imageFiles) async {
+    // TODO: 实现图片上传到服务器的逻辑
+    // 1. 压缩图片
+    // 2. 上传到云存储服务（如阿里云OSS、腾讯云COS等）
+    // 3. 返回上传后的URL列表
+    
+    // 暂时返回本地路径，实际应用中需要替换为服务器URL
+    return imageFiles.map((file) => file.path).toList();
+  }
+
 }
