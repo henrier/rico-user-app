@@ -10,6 +10,7 @@ import '../../models/productinfo/data.dart';
 import '../../models/personalproduct/service.dart';
 import '../../models/personalproduct/data.dart';
 import '../../models/ratingcompany/data.dart';
+import '../../models/ratingcompany/service.dart';
 import '../../models/audit_metadata.dart';
 import '../../models/i18n_string.dart';
 import '../../providers/auth_provider.dart';
@@ -59,10 +60,15 @@ class _ProductDetailCreateScreenState
   // API服务
   late final ProductInfoService _productInfoService;
   late final PersonalProductService _personalProductService;
+  late final RatingCompanyService _ratingCompanyService;
   
   // 加载状态
   bool _isLoading = false;
   String? _errorMessage;
+  
+  // 评级公司数据
+  List<RatingCompany> _ratingCompanies = [];
+  bool _isLoadingRatingCompanies = false;
 
   // 设计图中的络色
   static const Color designGreen = Color(0xFF0DEE80);
@@ -73,6 +79,7 @@ class _ProductDetailCreateScreenState
     super.initState();
     _productInfoService = ProductInfoService();
     _personalProductService = PersonalProductService();
+    _ratingCompanyService = RatingCompanyService();
     // 监听notes输入变化以更新字符计数
     _notesController.addListener(() {
       setState(() {});
@@ -87,6 +94,7 @@ class _ProductDetailCreateScreenState
     _serialNumberController.dispose();
     _productInfoService.dispose();
     _personalProductService.dispose();
+    _ratingCompanyService.dispose();
     super.dispose();
   }
 
@@ -484,6 +492,11 @@ class _ProductDetailCreateScreenState
           _serialNumber = '';
           _serialNumberController.clear();
         });
+        
+        // 如果选择了Graded类型，自动加载评级公司列表
+        if (type == 'Graded' && _ratingCompanies.isEmpty) {
+          _loadRatingCompanies();
+        }
       },
       child: Container(
         height: 54.h,
@@ -550,24 +563,54 @@ class _ProductDetailCreateScreenState
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          'Graded by',
-          style: TextStyle(
-            fontSize: 24.sp,
-            color: const Color(0xFF919191),
-          ),
-        ),
-        SizedBox(height: 20.h),
-        Wrap(
-          spacing: 20.w,
-          runSpacing: 12.h,
+        Row(
           children: [
-            _buildGradedByChip('PSA'),
-            _buildGradedByChip('BGS'),
-            _buildGradedByChip('CGC'),
-            _buildGradedByChip('PGC'),
+            Text(
+              'Graded by',
+              style: TextStyle(
+                fontSize: 24.sp,
+                color: const Color(0xFF919191),
+              ),
+            ),
+            SizedBox(width: 10.w),
+            if (_isLoadingRatingCompanies)
+              SizedBox(
+                width: 20.w,
+                height: 20.h,
+                child: CircularProgressIndicator(
+                  strokeWidth: 2,
+                  valueColor: AlwaysStoppedAnimation<Color>(designGreen),
+                ),
+              ),
           ],
         ),
+        SizedBox(height: 20.h),
+        if (_ratingCompanies.isEmpty && !_isLoadingRatingCompanies)
+          GestureDetector(
+            onTap: _loadRatingCompanies,
+            child: Container(
+              padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 8.h),
+              decoration: BoxDecoration(
+                border: Border.all(color: designGreen),
+                borderRadius: BorderRadius.circular(8.r),
+              ),
+              child: Text(
+                '点击加载评级公司',
+                style: TextStyle(
+                  fontSize: 16.sp,
+                  color: designGreen,
+                ),
+              ),
+            ),
+          )
+        else
+          Wrap(
+            spacing: 20.w,
+            runSpacing: 12.h,
+            children: _ratingCompanies
+                .map((company) => _buildGradedByChip(company.name))
+                .toList(),
+          ),
       ],
     );
   }
@@ -1816,7 +1859,7 @@ class _ProductDetailCreateScreenState
       if (_selectedType == 'Graded' && _selectedGradedBy.isNotEmpty && _selectedGrade.isNotEmpty) {
         // 创建评级公司对象
         final ratingCompany = RatingCompany(
-          id: _generateRatingCompanyId(_selectedGradedBy),
+          id: _getRatingCompanyId(_selectedGradedBy),
           name: _selectedGradedBy,
           auditMetadata: AuditMetadata(
             createdAt: DateTime.now(),
@@ -1944,26 +1987,64 @@ class _ProductDetailCreateScreenState
     }
   }
 
-  /// 生成评级公司ID
-  String _generateRatingCompanyId(String gradedBy) {
-    switch (gradedBy) {
-      case 'PSA':
-        return 'psa_company_id';
-      case 'BGS':
-        return 'bgs_company_id';
-      case 'CGC':
-        return 'cgc_company_id';
-      case 'PGC':
-        return 'pgc_company_id';
-      default:
-        return 'unknown_company_id';
-    }
+  /// 根据评级公司名称获取其ID
+  String _getRatingCompanyId(String gradedBy) {
+    final company = _ratingCompanies.firstWhere(
+      (company) => company.name == gradedBy,
+      orElse: () => throw Exception('未找到评级公司: $gradedBy'),
+    );
+    return company.id;
   }
 
   /// 获取当前用户ID
   String _getCurrentUserId() {
     final authState = ref.read(authProvider);
     return authState.user?.id ?? 'default_user_id';
+  }
+
+  /// 获取评级公司列表
+  Future<void> _loadRatingCompanies() async {
+    if (_isLoadingRatingCompanies) return;
+    
+    setState(() {
+      _isLoadingRatingCompanies = true;
+    });
+    
+    try {
+      AppLogger.i('正在获取评级公司列表');
+      
+      final params = RatingCompanyPageParams(
+        current: 1,
+        pageSize: 100, // 获取前100个评级公司
+      );
+      
+      final pageData = await _ratingCompanyService.getRatingCompanyPage(params);
+      
+      setState(() {
+        _ratingCompanies = pageData.list;
+        _isLoadingRatingCompanies = false;
+      });
+      
+      AppLogger.i('成功获取${_ratingCompanies.length}个评级公司');
+    } catch (e) {
+      setState(() {
+        _isLoadingRatingCompanies = false;
+      });
+      AppLogger.e('获取评级公司列表失败', e);
+      
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('获取评级公司列表失败: $e'),
+            backgroundColor: Colors.red,
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(10.r),
+            ),
+          ),
+        );
+      }
+    }
   }
 
   /// 处理图片上传
