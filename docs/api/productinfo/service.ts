@@ -33,6 +33,14 @@ export async function getProductInfoPage(params: ProductInfoAPI.ProductInfoPageP
   });
 }
 
+/** 根据ID列表查询商品信息 */
+export async function getProductInfoByIds(ids: string[]) {
+  return request<API.ApiResponse<ProductInfoAPI.ProductInfoVO[]>>('/api/products/product-infos/batch', {
+    method: 'GET',
+    params: { ids },
+  });
+}
+
 /** 修改名称 */
 export async function updateProductInfoName(productInfoId: string, params: ProductInfoAPI.UpdateProductInfoNameParams) {
   return request<API.ApiResponse<null>>(`/api/products/product-infos/${productInfoId}/name`, {

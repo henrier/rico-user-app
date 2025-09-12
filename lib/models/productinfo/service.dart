@@ -217,6 +217,42 @@ class ProductInfoService extends BaseApi {
     }
   }
 
+  /// 根据ID列表查询商品信息
+  /// 对应 TypeScript: getProductInfoByIds
+  Future<List<ProductInfo>> getProductInfoByIds(List<String> ids) async {
+    try {
+      AppLogger.i('正在根据ID列表查询商品信息: ${ids.length}个');
+
+      final response = await _dio.get(
+        '$_apiPath/batch',
+        queryParameters: {'ids': ids},
+      );
+
+      final apiResponse = ApiResponse.fromJson(
+        response.data as Map<String, dynamic>,
+        (data) => (data as List<dynamic>)
+            .map((item) => ProductInfo.fromJson(item as Map<String, dynamic>))
+            .toList(),
+      );
+
+      if (apiResponse.success && apiResponse.data != null) {
+        AppLogger.i('成功获取${apiResponse.data!.length}个商品信息');
+        return apiResponse.data!;
+      } else {
+        throw DioException(
+          requestOptions: response.requestOptions,
+          message: 'API返回错误: ${apiResponse.errorMessage ?? "未知错误"}',
+        );
+      }
+    } on DioException catch (e) {
+      AppLogger.e('网络请求失败', e);
+      rethrow;
+    } catch (e) {
+      AppLogger.e('根据ID列表查询商品信息失败', e);
+      rethrow;
+    }
+  }
+
   // ============================================================================
   // 更新操作
   // ============================================================================
