@@ -3,6 +3,10 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import '../../common/themes/app_theme.dart';
 import '../../widgets/stats_section.dart';
 import '../../widgets/bottom_action_buttons.dart';
+import '../../models/personalproduct/service.dart';
+import '../../models/personalproduct/data.dart';
+import '../../models/page_data.dart';
+import '../../common/utils/logger.dart';
 
 class ProductManagementScreen extends StatefulWidget {
   const ProductManagementScreen({super.key});
@@ -16,6 +20,111 @@ class _ProductManagementScreenState extends State<ProductManagementScreen> {
   String selectedTab = 'Published';
   String selectedSortOption = 'Latest Listing';
   bool isDropdownVisible = false;
+  
+  // API服务
+  late final PersonalProductService _personalProductService;
+  
+  // 数据状态
+  List<PersonalProduct> _products = [];
+  bool _isLoading = true;
+  String? _errorMessage;
+  
+  // 分页参数
+  int _currentPage = 1;
+  final int _pageSize = 20;
+  bool _hasMoreData = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _personalProductService = PersonalProductService();
+    _loadProducts();
+  }
+  
+  @override
+  void dispose() {
+    _personalProductService.dispose();
+    super.dispose();
+  }
+  
+  /// 加载商品数据
+  Future<void> _loadProducts({bool isRefresh = false}) async {
+    try {
+      if (isRefresh) {
+        _currentPage = 1;
+        _hasMoreData = true;
+      }
+      
+      setState(() {
+        if (isRefresh) {
+          _products.clear();
+        }
+        _isLoading = true;
+        _errorMessage = null;
+      });
+      
+      AppLogger.i('正在加载商品数据，页码: $_currentPage');
+      
+      final params = PersonalProductPageParams(
+        current: _currentPage,
+        pageSize: _pageSize,
+        // 根据选中的状态筛选
+        status: _getStatusFromTab(selectedTab),
+      );
+      
+      final pageData = await _personalProductService.getPersonalProductPage(params);
+      
+      setState(() {
+        if (isRefresh) {
+          _products = pageData.list;
+        } else {
+          _products.addAll(pageData.list);
+        }
+        _hasMoreData = pageData.list.length >= _pageSize;
+        _isLoading = false;
+      });
+      
+      AppLogger.i('成功加载${pageData.list.length}个商品');
+      
+    } catch (e) {
+      AppLogger.e('加载商品数据失败', e);
+      setState(() {
+        _isLoading = false;
+        _errorMessage = '加载商品数据失败: ${e.toString()}';
+      });
+      
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('加载商品数据失败: ${e.toString()}'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
+  
+  /// 加载更多数据
+  Future<void> _loadMoreProducts() async {
+    if (!_hasMoreData || _isLoading) return;
+    
+    _currentPage++;
+    await _loadProducts();
+  }
+  
+  /// 根据选中的Tab获取对应的状态
+  PersonalProductStatus? _getStatusFromTab(String tab) {
+    switch (tab) {
+      case 'Published':
+        return PersonalProductStatus.listed;
+      case 'Pending':
+        return PersonalProductStatus.pendingListing;
+      case 'Sold Out':
+        return PersonalProductStatus.soldOut;
+      default:
+        return null; // 显示所有状态
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -31,14 +140,16 @@ class _ProductManagementScreenState extends State<ProductManagementScreen> {
                 _buildTopBar(),
                 
                 // 统计信息
-                StatsSection(
-                  selectedTab: selectedTab,
-                  onTabChanged: (tab) {
-                    setState(() {
-                      selectedTab = tab;
-                    });
-                  },
-                ),
+              StatsSection(
+                selectedTab: selectedTab,
+                onTabChanged: (tab) {
+                  setState(() {
+                    selectedTab = tab;
+                  });
+                  // 切换Tab时重新加载数据
+                  _loadProducts(isRefresh: true);
+                },
+              ),
                 
                 // 分割线
                 Container(
@@ -524,60 +635,111 @@ class _ProductManagementScreenState extends State<ProductManagementScreen> {
   }
 
   Widget _buildProductList() {
-    return ListView.separated(
-      padding: EdgeInsets.zero,
-      itemCount: 4,
-      separatorBuilder: (context, index) => Container(
-        height: 2.h,
-        color: const Color(0xFFF1F1F3),
+    if (_isLoading && _products.isEmpty) {
+      return const Center(
+        child: CircularProgressIndicator(),
+      );
+    }
+    
+    if (_errorMessage != null && _products.isEmpty) {
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              Icons.error_outline,
+              size: 64.w,
+              color: Colors.grey,
+            ),
+            SizedBox(height: 16.h),
+            Text(
+              '加载失败',
+              style: TextStyle(
+                fontSize: 18.sp,
+                color: Colors.grey[600],
+              ),
+            ),
+            SizedBox(height: 8.h),
+            Text(
+              _errorMessage!,
+              style: TextStyle(
+                fontSize: 14.sp,
+                color: Colors.grey[500],
+              ),
+              textAlign: TextAlign.center,
+            ),
+            SizedBox(height: 16.h),
+            ElevatedButton(
+              onPressed: () => _loadProducts(isRefresh: true),
+              child: const Text('重试'),
+            ),
+          ],
+        ),
+      );
+    }
+    
+    if (_products.isEmpty) {
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              Icons.inventory_2_outlined,
+              size: 64.w,
+              color: Colors.grey,
+            ),
+            SizedBox(height: 16.h),
+            Text(
+              '暂无商品',
+              style: TextStyle(
+                fontSize: 18.sp,
+                color: Colors.grey[600],
+              ),
+            ),
+            SizedBox(height: 8.h),
+            Text(
+              '您还没有添加任何商品',
+              style: TextStyle(
+                fontSize: 14.sp,
+                color: Colors.grey[500],
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+    
+    return RefreshIndicator(
+      onRefresh: () => _loadProducts(isRefresh: true),
+      child: ListView.separated(
+        padding: EdgeInsets.zero,
+        itemCount: _products.length + (_hasMoreData ? 1 : 0),
+        separatorBuilder: (context, index) => Container(
+          height: 2.h,
+          color: const Color(0xFFF1F1F3),
+        ),
+        itemBuilder: (context, index) {
+          if (index == _products.length) {
+            // 加载更多指示器
+            return Container(
+              padding: EdgeInsets.all(16.h),
+              child: Center(
+                child: _isLoading
+                    ? const CircularProgressIndicator()
+                    : ElevatedButton(
+                        onPressed: _loadMoreProducts,
+                        child: const Text('加载更多'),
+                      ),
+              ),
+            );
+          }
+          return _buildProductItem(_products[index]);
+        },
       ),
-      itemBuilder: (context, index) {
-        return _buildProductItem(index);
-      },
     );
   }
   
-  Widget _buildProductItem(int index) {
-    final products = [
-      {
-        'name': 'Umbreon ex',
-        'code': 'DRI-031/182',
-        'type': 'Holo',
-        'price': 'RM 2,500',
-        'condition': 'Lightly Played',
-        'quantity': 'x1',
-        'grade': null,
-      },
-      {
-        'name': 'Umbreon ex',
-        'code': 'DRI-031/182',
-        'type': 'Holo',
-        'price': 'RM 2,500',
-        'condition': 'Lightly Played',
-        'quantity': 'x1',
-        'grade': 'PSA10',
-      },
-      {
-        'name': 'Umbreon ex',
-        'code': 'DRI-031/182',
-        'type': 'Holo',
-        'price': 'RM 2,500',
-        'condition': 'Lightly Played',
-        'quantity': 'x1',
-        'grade': 'BGS Black Label',
-      },
-      {
-        'name': 'Umbreon ex',
-        'code': 'DRI-031/182',
-        'type': 'Holo',
-        'price': 'RM 2,500',
-        'condition': 'Lightly Played',
-        'quantity': 'x1',
-        'grade': 'BGS Black Label',
-      },
-    ];
-    
-    final product = products[index];
+  Widget _buildProductItem(PersonalProduct product) {
     
     return Container(
       height: 274.h,
@@ -593,11 +755,26 @@ class _ProductManagementScreenState extends State<ProductManagementScreen> {
               color: const Color(0xFFF4F4F6),
               borderRadius: BorderRadius.circular(8.r),
             ),
-            child: Icon(
-              Icons.image,
-              color: Colors.grey[400],
-              size: 60.w,
-            ),
+            child: product.hasImages
+                ? ClipRRect(
+                    borderRadius: BorderRadius.circular(8.r),
+                    child: Image.network(
+                      product.images.first,
+                      fit: BoxFit.cover,
+                      errorBuilder: (context, error, stackTrace) {
+                        return Icon(
+                          Icons.image,
+                          color: Colors.grey[400],
+                          size: 60.w,
+                        );
+                      },
+                    ),
+                  )
+                : Icon(
+                    Icons.image,
+                    color: Colors.grey[400],
+                    size: 60.w,
+                  ),
           ),
           
           SizedBox(width: 24.w),
@@ -609,12 +786,14 @@ class _ProductManagementScreenState extends State<ProductManagementScreen> {
               children: [
                 // 商品名称
                 Text(
-                  product['name'] as String,
+                  product.displayName,
                   style: TextStyle(
                     fontSize: 32.sp,
                     fontWeight: FontWeight.w500,
                     color: const Color(0xFF212222),
                   ),
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
                 ),
                 
                 SizedBox(height: 8.h),
@@ -623,7 +802,7 @@ class _ProductManagementScreenState extends State<ProductManagementScreen> {
                 Row(
                   children: [
                     Text(
-                      product['code'] as String,
+                      product.productInfo.code ?? 'N/A',
                       style: TextStyle(
                         fontSize: 24.sp,
                         color: const Color(0xFF919191),
@@ -636,7 +815,7 @@ class _ProductManagementScreenState extends State<ProductManagementScreen> {
                       color: const Color(0xFF919191),
                     ),
                     Text(
-                      product['type'] as String,
+                      _getProductTypeDisplayName(product.type),
                       style: TextStyle(
                         fontSize: 24.sp,
                         color: const Color(0xFF919191),
@@ -649,7 +828,7 @@ class _ProductManagementScreenState extends State<ProductManagementScreen> {
                 
                 // 价格
                 Text(
-                  product['price'] as String,
+                  'RM ${product.price.toStringAsFixed(2)}',
                   style: TextStyle(
                     fontSize: 30.sp,
                     fontWeight: FontWeight.w500,
@@ -672,7 +851,7 @@ class _ProductManagementScreenState extends State<ProductManagementScreen> {
                       ),
                       child: Center(
                         child: Text(
-                          product['condition'] as String,
+                          _getConditionDisplayName(product.condition),
                           style: TextStyle(
                             fontSize: 22.sp,
                             color: const Color(0xFF919191),
@@ -684,30 +863,20 @@ class _ProductManagementScreenState extends State<ProductManagementScreen> {
                     const Spacer(),
                     
                     // 评级标签（如果有）
-                    if (product['grade'] != null) ...[
+                    if (product.hasRatedCard) ...[
                       Container(
                         height: 34.h,
                         padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 5.h),
                         decoration: BoxDecoration(
-                          gradient: product['grade'] == 'PSA10'
-                              ? const LinearGradient(
-                                  colors: [Color(0xFFF86700), Color(0xFFF89900)],
-                                  begin: Alignment.topCenter,
-                                  end: Alignment.bottomCenter,
-                                )
-                              : const LinearGradient(
-                                  colors: [Color(0xFF4D5862), Color(0xFF737373)],
-                                  begin: Alignment.topCenter,
-                                  end: Alignment.bottomCenter,
-                                ),
+                          gradient: _getGradeGradient(product.ratedCard!.cardScore),
                           borderRadius: BorderRadius.circular(8.r),
                         ),
                         child: Center(
                           child: Text(
-                            product['grade'] as String,
+                            '${product.ratedCard!.ratingCompany.name} ${product.ratedCard!.cardScore}',
                             style: TextStyle(
                               fontSize: 24.sp,
-                              fontWeight: product['grade'] == 'PSA10' ? FontWeight.w500 : FontWeight.normal,
+                              fontWeight: FontWeight.w500,
                               color: Colors.white,
                             ),
                           ),
@@ -729,7 +898,7 @@ class _ProductManagementScreenState extends State<ProductManagementScreen> {
                         ),
                         child: Center(
                           child: Text(
-                            product['quantity'] as String,
+                            'x${product.quantity}',
                             style: TextStyle(
                               fontSize: 24.sp,
                               fontWeight: FontWeight.w600,
@@ -833,6 +1002,48 @@ class _ProductManagementScreenState extends State<ProductManagementScreen> {
           ],
         ),
       ),
+    );
+  }
+  
+  /// 获取商品类型显示名称
+  String _getProductTypeDisplayName(PersonalProductType type) {
+    switch (type) {
+      case PersonalProductType.rawCard:
+        return '普通卡';
+      case PersonalProductType.box:
+        return '原盒';
+      case PersonalProductType.ratedCard:
+        return '评级卡';
+    }
+  }
+  
+  /// 获取品相显示名称
+  String _getConditionDisplayName(PersonalProductCondition condition) {
+    switch (condition) {
+      case PersonalProductCondition.mint:
+        return '完美品相';
+      case PersonalProductCondition.nearMint:
+        return '近完美品相';
+      case PersonalProductCondition.lightlyPlayed:
+        return '轻微磨损';
+      case PersonalProductCondition.damaged:
+        return '有损伤';
+    }
+  }
+  
+  /// 获取评级渐变色
+  LinearGradient _getGradeGradient(String grade) {
+    if (grade.contains('10') || grade.toUpperCase().contains('BLACK LABEL')) {
+      return const LinearGradient(
+        colors: [Color(0xFFF86700), Color(0xFFF89900)],
+        begin: Alignment.topCenter,
+        end: Alignment.bottomCenter,
+      );
+    }
+    return const LinearGradient(
+      colors: [Color(0xFF4D5862), Color(0xFF737373)],
+      begin: Alignment.topCenter,
+      end: Alignment.bottomCenter,
     );
   }
 
