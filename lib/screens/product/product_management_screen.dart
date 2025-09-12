@@ -292,61 +292,81 @@ class _ProductManagementScreenState extends State<ProductManagementScreen> {
   Widget _buildBundleSalesSection() {
     return Column(
       children: [
-        // Bundle Sales 标题栏
+        // 上分割线
         Container(
-          padding: EdgeInsets.symmetric(horizontal: 30.w, vertical: 20.h),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          height: 0.5.h,
+          color: const Color(0xFFF1F1F3),
+        ),
+        
+        // Bundle Sales 区域（带背景色）
+        Container(
+          color: const Color(0xFFF4F4F6),
+          child: Column(
             children: [
-              Text(
-                'Bundle Sales',
-                style: TextStyle(
-                  fontSize: 30.sp,
-                  fontWeight: FontWeight.w500,
-                  color: const Color(0xFF212222),
-                ),
-              ),
-              GestureDetector(
-                onTap: () {
-                  // 显示更多Bundle选项
-                },
+              // Bundle Sales 标题栏
+              Container(
+                padding: EdgeInsets.symmetric(horizontal: 30.w, vertical: 20.h),
                 child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     Text(
-                      'More',
+                      'Bundle Sales',
                       style: TextStyle(
-                        fontSize: 24.sp,
+                        fontSize: 30.sp,
                         fontWeight: FontWeight.w500,
                         color: const Color(0xFF212222),
                       ),
                     ),
-                    SizedBox(width: 8.w),
-                    Icon(
-                      Icons.keyboard_arrow_right,
-                      size: 22.w,
-                      color: const Color(0xFF212222),
+                    GestureDetector(
+                      onTap: () {
+                        // 显示更多Bundle选项
+                      },
+                      child: Row(
+                        children: [
+                          Text(
+                            'More',
+                            style: TextStyle(
+                              fontSize: 24.sp,
+                              fontWeight: FontWeight.w500,
+                              color: const Color(0xFF212222),
+                            ),
+                          ),
+                          SizedBox(width: 8.w),
+                          Icon(
+                            Icons.keyboard_arrow_right,
+                            size: 22.w,
+                            color: const Color(0xFF212222),
+                          ),
+                        ],
+                      ),
                     ),
                   ],
+                ),
+              ),
+              
+              // Bundle 卡片横向滚动列表
+              Container(
+                height: 281.h,
+                child: ListView.builder(
+                  scrollDirection: Axis.horizontal,
+                  padding: EdgeInsets.only(left: 30.w),
+                  itemCount: 2,
+                  itemBuilder: (context, index) {
+                    return Container(
+                      margin: EdgeInsets.only(right: 24.w),
+                      child: _buildBundleCard(index + 1),
+                    );
+                  },
                 ),
               ),
             ],
           ),
         ),
         
-        // Bundle 卡片横向滚动列表
+        // 下分割线
         Container(
-          height: 281.h,
-          child: ListView.builder(
-            scrollDirection: Axis.horizontal,
-            padding: EdgeInsets.only(left: 30.w),
-            itemCount: 2,
-            itemBuilder: (context, index) {
-              return Container(
-                margin: EdgeInsets.only(right: 24.w),
-                child: _buildBundleCard(index + 1),
-              );
-            },
-          ),
+          height: 0.5.h,
+          color: const Color(0xFFF1F1F3),
         ),
       ],
     );
@@ -369,10 +389,90 @@ class _ProductManagementScreenState extends State<ProductManagementScreen> {
       ),
       child: Stack(
         children: [
-          // 背景卡片图片
+          // 第一行：标题（左）和价格（右）
+          Positioned(
+            left: 30.w,
+            right: 30.w,
+            top: 20.h,
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                // Bundle标题（左边）
+                Text(
+                  'Bundle $bundleNumber',
+                  style: TextStyle(
+                    fontSize: 28.sp,
+                    fontWeight: FontWeight.w500,
+                    color: const Color(0xFF212222),
+                  ),
+                ),
+                // 当前价格（右边）
+                RichText(
+                  text: TextSpan(
+                    children: [
+                      TextSpan(
+                        text: 'RM',
+                        style: TextStyle(
+                          fontSize: 24.sp,
+                          fontWeight: FontWeight.w500,
+                          color: const Color(0xFFF86700),
+                        ),
+                      ),
+                      TextSpan(
+                        text: ' 2,500',
+                        style: TextStyle(
+                          fontSize: 30.sp,
+                          fontWeight: FontWeight.w500,
+                          color: const Color(0xFFF86700),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+          
+          // 第二行：倒计时（左）和删除价格（右）
+          Positioned(
+            left: 30.w,
+            right: 30.w,
+            top: 60.h,
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                // 倒计时（左边）
+                Row(
+                  children: [
+                    _buildTimeBox('12', 'D'),
+                    SizedBox(width: 14.w),
+                    _buildTimeBox('12', 'H'),
+                    SizedBox(width: 14.w),
+                    _buildTimeBox('12', 'M'),
+                    SizedBox(width: 14.w),
+                    _buildTimeBox('12', 'S'),
+                  ],
+                ),
+                // 原价删除线（右边）
+                Text(
+                  'RM 2,500',
+                  style: TextStyle(
+                    fontSize: 20.sp,
+                    color: const Color(0xFFC1C1C1),
+                    decoration: TextDecoration.lineThrough,
+                    decorationColor: const Color(0xFFC1C1C1),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          
+          // 背景卡片图片（在底部）
           Positioned(
             left: 20.w,
-            top: 40.h,
+            top: 120.h,
             child: Row(
               children: List.generate(4, (index) {
                 return Container(
@@ -392,94 +492,30 @@ class _ProductManagementScreenState extends State<ProductManagementScreen> {
               }),
             ),
           ),
-          
-          // Bundle标题和价格
-          Positioned(
-            left: 30.w,
-            top: 202.h,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'Bundle $bundleNumber',
-                  style: TextStyle(
-                    fontSize: 28.sp,
-                    fontWeight: FontWeight.w500,
-                    color: const Color(0xFF212222),
-                  ),
-                ),
-                SizedBox(height: 4.h),
-                Row(
-                  children: [
-                    Text(
-                      'RM 2,500',
-                      style: TextStyle(
-                        fontSize: 30.sp,
-                        fontWeight: FontWeight.w500,
-                        color: const Color(0xFFF86700),
-                      ),
-                    ),
-                    SizedBox(width: 12.w),
-                    Text(
-                      'RM 2,500',
-                      style: TextStyle(
-                        fontSize: 20.sp,
-                        color: const Color(0xFFC1C1C1),
-                        decoration: TextDecoration.lineThrough,
-                      ),
-                    ),
-                  ],
-                ),
-              ],
-            ),
-          ),
-          
-          // 倒计时
-          Positioned(
-            left: 50.w,
-            bottom: 20.h,
-            child: Row(
-              children: [
-                _buildTimeBox('12', 'D'),
-                SizedBox(width: 14.w),
-                _buildTimeBox('12', 'H'),
-                SizedBox(width: 14.w),
-                _buildTimeBox('12', 'M'),
-                SizedBox(width: 14.w),
-                _buildTimeBox('12', 'S'),
-              ],
-            ),
-          ),
         ],
       ),
     );
   }
   
   Widget _buildTimeBox(String time, String unit) {
-    return Column(
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.baseline,
+      textBaseline: TextBaseline.alphabetic,
       children: [
-        Container(
-          width: 40.w,
-          height: 40.h,
-          decoration: BoxDecoration(
-            color: const Color(0xFFF4F4F6),
-            borderRadius: BorderRadius.circular(10.r),
-          ),
-          child: Center(
-            child: Text(
-              time,
-              style: TextStyle(
-                fontSize: 24.sp,
-                color: const Color(0xFF212222),
-              ),
-            ),
+        Text(
+          time,
+          style: TextStyle(
+            fontSize: 24.sp,
+            fontWeight: FontWeight.w500,
+            color: const Color(0xFF212222),
           ),
         ),
-        SizedBox(height: 2.h),
+        SizedBox(width: 2.w),
         Text(
           unit,
           style: TextStyle(
             fontSize: 22.sp,
+            fontWeight: FontWeight.w500,
             color: const Color(0xFF919191),
           ),
         ),
