@@ -818,9 +818,14 @@ class _ProductDetailCreateScreenState
     
     return GestureDetector(
       onTap: () {
-        setState(() {
-          _selectedGrade = isSelected ? '' : grade;
-        });
+        if (grade == 'Black Label') {
+          // 弹出评级选择对话框
+          _showGradeSelectionDialog();
+        } else {
+          setState(() {
+            _selectedGrade = isSelected ? '' : grade;
+          });
+        }
       },
       child: Container(
         height: 54.h,
@@ -831,7 +836,9 @@ class _ProductDetailCreateScreenState
         ),
         child: Center(
           child: Text(
-            grade,
+            _selectedGrade.isNotEmpty && grade == 'Black Label' 
+              ? _selectedGrade 
+              : grade,
             style: TextStyle(
               fontSize: 24.sp,
               fontWeight: isSelected ? FontWeight.w500 : FontWeight.normal,
@@ -1835,5 +1842,220 @@ class _ProductDetailCreateScreenState
       default:
         return ProductType.raw;
     }
+  }
+
+  /// 显示评级选择对话框
+  void _showGradeSelectionDialog() {
+    String tempSelectedGrade = _selectedGrade;
+    
+    showDialog(
+      context: context,
+      barrierColor: Colors.black.withOpacity(0.7),
+      builder: (BuildContext context) {
+        return StatefulBuilder(
+          builder: (context, setDialogState) {
+            return Dialog(
+              backgroundColor: Colors.transparent,
+              insetPadding: EdgeInsets.zero,
+              child: Container(
+                width: 750.w,
+                height: 1624.h,
+                child: Stack(
+                  children: [
+                    // 背景遮罩
+                    Positioned.fill(
+                      child: Container(
+                        color: Colors.black.withOpacity(0.7),
+                      ),
+                    ),
+                    
+                    // 对话框内容
+                    Positioned(
+                      bottom: 0,
+                      left: 0,
+                      right: 0,
+                      child: Container(
+                        height: 623.h,
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.only(
+                            topLeft: Radius.circular(20.r),
+                            topRight: Radius.circular(20.r),
+                          ),
+                        ),
+                        child: Column(
+                          children: [
+                            // 顶部标题栏
+                            Container(
+                              height: 88.h,
+                              padding: EdgeInsets.symmetric(horizontal: 30.w),
+                              decoration: BoxDecoration(
+                                color: Colors.white,
+                                borderRadius: BorderRadius.only(
+                                  topLeft: Radius.circular(20.r),
+                                  topRight: Radius.circular(20.r),
+                                ),
+                              ),
+                              child: Row(
+                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                children: [
+                                  // 取消按钮
+                                  GestureDetector(
+                                    onTap: () => Navigator.of(context).pop(),
+                                    child: Text(
+                                      'Cancel',
+                                      style: TextStyle(
+                                        fontSize: 30.sp,
+                                        color: Colors.black,
+                                        fontFamily: 'Roboto',
+                                      ),
+                                    ),
+                                  ),
+                                  
+                                  // 标题
+                                  Text(
+                                    'Select Grades',
+                                    style: TextStyle(
+                                      fontSize: 32.sp,
+                                      fontWeight: FontWeight.w500,
+                                      color: Colors.black,
+                                      fontFamily: 'Roboto',
+                                    ),
+                                  ),
+                                  
+                                  // 确认按钮
+                                  GestureDetector(
+                                    onTap: () {
+                                      setState(() {
+                                        _selectedGrade = tempSelectedGrade;
+                                      });
+                                      Navigator.of(context).pop();
+                                    },
+                                    child: Text(
+                                      'Confirm',
+                                      style: TextStyle(
+                                        fontSize: 30.sp,
+                                        color: const Color(0xFF00D86F),
+                                        fontWeight: FontWeight.w500,
+                                        fontFamily: 'Roboto',
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                            
+                            // 评级选项列表
+                            Expanded(
+                              child: Container(
+                                padding: EdgeInsets.symmetric(horizontal: 75.w),
+                                child: Column(
+                                  children: [
+                                    SizedBox(height: 60.h),
+                                    
+                                    // Black Label 选项
+                                    _buildGradeOption(
+                                      'Black Label',
+                                      tempSelectedGrade == 'Black Label',
+                                      () {
+                                        setDialogState(() {
+                                          tempSelectedGrade = 'Black Label';
+                                        });
+                                      },
+                                    ),
+                                    
+                                    SizedBox(height: 8.h),
+                                    
+                                    // 10 选项
+                                    _buildGradeOption(
+                                      '10',
+                                      tempSelectedGrade == '10',
+                                      () {
+                                        setDialogState(() {
+                                          tempSelectedGrade = '10';
+                                        });
+                                      },
+                                    ),
+                                    
+                                    SizedBox(height: 8.h),
+                                    
+                                    // 9.5 选项
+                                    _buildGradeOption(
+                                      '9.5',
+                                      tempSelectedGrade == '9.5',
+                                      () {
+                                        setDialogState(() {
+                                          tempSelectedGrade = '9.5';
+                                        });
+                                      },
+                                    ),
+                                    
+                                    SizedBox(height: 8.h),
+                                    
+                                    // 9 选项
+                                    _buildGradeOption(
+                                      '9',
+                                      tempSelectedGrade == '9',
+                                      () {
+                                        setDialogState(() {
+                                          tempSelectedGrade = '9';
+                                        });
+                                      },
+                                    ),
+                                    
+                                    SizedBox(height: 8.h),
+                                    
+                                    // 8.5 选项
+                                    _buildGradeOption(
+                                      '8.5',
+                                      tempSelectedGrade == '8.5',
+                                      () {
+                                        setDialogState(() {
+                                          tempSelectedGrade = '8.5';
+                                        });
+                                      },
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
+
+  /// 构建评级选项
+  Widget _buildGradeOption(String grade, bool isSelected, VoidCallback onTap) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        height: 80.h,
+        width: 600.w,
+        decoration: BoxDecoration(
+          color: isSelected ? const Color(0xFFF2F2F2) : Colors.transparent,
+          borderRadius: BorderRadius.circular(20.r),
+        ),
+        child: Center(
+          child: Text(
+            grade,
+            style: TextStyle(
+              fontSize: grade == 'Black Label' ? 30.sp : 36.sp,
+              fontWeight: isSelected ? FontWeight.w500 : FontWeight.normal,
+              color: grade == 'Black Label' ? const Color(0xFF919191) : Colors.black,
+              fontFamily: 'Roboto',
+            ),
+          ),
+        ),
+      ),
+    );
   }
 }
