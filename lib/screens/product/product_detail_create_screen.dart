@@ -439,25 +439,32 @@ class _ProductDetailCreateScreenState
 
   /// 构建Type选择区域
   Widget _buildTypeSelection() {
-    return Column(
+    return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          'Type',
-          style: TextStyle(
-            fontSize: 24.sp,
-            color: const Color(0xFF919191),
+        // 标题部分 - 固定宽度
+        SizedBox(
+          width: 80.w,
+          child: Text(
+            'Type',
+            style: TextStyle(
+              fontSize: 24.sp,
+              color: const Color(0xFF919191),
+            ),
           ),
         ),
-        SizedBox(height: 20.h),
-        Wrap(
-          spacing: 20.w,
-          runSpacing: 12.h,
-          children: [
-            _buildTypeChip('Raw', _selectedType == 'Raw'),
-            _buildTypeChip('Graded', _selectedType == 'Graded'),
-            _buildTypeChip('Sealed', _selectedType == 'Sealed'),
-          ],
+        SizedBox(width: 20.w),
+        // 标签部分 - 自适应宽度，超出换行
+        Expanded(
+          child: Wrap(
+            spacing: 20.w,
+            runSpacing: 12.h,
+            children: [
+              _buildTypeChip('Raw', _selectedType == 'Raw'),
+              _buildTypeChip('Graded', _selectedType == 'Graded'),
+              _buildTypeChip('Sealed', _selectedType == 'Sealed'),
+            ],
+          ),
         ),
       ],
     );
@@ -522,26 +529,33 @@ class _ProductDetailCreateScreenState
 
   /// 构建Condition选择区域
   Widget _buildConditionSelection() {
-    return Column(
+    return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          'Condition',
-          style: TextStyle(
-            fontSize: 24.sp,
-            color: const Color(0xFF919191),
+        // 标题部分 - 固定宽度
+        SizedBox(
+          width: 80.w,
+          child: Text(
+            'Condition',
+            style: TextStyle(
+              fontSize: 24.sp,
+              color: const Color(0xFF919191),
+            ),
           ),
         ),
-        SizedBox(height: 20.h),
-        Wrap(
-          spacing: 20.w,
-          runSpacing: 12.h,
-          children: [
-            _buildConditionChip('Mint'),
-            _buildConditionChip('Near Mint'),
-            _buildConditionChip('Lightly Played'),
-            _buildConditionChip('Damaged'),
-          ],
+        SizedBox(width: 20.w),
+        // 标签部分 - 自适应宽度，超出换行
+        Expanded(
+          child: Wrap(
+            spacing: 20.w,
+            runSpacing: 12.h,
+            children: [
+              _buildConditionChip('Mint'),
+              _buildConditionChip('Near Mint'),
+              _buildConditionChip('Lightly Played'),
+              _buildConditionChip('Damaged'),
+            ],
+          ),
         ),
       ],
     );
@@ -560,56 +574,70 @@ class _ProductDetailCreateScreenState
 
   /// 构建Graded by选择区域
   Widget _buildGradedBySelection() {
-    return Column(
+    return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Row(
-      children: [
-        Text(
-          'Graded by',
-          style: TextStyle(
-            fontSize: 24.sp,
-            color: const Color(0xFF919191),
+        // 标题部分 - 固定宽度
+        SizedBox(
+          width: 120.w, // 增加宽度以适应"Graded by"文字
+          child: Row(
+            children: [
+              Flexible(
+                child: Text(
+                  'Graded by',
+                  style: TextStyle(
+                    fontSize: 24.sp,
+                    color: const Color(0xFF919191),
+                  ),
+                ),
+              ),
+              SizedBox(width: 10.w),
+              if (_isLoadingRatingCompanies)
+                SizedBox(
+                  width: 20.w,
+                  height: 20.h,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2,
+                    valueColor: AlwaysStoppedAnimation<Color>(designGreen),
+                  ),
+                ),
+            ],
           ),
-            ),
-            SizedBox(width: 10.w),
-            if (_isLoadingRatingCompanies)
-              SizedBox(
-                width: 20.w,
-                height: 20.h,
-                child: CircularProgressIndicator(
-                  strokeWidth: 2,
-                  valueColor: AlwaysStoppedAnimation<Color>(designGreen),
-                ),
-              ),
-          ],
         ),
-        SizedBox(height: 20.h),
-        if (_ratingCompanies.isEmpty && !_isLoadingRatingCompanies)
-          GestureDetector(
-            onTap: _loadRatingCompanies,
-            child: Container(
-              padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 8.h),
-              decoration: BoxDecoration(
-                border: Border.all(color: designGreen),
-                borderRadius: BorderRadius.circular(8.r),
-              ),
-              child: Text(
-                '点击加载评级公司',
-                style: TextStyle(
-                  fontSize: 16.sp,
-                  color: designGreen,
+        SizedBox(width: 20.w),
+        // 标签部分 - 自适应宽度，超出换行
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              if (_ratingCompanies.isEmpty && !_isLoadingRatingCompanies)
+                GestureDetector(
+                  onTap: _loadRatingCompanies,
+                  child: Container(
+                    padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 8.h),
+                    decoration: BoxDecoration(
+                      border: Border.all(color: designGreen),
+                      borderRadius: BorderRadius.circular(8.r),
+                    ),
+                    child: Text(
+                      '点击加载评级公司',
+                      style: TextStyle(
+                        fontSize: 16.sp,
+                        color: designGreen,
+                      ),
+                    ),
+                  ),
+                )
+              else
+                Wrap(
+                  spacing: 20.w,
+                  runSpacing: 12.h,
+                  children: _ratingCompanies
+                      .map((company) => _buildGradedByChip(company.name))
+                      .toList(),
                 ),
-              ),
-            ),
-          )
-        else
-        Wrap(
-          spacing: 20.w,
-          runSpacing: 12.h,
-            children: _ratingCompanies
-                .map((company) => _buildGradedByChip(company.name))
-                .toList(),
+            ],
+          ),
         ),
       ],
     );
@@ -635,19 +663,25 @@ class _ProductDetailCreateScreenState
       availableGrades = selectedCompany.score;
     }
 
-    return Column(
+    return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          'Grades',
-          style: TextStyle(
-            fontSize: 24.sp,
-            color: const Color(0xFF919191),
+        // 标题部分 - 固定宽度
+        SizedBox(
+          width: 80.w,
+          child: Text(
+            'Grades',
+            style: TextStyle(
+              fontSize: 24.sp,
+              color: const Color(0xFF919191),
+            ),
           ),
         ),
-        SizedBox(height: 20.h),
-        // 下拉选择器
-        _buildGradeDropdown(availableGrades),
+        SizedBox(width: 20.w),
+        // 下拉选择器部分 - 自适应宽度
+        Expanded(
+          child: _buildGradeDropdown(availableGrades),
+        ),
       ],
     );
   }
@@ -1010,58 +1044,71 @@ class _ProductDetailCreateScreenState
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
+        // 标题和输入框在一行显示
         Row(
+          crossAxisAlignment: CrossAxisAlignment.center,
           children: [
-            Text(
-              'Set Price',
-              style: TextStyle(
-                fontSize: 24.sp,
-                color: const Color(0xFF919191),
-                fontFamily: 'Roboto',
+            // 标题部分 - 固定宽度
+            SizedBox(
+              width: 120.w,
+              child: Row(
+                children: [
+                  Text(
+                    'Set Price',
+                    style: TextStyle(
+                      fontSize: 24.sp,
+                      color: const Color(0xFF919191),
+                      fontFamily: 'Roboto',
+                    ),
+                  ),
+                  Text(
+                    '*',
+                    style: TextStyle(
+                      fontSize: 24.sp,
+                      color: const Color(0xFFD83333),
+                      fontFamily: 'Roboto',
+                    ),
+                  ),
+                ],
               ),
             ),
-            Text(
-              '*',
-              style: TextStyle(
-                fontSize: 24.sp,
-                color: const Color(0xFFD83333),
-                fontFamily: 'Roboto',
-              ),
-            ),
-          ],
-        ),
-        SizedBox(height: 13.h), // 按设计图调整间距
-        Row(
-          children: [
-            Text(
-              'RM',
-              style: TextStyle(
-                fontSize: 24.sp,
-                color: Colors.black,
-                fontFamily: 'Roboto',
-              ),
-            ),
-            SizedBox(width: 48.w), // 增加RM和输入框的间距
-            Container(
-              width: 113.w,
-              height: 54.h,
-              decoration: BoxDecoration(
-                color: const Color(0xFFF4F4F4),
-                borderRadius: BorderRadius.circular(47.r),
-              ),
-              child: TextField(
-                controller: _priceController,
-                textAlign: TextAlign.center,
-                keyboardType: TextInputType.number,
-                style: TextStyle(
-                  fontSize: 24.sp,
-                  color: Colors.black,
-                  fontFamily: 'Roboto',
-                ),
-                decoration: const InputDecoration(
-                  border: InputBorder.none,
-                  contentPadding: EdgeInsets.zero,
-                ),
+            SizedBox(width: 20.w),
+            // 输入部分 - 自适应宽度
+            Expanded(
+              child: Row(
+                children: [
+                  Text(
+                    'RM',
+                    style: TextStyle(
+                      fontSize: 24.sp,
+                      color: Colors.black,
+                      fontFamily: 'Roboto',
+                    ),
+                  ),
+                  SizedBox(width: 20.w),
+                  Container(
+                    width: 113.w,
+                    height: 54.h,
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFF4F4F4),
+                      borderRadius: BorderRadius.circular(47.r),
+                    ),
+                    child: TextField(
+                      controller: _priceController,
+                      textAlign: TextAlign.center,
+                      keyboardType: TextInputType.number,
+                      style: TextStyle(
+                        fontSize: 24.sp,
+                        color: Colors.black,
+                        fontFamily: 'Roboto',
+                      ),
+                      decoration: const InputDecoration(
+                        border: InputBorder.none,
+                        contentPadding: EdgeInsets.zero,
+                      ),
+                    ),
+                  ),
+                ],
               ),
             ),
           ],
@@ -1118,55 +1165,64 @@ class _ProductDetailCreateScreenState
             ],
           ),
           SizedBox(height: 20.h),
+          // 标题和输入框在一行显示
           Row(
+            crossAxisAlignment: CrossAxisAlignment.center,
             children: [
-              Text(
-                'Set Price',
-                style: TextStyle(
-                  fontSize: 24.sp,
-                  color: const Color(0xFF919191),
-                  fontFamily: 'Roboto',
-                ),
-              ),
-            ],
-          ),
-          SizedBox(height: 13.h),
-          Row(
-            children: [
-              Text(
-                'RM',
-                style: TextStyle(
-                  fontSize: 24.sp,
-                  color: Colors.black,
-                  fontFamily: 'Roboto',
-                ),
-              ),
-              SizedBox(width: 48.w),
-              Container(
-                width: 113.w,
-                height: 54.h,
-                decoration: BoxDecoration(
-                  color: const Color(0xFFF4F4F4),
-                  borderRadius: BorderRadius.circular(47.r),
-                ),
-                child: TextField(
-                  controller: _priceController,
-                  textAlign: TextAlign.center,
-                  keyboardType: TextInputType.number,
-                  decoration: InputDecoration(
-                    border: InputBorder.none,
-                    hintText: '0',
-                    hintStyle: TextStyle(
-                      fontSize: 24.sp,
-                      color: const Color(0xFF919191),
-                      fontFamily: 'Roboto',
-                    ),
-                  ),
+              // 标题部分 - 固定宽度
+              SizedBox(
+                width: 120.w,
+                child: Text(
+                  'Set Price',
                   style: TextStyle(
                     fontSize: 24.sp,
-                    color: Colors.black,
+                    color: const Color(0xFF919191),
                     fontFamily: 'Roboto',
                   ),
+                ),
+              ),
+              SizedBox(width: 20.w),
+              // 输入部分 - 自适应宽度
+              Expanded(
+                child: Row(
+                  children: [
+                    Text(
+                      'RM',
+                      style: TextStyle(
+                        fontSize: 24.sp,
+                        color: Colors.black,
+                        fontFamily: 'Roboto',
+                      ),
+                    ),
+                    SizedBox(width: 20.w),
+                    Container(
+                      width: 113.w,
+                      height: 54.h,
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFF4F4F4),
+                        borderRadius: BorderRadius.circular(47.r),
+                      ),
+                      child: TextField(
+                        controller: _priceController,
+                        textAlign: TextAlign.center,
+                        keyboardType: TextInputType.number,
+                        decoration: InputDecoration(
+                          border: InputBorder.none,
+                          hintText: '0',
+                          hintStyle: TextStyle(
+                            fontSize: 24.sp,
+                            color: const Color(0xFF919191),
+                            fontFamily: 'Roboto',
+                          ),
+                        ),
+                        style: TextStyle(
+                          fontSize: 24.sp,
+                          color: Colors.black,
+                          fontFamily: 'Roboto',
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
               ),
             ],
@@ -1178,98 +1234,105 @@ class _ProductDetailCreateScreenState
 
   /// 构建库存设置区域
   Widget _buildStockSection() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.center,
       children: [
-        Text(
-          'Set Stock',
-          style: TextStyle(
-            fontSize: 24.sp,
-            color: const Color(0xFF919191),
-            fontFamily: 'Roboto',
+        // 标题部分 - 固定宽度
+        SizedBox(
+          width: 120.w,
+          child: Text(
+            'Set Stock',
+            style: TextStyle(
+              fontSize: 24.sp,
+              color: const Color(0xFF919191),
+              fontFamily: 'Roboto',
+            ),
           ),
         ),
-        SizedBox(height: 13.h), // 按设计图调整间距
-        Row(
-          children: [
-            // 减少按钮 - 按设计图样式
-            GestureDetector(
-              onTap: () {
-                int currentStock = int.tryParse(_stockController.text) ?? 1;
-                if (currentStock > 1) {
-                  _stockController.text = (currentStock - 1).toString();
-                }
-              },
-              child: Container(
-                width: 24.w,
-                height: 24.h,
-                decoration: const BoxDecoration(
-                  color: Colors.transparent,
-                ),
-                child: Center(
-                  child: Text(
-                    '−',
-                    style: TextStyle(
-                      fontSize: 24.sp,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.black,
-                      fontFamily: 'Roboto',
+        SizedBox(width: 20.w),
+        // 库存控制部分 - 自适应宽度
+        Expanded(
+          child: Row(
+            children: [
+              // 减少按钮 - 按设计图样式
+              GestureDetector(
+                onTap: () {
+                  int currentStock = int.tryParse(_stockController.text) ?? 1;
+                  if (currentStock > 1) {
+                    _stockController.text = (currentStock - 1).toString();
+                  }
+                },
+                child: Container(
+                  width: 24.w,
+                  height: 24.h,
+                  decoration: const BoxDecoration(
+                    color: Colors.transparent,
+                  ),
+                  child: Center(
+                    child: Text(
+                      '−',
+                      style: TextStyle(
+                        fontSize: 24.sp,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.black,
+                        fontFamily: 'Roboto',
+                      ),
                     ),
                   ),
                 ),
               ),
-            ),
-            SizedBox(width: 20.w), // 按设计图调整间距
-            // 数量输入框
-            Container(
-              width: 142.w,
-              height: 54.h,
-              decoration: BoxDecoration(
-                color: const Color(0xFFF4F4F4),
-                borderRadius: BorderRadius.circular(47.r),
+              SizedBox(width: 20.w), // 按设计图调整间距
+              // 数量输入框
+              Container(
+                width: 142.w,
+                height: 54.h,
+                decoration: BoxDecoration(
+                  color: const Color(0xFFF4F4F4),
+                  borderRadius: BorderRadius.circular(47.r),
+                ),
+                child: TextField(
+                  controller: _stockController,
+                  textAlign: TextAlign.center,
+                  keyboardType: TextInputType.number,
+                  style: TextStyle(
+                    fontSize: 24.sp,
+                    color: Colors.black,
+                    fontFamily: 'Roboto',
+                  ),
+                  decoration: const InputDecoration(
+                    border: InputBorder.none,
+                    contentPadding: EdgeInsets.zero,
+                  ),
+                ),
               ),
-              child: TextField(
-                controller: _stockController,
-                textAlign: TextAlign.center,
-                keyboardType: TextInputType.number,
-                style: TextStyle(
-                  fontSize: 24.sp,
-                  color: Colors.black,
-                  fontFamily: 'Roboto',
-                ),
-                decoration: const InputDecoration(
-                  border: InputBorder.none,
-                  contentPadding: EdgeInsets.zero,
-                ),
-              ),
-            ),
-            SizedBox(width: 20.w), // 按设计图调整间距
-            // 增加按钮 - 按设计图样式
-            GestureDetector(
-              onTap: () {
-                int currentStock = int.tryParse(_stockController.text) ?? 1;
-                _stockController.text = (currentStock + 1).toString();
-              },
-              child: Container(
-                width: 24.w,
-                height: 24.h,
-                decoration: const BoxDecoration(
-                  color: Colors.transparent,
-                ),
-                child: Center(
-                  child: Text(
-                    '+',
-                    style: TextStyle(
-                      fontSize: 24.sp,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.black,
-                      fontFamily: 'Roboto',
+              SizedBox(width: 20.w), // 按设计图调整间距
+              // 增加按钮 - 按设计图样式
+              GestureDetector(
+                onTap: () {
+                  int currentStock = int.tryParse(_stockController.text) ?? 1;
+                  _stockController.text = (currentStock + 1).toString();
+                },
+                child: Container(
+                  width: 24.w,
+                  height: 24.h,
+                  decoration: const BoxDecoration(
+                    color: Colors.transparent,
+                  ),
+                  child: Center(
+                    child: Text(
+                      '+',
+                      style: TextStyle(
+                        fontSize: 24.sp,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.black,
+                        fontFamily: 'Roboto',
+                      ),
                     ),
                   ),
                 ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ],
     );

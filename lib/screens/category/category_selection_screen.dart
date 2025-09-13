@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../common/constants/app_constants.dart';
@@ -27,22 +28,29 @@ class CategorySelectionScreen extends ConsumerWidget {
       appBar: AppBar(
         backgroundColor: Colors.white,
         elevation: 0,
+        surfaceTintColor: Colors.transparent,
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Colors.black),
+          icon: Icon(Icons.arrow_back, color: Colors.black, size: 32.w),
           onPressed: () => Navigator.of(context).pop(),
         ),
-        title: const Text(
+        title: Text(
           'Series & Expansion',
           style: TextStyle(
-            color: Colors.black,
-            fontSize: 16,
-            fontWeight: FontWeight.normal,
+            color: const Color(0xFF212222),
+            fontSize: 36.sp,
+            fontWeight: FontWeight.w500,
           ),
         ),
         centerTitle: true,
         actions: [
           IconButton(
-            icon: const Icon(Icons.search, color: Colors.black),
+            icon: Icon(Icons.camera_alt_outlined, color: Colors.black, size: 32.w),
+            onPressed: () {
+              // 相机功能
+            },
+          ),
+          IconButton(
+            icon: Icon(Icons.search, color: Colors.black, size: 32.w),
             onPressed: () {
               // 跳转到SPU搜索页面
               context.push('/home/spu-search');
@@ -50,19 +58,7 @@ class CategorySelectionScreen extends ConsumerWidget {
           ),
         ],
       ),
-      body: Column(
-        children: [
-          // 分隔线
-          Container(
-            height: 1,
-            color: Colors.grey[300],
-          ),
-          // 主体内容
-          Expanded(
-            child: _buildContent(context, ref, categoryState, isLoading, error),
-          ),
-        ],
-      ),
+      body: _buildContent(context, ref, categoryState, isLoading, error),
     );
   }
 
@@ -103,19 +99,13 @@ class CategorySelectionScreen extends ConsumerWidget {
 
     return Row(
       children: [
-        // 左侧三级类目列表
-        Expanded(
-          flex: 2,
+        // 左侧三级类目列表 - 根据设计调整比例
+        SizedBox(
+          width: 280.w,
           child: _buildThirdLevelList(context, ref, categoryState),
         ),
-        // 垂直分隔线
-        Container(
-          width: 1,
-          color: Colors.grey[300],
-        ),
-        // 右侧四级类目列表
+        // 右侧四级类目列表 - 占据剩余空间
         Expanded(
-          flex: 3,
           child: _buildFourthLevelList(context, ref, categoryState),
         ),
       ],
@@ -130,40 +120,39 @@ class CategorySelectionScreen extends ConsumerWidget {
     final thirdLevelCategories = categoryState.thirdLevelCategories;
     final selectedCategory = categoryState.selectedThirdCategory;
 
-    return ListView.separated(
-      padding: EdgeInsets.zero,
-      itemCount: thirdLevelCategories.length,
-      separatorBuilder: (context, index) => Container(
-        height: 1,
-        color: Colors.grey[300],
-      ),
-      itemBuilder: (context, index) {
-        final category = thirdLevelCategories[index];
-        final isSelected = selectedCategory?.id == category.id;
+    return Container(
+      color: Colors.white,
+      child: ListView.builder(
+        padding: EdgeInsets.zero,
+        itemCount: thirdLevelCategories.length,
+        itemBuilder: (context, index) {
+          final category = thirdLevelCategories[index];
+          final isSelected = selectedCategory?.id == category.id;
 
-        return Container(
-          color: isSelected ? Colors.grey[400] : Colors.transparent,
-          child: ListTile(
-            contentPadding: const EdgeInsets.symmetric(
-              horizontal: AppConstants.defaultPadding,
-              vertical: 8,
-            ),
-            title: Text(
-              category.displayName,
-              style: TextStyle(
-                fontSize: 14,
-                fontWeight: FontWeight.normal,
-                color: isSelected ? Colors.white : Colors.black,
-              ),
-            ),
+          return GestureDetector(
             onTap: () {
               ref
                   .read(categoryViewModelProvider(secondCategoryId).notifier)
                   .selectThirdCategory(category);
             },
-          ),
-        );
-      },
+            child: Container(
+              height: 88.h,
+              color: Colors.white,
+              child: Center(
+                child: Text(
+                  category.displayName,
+                  style: TextStyle(
+                    fontSize: 28.sp,
+                    fontWeight: isSelected ? FontWeight.w500 : FontWeight.normal,
+                    color: isSelected ? const Color(0xFF00D86F) : Colors.black,
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+              ),
+            ),
+          );
+        },
+      ),
     );
   }
 
@@ -175,62 +164,55 @@ class CategorySelectionScreen extends ConsumerWidget {
     final fourthLevelCategories = categoryState.fourthLevelCategories;
 
     if (fourthLevelCategories.isEmpty) {
-      return const Center(
-        child: Text(
-          '请选择左侧类目',
-          style: TextStyle(
-            color: Colors.grey,
-            fontSize: 14,
+      return Container(
+        color: const Color(0xFFF4F4F6),
+        child: Center(
+          child: Text(
+            '请选择左侧类目',
+            style: TextStyle(
+              color: Colors.grey,
+              fontSize: 28.sp,
+            ),
           ),
         ),
       );
     }
 
-    return ListView.separated(
-      padding: EdgeInsets.zero,
-      itemCount: fourthLevelCategories.length,
-      separatorBuilder: (context, index) => Container(
-        height: 1,
-        color: Colors.grey[300],
-      ),
-      itemBuilder: (context, index) {
-        final category = fourthLevelCategories[index];
+    return Container(
+      color: const Color(0xFFF4F4F6),
+      child: ListView.builder(
+        padding: EdgeInsets.zero,
+        itemCount: fourthLevelCategories.length,
+        itemBuilder: (context, index) {
+          final category = fourthLevelCategories[index];
 
-        // 特殊处理高亮项目（模拟Figma设计中的高亮效果）
-        final isHighlighted = category.displayName == 'Twilight Masquerade';
+          // 根据设计交替背景色
+          final isEvenIndex = index % 2 == 0;
+          final backgroundColor = isEvenIndex ? Colors.white : const Color(0xFFE8E8EB);
 
-        return Container(
-          color: isHighlighted ? Colors.grey[200] : Colors.transparent,
-          child: ListTile(
-            contentPadding: const EdgeInsets.symmetric(
-              horizontal: AppConstants.defaultPadding,
-              vertical: 8,
-            ),
-            title: Container(
-              padding: isHighlighted
-                  ? const EdgeInsets.symmetric(horizontal: 12, vertical: 8)
-                  : EdgeInsets.zero,
-              decoration: isHighlighted
-                  ? BoxDecoration(
-                      color: Colors.grey[300],
-                      borderRadius: BorderRadius.circular(4),
-                    )
-                  : null,
-              child: Text(
-                category.displayName,
-                style: const TextStyle(
-                  fontSize: 14,
-                  fontWeight: FontWeight.normal,
-                  color: Colors.black,
-                ),
-              ),
-            ),
+          return GestureDetector(
             onTap: () {
               _navigateToSpuSelection(context, category);
             },
-          ),
-        );
-      },
+            child: Container(
+              height: 88.h,
+              color: backgroundColor,
+              padding: EdgeInsets.symmetric(horizontal: 60.w),
+              child: Align(
+                alignment: Alignment.centerLeft,
+                child: Text(
+                  category.displayName,
+                  style: TextStyle(
+                    fontSize: 28.sp,
+                    fontWeight: FontWeight.normal,
+                    color: const Color(0xFF212222),
+                  ),
+                ),
+              ),
+            ),
+          );
+        },
+      ),
     );
   }
 
