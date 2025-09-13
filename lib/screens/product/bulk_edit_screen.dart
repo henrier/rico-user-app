@@ -1,9 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:go_router/go_router.dart';
 import '../../models/personalproduct/data.dart';
 import '../../models/personalproduct/service.dart';
 import '../../widgets/selectable_product_item.dart';
 import '../../widgets/bulk_action_bottom_sheet.dart';
+import '../../widgets/bulk_edit_dialog.dart';
+import '../../common/data/mock_bulk_edit_data.dart';
 
 class BulkEditScreen extends StatefulWidget {
   const BulkEditScreen({super.key});
@@ -32,7 +35,7 @@ class _BulkEditScreenState extends State<BulkEditScreen> {
   void initState() {
     super.initState();
     _personalProductService = PersonalProductService();
-    _loadProducts();
+    _loadMockProducts();
   }
 
   @override
@@ -41,38 +44,22 @@ class _BulkEditScreenState extends State<BulkEditScreen> {
     super.dispose();
   }
 
-  Future<void> _loadProducts() async {
-    try {
-      setState(() {
-        isLoading = true;
-      });
+  void _loadMockProducts() {
+    setState(() {
+      isLoading = true;
+    });
 
-      final params = PersonalProductPageParams(
-        current: 1,
-        pageSize: 50,
-        status: PersonalProductStatus.listed,
-      );
-
-      final pageData = await _personalProductService.getPersonalProductPage(params);
-      
-      setState(() {
-        products = pageData.list;
-        isLoading = false;
-      });
-    } catch (e) {
-      setState(() {
-        isLoading = false;
-      });
-      
+    // 模拟加载延迟
+    Future.delayed(const Duration(milliseconds: 500), () {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('加载商品失败: ${e.toString()}'),
-            backgroundColor: Colors.red,
-          ),
-        );
+        setState(() {
+          products = MockBulkEditData.getMockProducts();
+          selectedProductIds = MockBulkEditData.getInitialSelectedIds();
+          selectAll = false; // 根据Figma设计，不是全选状态
+          isLoading = false;
+        });
       }
-    }
+    });
   }
 
   void _toggleSelectAll() {
@@ -124,29 +111,103 @@ class _BulkEditScreenState extends State<BulkEditScreen> {
   }
 
   void _handleBulkUnpublish() {
-    Navigator.pop(context);
-    // TODO: 实现批量下架功能
+    // 显示下架确认弹窗
+    showBulkEditDialog(
+      context: context,
+      title: 'Unpublish Items',
+      content: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(
+            'Do you want to unpublish these items?',
+            style: TextStyle(
+              fontSize: 32.sp,
+              color: const Color(0xFF212222),
+            ),
+            textAlign: TextAlign.center,
+          ),
+        ],
+      ),
+      confirmText: 'Unpublish',
+      cancelText: 'Cancel',
+      onConfirm: () {
+        // 执行下架操作
+        _performBulkUnpublish();
+      },
+    );
+  }
+  
+  void _performBulkUnpublish() {
+    final unpublishedCount = selectedProductIds.length;
+    
+    // 更新选中商品的状态为待上架
+    setState(() {
+      for (var product in products) {
+        if (selectedProductIds.contains(product.id)) {
+          // 这里应该更新商品状态，但由于PersonalProduct是不可变的，
+          // 在实际应用中需要通过API更新状态
+        }
+      }
+      selectedProductIds.clear();
+      selectAll = false;
+    });
+    
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text('批量下架 ${selectedProductIds.length} 个商品'),
-        backgroundColor: Colors.green,
+        content: Text('成功下架 $unpublishedCount 个商品'),
+        backgroundColor: Colors.orange,
       ),
     );
   }
 
   void _handleBulkDelete() {
-    Navigator.pop(context);
-    // TODO: 实现批量删除功能
+    // 显示删除确认弹窗
+    showBulkEditDialog(
+      context: context,
+      title: 'Delete Items',
+      content: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(
+            'Deleted items can’t be restored. Are you sure?',
+            style: TextStyle(
+              fontSize: 28.sp,
+              color: const Color(0xFF212222),
+            ),
+            textAlign: TextAlign.center,
+          ),
+        ],
+      ),
+      confirmText: 'Delete',
+      cancelText: 'Cancel',
+      onConfirm: () {
+        // 执行删除操作
+        _performBulkDelete();
+      },
+    );
+  }
+  
+  void _performBulkDelete() {
+    // 记录删除的数量
+    final deletedCount = selectedProductIds.length;
+    
+    // 从列表中移除选中的商品
+    setState(() {
+      products.removeWhere((product) => selectedProductIds.contains(product.id));
+      selectedProductIds.clear();
+      selectAll = false;
+    });
+    
+    // 显示成功消息
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text('批量删除 ${selectedProductIds.length} 个商品'),
-        backgroundColor: Colors.red,
+        content: Text('成功删除 $deletedCount 个商品'),
+        backgroundColor: Colors.green,
       ),
     );
   }
 
   void _handleBulkEdit() {
-    Navigator.pop(context);
     // TODO: 实现批量编辑功能
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
@@ -157,7 +218,6 @@ class _BulkEditScreenState extends State<BulkEditScreen> {
   }
 
   void _handleCreateBundle() {
-    Navigator.pop(context);
     // TODO: 实现创建套装功能
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(

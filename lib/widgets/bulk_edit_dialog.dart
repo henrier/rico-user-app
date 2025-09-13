@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:go_router/go_router.dart';
 
 /// 批量编辑弹窗组件
 class BulkEditDialog extends StatefulWidget {
@@ -77,7 +78,7 @@ class _BulkEditDialogState extends State<BulkEditDialog> {
                         borderRadius: BorderRadius.circular(69.r),
                       ),
                       child: TextButton(
-                        onPressed: widget.onCancel ?? () => Navigator.pop(context),
+                        onPressed: widget.onCancel ?? () => context.pop(),
                         child: Text(
                           widget.cancelText,
                           style: TextStyle(
@@ -102,7 +103,7 @@ class _BulkEditDialogState extends State<BulkEditDialog> {
                       ),
                       child: TextButton(
                         onPressed: () {
-                          Navigator.pop(context);
+                          context.pop();
                           widget.onConfirm?.call();
                         },
                         child: Text(

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:go_router/go_router.dart';
 import '../../common/themes/app_theme.dart';
 import '../../widgets/stats_section.dart';
 import '../../widgets/bottom_action_buttons.dart';
@@ -379,7 +380,7 @@ class _ProductManagementScreenState extends State<ProductManagementScreen> {
           GestureDetector(
             onTap: () {
               // 导航到批量编辑页面
-              Navigator.pushNamed(context, '/home/bulk-edit');
+              context.push('/home/bulk-edit');
             },
             child: Container(
               height: 44.h,

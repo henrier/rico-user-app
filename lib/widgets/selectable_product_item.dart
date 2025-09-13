@@ -108,7 +108,7 @@ class SelectableProductItem extends StatelessWidget {
                       color: const Color(0xFF919191),
                     ),
                     Text(
-                      'Holo',
+                      'Holo', // 固定显示Holo，符合Figma设计
                       style: TextStyle(
                         fontSize: 24.sp,
                         color: const Color(0xFF919191),
