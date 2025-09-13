@@ -6,6 +6,8 @@ import 'package:go_router/go_router.dart';
 import '../../common/themes/app_theme.dart';
 import '../../widgets/custom_button.dart';
 import '../../widgets/custom_text_field.dart';
+import '../../widgets/spu_select_filter.dart';
+import '../../widgets/bulk_edit_dialog.dart';
 import '../../models/productinfo/service.dart';
 import '../../models/productinfo/data.dart';
 import '../../models/i18n_string.dart';
@@ -27,7 +29,7 @@ class _BatchAddProductScreenState extends ConsumerState<BatchAddProductScreen> {
   
   // 批量编辑模式
   bool _isBulkEditMode = false;
-  String _bulkEditType = 'Price'; // Price, Stock, Notes
+  String _bulkEditType = ''; // Price, Stock, Notes - 默认不选中任何类型
   
   // API服务
   late final ProductInfoService _productInfoService;
@@ -35,6 +37,9 @@ class _BatchAddProductScreenState extends ConsumerState<BatchAddProductScreen> {
   // 加载状态
   bool _isLoading = false;
   String? _errorMessage;
+  
+  // 筛选参数
+  SpuFilterSelections _filterSelections = {};
   
   // 商品列表
   final List<ProductItem> _productList = [
@@ -162,6 +167,32 @@ class _BatchAddProductScreenState extends ConsumerState<BatchAddProductScreen> {
                 Icons.arrow_back,
                 size: 24.w,
                 color: Color(0xFF212222),
+              ),
+            ),
+          ),
+          
+          // 筛选按钮
+          Positioned(
+            right: 26.w,
+            top: 22.h,
+            child: GestureDetector(
+              onTap: () => _showFilterDrawer(),
+              child: Container(
+                width: 44.w,
+                height: 44.h,
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(22.r),
+                  border: Border.all(
+                    color: const Color(0xFFE0E0E0),
+                    width: 1.w,
+                  ),
+                ),
+                child: Icon(
+                  Icons.tune,
+                  size: 24.w,
+                  color: const Color(0xFF212222),
+                ),
               ),
             ),
           ),
@@ -377,6 +408,15 @@ class _BatchAddProductScreenState extends ConsumerState<BatchAddProductScreen> {
           _bulkEditType = type;
           _isBulkEditMode = true;
         });
+        
+        // 根据类型显示相应的批量编辑弹窗
+        if (type == 'Price') {
+          _showBulkPriceEditDialog();
+        } else if (type == 'Stock') {
+          _showBulkStockEditDialog();
+        } else if (type == 'Notes') {
+          _showBulkNotesEditDialog();
+        }
       },
       child: Container(
         padding: EdgeInsets.symmetric(horizontal: 20.w, vertical: 12.h),
@@ -435,6 +475,9 @@ class _BatchAddProductScreenState extends ConsumerState<BatchAddProductScreen> {
   }
 
   Widget _buildProductCard(ProductItem product, int index) {
+    // 判断是否为占位符卡片（第一个卡片显示为占位符）
+    final bool isPlaceholder = index == 0;
+    
     return Container(
       padding: EdgeInsets.all(30.w),
       decoration: BoxDecoration(
@@ -448,30 +491,93 @@ class _BatchAddProductScreenState extends ConsumerState<BatchAddProductScreen> {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // 商品图片
+          // 商品图片区域
           Container(
             width: 164.w,
-            height: 228.h,
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(8.r),
-              color: Color(0xFFf4f4f4),
-            ),
-            child: ClipRRect(
-              borderRadius: BorderRadius.circular(8.r),
-              child: Image.network(
-                product.imageUrl,
-                fit: BoxFit.cover,
-                errorBuilder: (context, error, stackTrace) {
-                  return Container(
+            child: Column(
+              children: [
+                // 图片部分
+                Container(
+                  width: 164.w,
+                  height: 228.h, // 图片高度164w*228h
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(8.r),
+                    color: isPlaceholder ? Color(0xFFf4f4f6) : Color(0xFFf4f4f4),
+                    border: isPlaceholder ? Border.all(
+                      color: Color(0xFFb84846),
+                      width: 2.w,
+                    ) : null,
+                  ),
+                  child: isPlaceholder 
+                    ? Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(
+                            Icons.add,
+                            size: 32.w,
+                            color: Color(0xFFb5b5b7),
+                          ),
+                          SizedBox(height: 8.h),
+                          Text(
+                            '(0/2)',
+                            style: TextStyle(
+                              fontSize: 24.sp,
+                              fontWeight: FontWeight.w500,
+                              color: Color(0xFFb5b5b7),
+                            ),
+                          ),
+                        ],
+                      )
+                    : ClipRRect(
+                        borderRadius: BorderRadius.circular(8.r),
+                        child: Image.network(
+                          product.imageUrl,
+                          fit: BoxFit.cover,
+                          errorBuilder: (context, error, stackTrace) {
+                            return Container(
+                              color: Color(0xFFf4f4f4),
+                              child: Icon(
+                                Icons.image,
+                                size: 48.w,
+                                color: Colors.grey[400],
+                              ),
+                            );
+                          },
+                        ),
+                      ),
+                ),
+                
+                SizedBox(height: 12.h), // 与上边的距离
+                
+                // Photo按钮 (始终显示)
+                Container(
+                  width: 164.w,
+                  height: 52.h,
+                  decoration: BoxDecoration(
                     color: Color(0xFFf4f4f4),
-                    child: Icon(
-                      Icons.image,
-                      size: 48.w,
-                      color: Colors.grey[400],
-                    ),
-                  );
-                },
-              ),
+                    borderRadius: BorderRadius.circular(47.r),
+                  ),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(
+                        Icons.camera_alt,
+                        size: 20.w,
+                        color: Color(0xFF212222),
+                      ),
+                      SizedBox(width: 8.w),
+                      Text(
+                        'Photo',
+                        style: TextStyle(
+                          fontSize: 24.sp,
+                          fontWeight: FontWeight.w500,
+                          color: Color(0xFF212222),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
             ),
           ),
           
@@ -487,7 +593,7 @@ class _BatchAddProductScreenState extends ConsumerState<BatchAddProductScreen> {
                   product.name,
                   style: TextStyle(
                     fontSize: 28.sp,
-                    fontWeight: FontWeight.bold,
+                    fontWeight: FontWeight.w500,
                     color: Color(0xFF212222),
                   ),
                   maxLines: 2,
@@ -517,53 +623,20 @@ class _BatchAddProductScreenState extends ConsumerState<BatchAddProductScreen> {
                 ),
                 SizedBox(height: 20.h),
                 
-                // 序列号
-                Text(
-                  'Serial',
-                  style: TextStyle(
-                    fontSize: 24.sp,
-                    color: Color(0xFF212222),
-                  ),
-                ),
-                SizedBox(height: 8.h),
-                
-                // 序列号输入框
-                Container(
-                  width: 206.w,
-                  height: 52.h,
-                  decoration: BoxDecoration(
-                    color: Color(0xFFf4f4f4),
-                    borderRadius: BorderRadius.circular(47.r),
-                  ),
-                  child: TextField(
-                    decoration: InputDecoration(
-                      hintText: 'BGS Black Label',
-                      hintStyle: TextStyle(
-                        fontSize: 22.sp,
-                        color: Color(0xFF919191),
-                      ),
-                      border: InputBorder.none,
-                      contentPadding: EdgeInsets.symmetric(horizontal: 16.w),
-                    ),
-                    style: TextStyle(fontSize: 22.sp),
-                  ),
-                ),
-                SizedBox(height: 20.h),
-                
-                // 价格
-                Text(
-                  'Price',
-                  style: TextStyle(
-                    fontSize: 24.sp,
-                    color: Color(0xFF212222),
-                  ),
-                ),
-                SizedBox(height: 8.h),
-                
+                // Price标题和输入框在一行显示
                 Row(
+                  crossAxisAlignment: CrossAxisAlignment.center,
                   children: [
+                    Text(
+                      'Price',
+                      style: TextStyle(
+                        fontSize: 24.sp,
+                        color: Color(0xFF212222),
+                      ),
+                    ),
+                    SizedBox(width: 20.w),
                     Container(
-                      width: 137.w,
+                      width: 142.w,
                       height: 52.h,
                       decoration: BoxDecoration(
                         color: Color(0xFFf4f4f4),
@@ -582,13 +655,29 @@ class _BatchAddProductScreenState extends ConsumerState<BatchAddProductScreen> {
                         style: TextStyle(fontSize: 20.sp),
                       ),
                     ),
-                    SizedBox(width: 12.w),
+                    SizedBox(width: 20.w),
+                    // 建议价格
                     Expanded(
-                      child: Text(
-                        'Suggest Price RM ${product.price}',
-                        style: TextStyle(
-                          fontSize: 20.sp,
-                          color: Color(0xFFc1c1c1),
+                      child: RichText(
+                        text: TextSpan(
+                          children: [
+                            TextSpan(
+                              text: 'Suggest Price\n',
+                              style: TextStyle(
+                                fontSize: 20.sp,
+                                color: Color(0xFFc1c1c1),
+                                fontFamily: 'Roboto',
+                              ),
+                            ),
+                            TextSpan(
+                              text: 'RM ${product.price}',
+                              style: TextStyle(
+                                fontSize: 20.sp,
+                                color: index == 0 ? Color(0xFFd83333) : Color(0xFFf86700),
+                                fontFamily: 'Roboto',
+                              ),
+                            ),
+                          ],
                         ),
                       ),
                     ),
@@ -596,74 +685,111 @@ class _BatchAddProductScreenState extends ConsumerState<BatchAddProductScreen> {
                 ),
                 SizedBox(height: 20.h),
                 
-                // 库存
-                Text(
-                  'Stock',
-                  style: TextStyle(
-                    fontSize: 24.sp,
-                    color: Color(0xFF212222),
-                  ),
-                ),
-                SizedBox(height: 8.h),
-                
-                Container(
-                  width: 142.w,
-                  height: 52.h,
-                  decoration: BoxDecoration(
-                    color: Color(0xFFf4f4f4),
-                    borderRadius: BorderRadius.circular(47.r),
-                  ),
-                  child: Row(
-                    children: [
-                      IconButton(
-                        onPressed: () {
-                          // 减少库存
-                        },
-                        icon: Icon(Icons.remove, size: 24.w),
-                      ),
-                      Expanded(
-                        child: Text(
-                          '${product.stock}',
-                          textAlign: TextAlign.center,
-                          style: TextStyle(fontSize: 24.sp),
-                        ),
-                      ),
-                      IconButton(
-                        onPressed: () {
-                          // 增加库存
-                        },
-                        icon: Icon(Icons.add, size: 24.w),
-                      ),
-                    ],
-                  ),
-                ),
-                SizedBox(height: 20.h),
-                
-                // 照片和备注
+                // Stock标题和控件在一行显示
                 Row(
+                  crossAxisAlignment: CrossAxisAlignment.center,
                   children: [
-                    // 照片按钮
+                    Text(
+                      'Stock',
+                      style: TextStyle(
+                        fontSize: 24.sp,
+                        color: Color(0xFF212222),
+                      ),
+                    ),
+                    SizedBox(width: 20.w),
                     Container(
-                      width: 164.w,
+                      width: 142.w,
                       height: 52.h,
                       decoration: BoxDecoration(
                         color: Color(0xFFf4f4f4),
                         borderRadius: BorderRadius.circular(47.r),
                       ),
                       child: Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          Icon(Icons.camera_alt, size: 20.w),
-                          SizedBox(width: 8.w),
-                          Text(
-                            'Photo',
-                            style: TextStyle(fontSize: 24.sp),
+                          // 减号按钮
+                          Container(
+                            width: 24.w,
+                            height: 24.h,
+                            margin: EdgeInsets.only(left: 14.w),
+                            child: Center(
+                              child: Container(
+                                width: 17.w,
+                                height: 3.h,
+                                decoration: BoxDecoration(
+                                  color: Colors.black,
+                                  borderRadius: BorderRadius.circular(22.r),
+                                ),
+                              ),
+                            ),
+                          ),
+                          // 数量显示
+                          Expanded(
+                            child: Text(
+                              '${product.stock}',
+                              textAlign: TextAlign.center,
+                              style: TextStyle(
+                                fontSize: 24.sp,
+                                color: Colors.black,
+                              ),
+                            ),
+                          ),
+                          // 加号按钮
+                          Container(
+                            width: 24.w,
+                            height: 24.h,
+                            margin: EdgeInsets.only(right: 14.w),
+                            child: Center(
+                              child: Stack(
+                                children: [
+                                  // 水平线
+                                  Positioned(
+                                    left: 3.5.w,
+                                    top: 10.5.h,
+                                    child: Container(
+                                      width: 17.w,
+                                      height: 3.h,
+                                      decoration: BoxDecoration(
+                                        color: Colors.black,
+                                        borderRadius: BorderRadius.circular(22.r),
+                                      ),
+                                    ),
+                                  ),
+                                  // 垂直线
+                                  Positioned(
+                                    left: 10.5.w,
+                                    top: 3.5.h,
+                                    child: Container(
+                                      width: 3.w,
+                                      height: 17.h,
+                                      decoration: BoxDecoration(
+                                        color: Colors.black,
+                                        borderRadius: BorderRadius.circular(22.r),
+                                      ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
                           ),
                         ],
                       ),
                     ),
-                    SizedBox(width: 12.w),
-                    
+                  ],
+                ),
+                SizedBox(height: 20.h),
+                
+                // Notes 标题和输入框
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  children: [
+                    Text(
+                      'Notes',
+                      style: TextStyle(
+                        fontSize: 24.sp,
+                        color: Color(0xFF212222),
+                      ),
+                    ),
+                    SizedBox(width: 20.w),
                     // 备注输入框
                     Expanded(
                       child: Container(
@@ -1026,6 +1152,551 @@ class _BatchAddProductScreenState extends ConsumerState<BatchAddProductScreen> {
       SnackBar(
         content: Text(message, style: TextStyle(fontSize: 14.sp)),
         backgroundColor: Colors.red,
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(10.r),
+        ),
+      ),
+    );
+  }
+  
+  /// 显示筛选抽屉
+  Future<void> _showFilterDrawer() async {
+    final filterSections = _buildFilterSections();
+    
+    final result = await showSpuSelectFilter(
+      context,
+      sections: filterSections,
+      initialSelections: _filterSelections,
+      title: 'Filtering',
+      clearText: 'Clear',
+      confirmText: 'Confirm',
+    );
+    
+    if (result != null) {
+      setState(() {
+        _filterSelections = result;
+      });
+      // 应用筛选条件，重新筛选商品列表
+      _applyFilters();
+    }
+  }
+  
+  /// 构建筛选选项
+  List<SpuSelectFilterSection> _buildFilterSections() {
+    return [
+      // View Graded Cards 开关
+      const SpuSelectFilterSection(
+        title: 'View Graded Cards',
+        options: [
+          SpuSelectFilterOption(id: 'graded_cards', label: 'View Graded Cards'),
+        ],
+      ),
+      
+      // Graded Slabs 评级公司
+      const SpuSelectFilterSection(
+        title: 'Graded Slabs',
+        options: [
+          SpuSelectFilterOption(id: 'psa', label: 'PSA'),
+          SpuSelectFilterOption(id: 'bgs', label: 'BGS'),
+          SpuSelectFilterOption(id: 'cgc', label: 'CGC'),
+          SpuSelectFilterOption(id: 'pgc', label: 'PGC'),
+        ],
+      ),
+      
+      // Rarity 稀有度
+      const SpuSelectFilterSection(
+        title: 'Rarity',
+        options: [
+          SpuSelectFilterOption(id: 'amazing', label: 'Amazing'),
+          SpuSelectFilterOption(id: 'rainbow', label: 'Rainbow'),
+          SpuSelectFilterOption(id: 'radiant', label: 'Radiant'),
+          SpuSelectFilterOption(id: 'holo', label: 'Holo'),
+        ],
+      ),
+      
+      // Series & Expansion 系列扩展
+      const SpuSelectFilterSection(
+        title: 'Series & Expansion',
+        options: [
+          SpuSelectFilterOption(id: 'amazing_1', label: 'Amazing'),
+          SpuSelectFilterOption(id: 'amazing_2', label: 'Amazing'),
+          SpuSelectFilterOption(id: 'amazing_3', label: 'Amazing'),
+          SpuSelectFilterOption(id: 'amazing_4', label: 'Amazing'),
+        ],
+      ),
+    ];
+  }
+  
+  /// 应用筛选条件
+  void _applyFilters() {
+    // 这里可以根据筛选条件过滤商品列表
+    // 例如：根据评级公司、稀有度等筛选商品
+    
+    // 显示筛选结果提示
+    final selectedFilters = <String>[];
+    _filterSelections.forEach((section, selections) {
+      if (selections.isNotEmpty) {
+        selectedFilters.addAll(selections);
+      }
+    });
+    
+    if (selectedFilters.isNotEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            '已应用筛选条件: ${selectedFilters.join(', ')}',
+            style: TextStyle(fontSize: 14.sp),
+          ),
+          backgroundColor: AppTheme.primaryColor,
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(10.r),
+          ),
+        ),
+      );
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            '已清除所有筛选条件',
+            style: TextStyle(fontSize: 14.sp),
+          ),
+          backgroundColor: Colors.grey[600],
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(10.r),
+          ),
+        ),
+      );
+    }
+  }
+  
+  /// 显示批量价格编辑弹窗
+  void _showBulkPriceEditDialog() {
+    String selectedPriceType = 'Same Price'; // 默认选择Same Price
+    String customPrice = '455'; // 默认价格
+    
+    showBulkEditDialog(
+      context: context,
+      title: 'Bulk Price Edit',
+      content: StatefulBuilder(
+        builder: (context, setState) => Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            // Edit all in 标签和选项
+            Row(
+              children: [
+                Text(
+                  'Edit all in',
+                  style: TextStyle(
+                    fontSize: 24.sp,
+                    color: Color(0xFF919191),
+                  ),
+                ),
+                SizedBox(width: 40.w),
+                // Same Price 按钮
+                GestureDetector(
+                  onTap: () {
+                    setState(() {
+                      selectedPriceType = 'Same Price';
+                    });
+                  },
+                  child: Container(
+                    width: 186.w,
+                    height: 64.h,
+                    decoration: BoxDecoration(
+                      color: selectedPriceType == 'Same Price' 
+                          ? Color(0xFF0dee80) 
+                          : Color(0xFFf4f4f4),
+                      borderRadius: BorderRadius.circular(47.r),
+                    ),
+                    child: Center(
+                      child: Text(
+                        'Same Price',
+                        style: TextStyle(
+                          fontSize: 24.sp,
+                          color: Color(0xFF212222),
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            
+            SizedBox(height: 20.h),
+            
+            // Suggested Price 按钮
+            Align(
+              alignment: Alignment.centerLeft,
+              child: Padding(
+                padding: EdgeInsets.only(left: 220.w),
+                child: GestureDetector(
+                  onTap: () {
+                    setState(() {
+                      selectedPriceType = 'Suggested Price';
+                    });
+                  },
+                  child: Container(
+                    width: 236.w,
+                    height: 64.h,
+                    decoration: BoxDecoration(
+                      color: selectedPriceType == 'Suggested Price' 
+                          ? Color(0xFF0dee80) 
+                          : Color(0xFFf4f4f4),
+                      borderRadius: BorderRadius.circular(47.r),
+                    ),
+                    child: Center(
+                      child: Text(
+                        'Suggested Price',
+                        style: TextStyle(
+                          fontSize: 24.sp,
+                          color: Color(0xFF212222),
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+            
+            SizedBox(height: 40.h),
+            
+            // Set Price 区域
+            Row(
+              children: [
+                Text(
+                  'Set Price',
+                  style: TextStyle(
+                    fontSize: 24.sp,
+                    color: Color(0xFF919191),
+                  ),
+                ),
+                SizedBox(width: 40.w),
+                Text(
+                  'RM',
+                  style: TextStyle(
+                    fontSize: 24.sp,
+                    color: Colors.black,
+                  ),
+                ),
+                SizedBox(width: 20.w),
+                Container(
+                  width: 115.w,
+                  height: 64.h,
+                  decoration: BoxDecoration(
+                    color: Color(0xFFf4f4f4),
+                    borderRadius: BorderRadius.circular(47.r),
+                  ),
+                  child: Center(
+                    child: TextField(
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        fontSize: 28.sp,
+                        color: Colors.black,
+                      ),
+                      decoration: InputDecoration(
+                        border: InputBorder.none,
+                        hintText: customPrice,
+                        hintStyle: TextStyle(
+                          fontSize: 28.sp,
+                          color: Colors.black,
+                        ),
+                      ),
+                      onChanged: (value) {
+                        customPrice = value;
+                      },
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+      onConfirm: () => _applyBulkPriceEdit(selectedPriceType, customPrice),
+    );
+  }
+  
+  /// 显示批量库存编辑弹窗
+  void _showBulkStockEditDialog() {
+    int stockValue = 1; // 默认库存值
+    
+    showBulkEditDialog(
+      context: context,
+      title: 'Bulk Stock Edit',
+      content: StatefulBuilder(
+        builder: (context, setState) => Row(
+          children: [
+            Text(
+              'Stocks',
+              style: TextStyle(
+                fontSize: 24.sp,
+                color: Color(0xFF919191),
+              ),
+            ),
+            SizedBox(width: 40.w),
+            Container(
+              width: 142.w,
+              height: 64.h,
+              decoration: BoxDecoration(
+                color: Color(0xFFf4f4f4),
+                borderRadius: BorderRadius.circular(47.r),
+              ),
+              child: Row(
+                children: [
+                  // 减号按钮
+                  Container(
+                    width: 24.w,
+                    height: 24.h,
+                    margin: EdgeInsets.only(left: 14.w),
+                    child: GestureDetector(
+                      onTap: () {
+                        if (stockValue > 0) {
+                          setState(() {
+                            stockValue--;
+                          });
+                        }
+                      },
+                      child: Center(
+                        child: Container(
+                          width: 17.w,
+                          height: 3.h,
+                          decoration: BoxDecoration(
+                            color: Colors.black,
+                            borderRadius: BorderRadius.circular(22.r),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                  // 数量显示
+                  Expanded(
+                    child: Text(
+                      '$stockValue',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        fontSize: 24.sp,
+                        color: Colors.black,
+                      ),
+                    ),
+                  ),
+                  // 加号按钮
+                  Container(
+                    width: 24.w,
+                    height: 24.h,
+                    margin: EdgeInsets.only(right: 14.w),
+                    child: GestureDetector(
+                      onTap: () {
+                        setState(() {
+                          stockValue++;
+                        });
+                      },
+                      child: Center(
+                        child: Stack(
+                          children: [
+                            // 水平线
+                            Positioned(
+                              left: 3.5.w,
+                              top: 10.5.h,
+                              child: Container(
+                                width: 17.w,
+                                height: 3.h,
+                                decoration: BoxDecoration(
+                                  color: Colors.black,
+                                  borderRadius: BorderRadius.circular(22.r),
+                                ),
+                              ),
+                            ),
+                            // 垂直线
+                            Positioned(
+                              left: 10.5.w,
+                              top: 3.5.h,
+                              child: Container(
+                                width: 3.w,
+                                height: 17.h,
+                                decoration: BoxDecoration(
+                                  color: Colors.black,
+                                  borderRadius: BorderRadius.circular(22.r),
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+      onConfirm: () => _applyBulkStockEdit(stockValue),
+    );
+  }
+  
+  /// 显示批量备注编辑弹窗
+  void _showBulkNotesEditDialog() {
+    String notesText = ''; // 备注文本
+    int maxLength = 50; // 最大字符数
+    
+    showBulkEditDialog(
+      context: context,
+      title: 'Bulk Notes Edit',
+      content: StatefulBuilder(
+        builder: (context, setState) => Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Stocks 标签和输入框在同一行
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Stocks 标签
+                Text(
+                  'Stocks',
+                  style: TextStyle(
+                    fontSize: 24.sp,
+                    color: Color(0xFF919191),
+                  ),
+                ),
+                SizedBox(width: 40.w),
+                
+                // 文本输入区域整体容器
+                Expanded(
+                  child: Container(
+                    decoration: BoxDecoration(
+                      color: Color(0xFFf4f4f4),
+                      borderRadius: BorderRadius.circular(20.r),
+                    ),
+                    child: Column(
+                      children: [
+                        // 文本输入框
+                        Container(
+                          height: 188.h,
+                          child: TextField(
+                            maxLines: null,
+                            expands: true,
+                            maxLength: maxLength,
+                            style: TextStyle(
+                              fontSize: 24.sp,
+                              color: Colors.black,
+                            ),
+                            decoration: InputDecoration(
+                              hintText: 'up to 50 characters',
+                              hintStyle: TextStyle(
+                                fontSize: 24.sp,
+                                color: Color(0xFF919191),
+                              ),
+                              border: InputBorder.none,
+                              contentPadding: EdgeInsets.all(20.w),
+                              counterText: '', // 隐藏默认计数器
+                            ),
+                            onChanged: (value) {
+                              setState(() {
+                                notesText = value;
+                              });
+                            },
+                          ),
+                        ),
+                        
+                        // 字符计数器
+                        Container(
+                          padding: EdgeInsets.only(
+                            left: 20.w,
+                            right: 20.w,
+                            bottom: 20.h,
+                          ),
+                          child: Align(
+                            alignment: Alignment.centerRight,
+                            child: Text(
+                              '${notesText.length}/$maxLength',
+                              style: TextStyle(
+                                fontSize: 24.sp,
+                                color: Color(0xFF919191),
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+      onConfirm: () => _applyBulkNotesEdit(notesText),
+    );
+  }
+  
+  /// 应用批量价格编辑
+  void _applyBulkPriceEdit(String priceType, String customPrice) {
+    // 这里实现批量价格编辑逻辑
+    String message = '';
+    
+    if (priceType == 'Same Price') {
+      message = '已将所有商品价格设置为 RM $customPrice';
+      // 实际应用：更新所有商品的价格为customPrice
+    } else if (priceType == 'Suggested Price') {
+      message = '已将所有商品价格设置为建议价格';
+      // 实际应用：更新所有商品的价格为各自的建议价格
+    }
+    
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          message,
+          style: TextStyle(fontSize: 14.sp),
+        ),
+        backgroundColor: AppTheme.primaryColor,
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(10.r),
+        ),
+      ),
+    );
+  }
+  
+  /// 应用批量库存编辑
+  void _applyBulkStockEdit(int stockValue) {
+    // 这里实现批量库存编辑逻辑
+    String message = '已将所有商品库存设置为 $stockValue';
+    // 实际应用：更新所有商品的库存为stockValue
+    
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          message,
+          style: TextStyle(fontSize: 14.sp),
+        ),
+        backgroundColor: AppTheme.primaryColor,
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(10.r),
+        ),
+      ),
+    );
+  }
+  
+  /// 应用批量备注编辑
+  void _applyBulkNotesEdit(String notesText) {
+    // 这里实现批量备注编辑逻辑
+    String message = notesText.isEmpty 
+        ? '已清空所有商品备注' 
+        : '已将所有商品备注设置为: $notesText';
+    // 实际应用：更新所有商品的备注为notesText
+    
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          message,
+          style: TextStyle(fontSize: 14.sp),
+        ),
+        backgroundColor: AppTheme.primaryColor,
         behavior: SnackBarBehavior.floating,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(10.r),

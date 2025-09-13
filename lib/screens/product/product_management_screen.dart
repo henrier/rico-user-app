@@ -3,6 +3,7 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import '../../common/themes/app_theme.dart';
 import '../../widgets/stats_section.dart';
 import '../../widgets/bottom_action_buttons.dart';
+import '../../widgets/spu_select_filter.dart';
 import '../../models/personalproduct/service.dart';
 import '../../models/personalproduct/data.dart';
 import '../../models/page_data.dart';
@@ -33,6 +34,9 @@ class _ProductManagementScreenState extends State<ProductManagementScreen> {
   int _currentPage = 1;
   final int _pageSize = 20;
   bool _hasMoreData = true;
+  
+  // 筛选参数
+  SpuFilterSelections _filterSelections = {};
 
   @override
   void initState() {
@@ -124,6 +128,75 @@ class _ProductManagementScreenState extends State<ProductManagementScreen> {
       default:
         return null; // 显示所有状态
     }
+  }
+  
+  /// 显示筛选抽屉
+  Future<void> _showFilterDrawer() async {
+    final filterSections = _buildFilterSections();
+    
+    final result = await showSpuSelectFilter(
+      context,
+      sections: filterSections,
+      initialSelections: _filterSelections,
+      title: 'Filtering',
+      clearText: 'Clear',
+      confirmText: 'Confirm',
+    );
+    
+    if (result != null) {
+      setState(() {
+        _filterSelections = result;
+      });
+      // 应用筛选条件，重新加载数据
+      _loadProducts(isRefresh: true);
+    }
+  }
+  
+  /// 构建筛选选项
+  List<SpuSelectFilterSection> _buildFilterSections() {
+    return [
+      // View Graded Cards 开关
+      const SpuSelectFilterSection(
+        title: 'View Graded Cards',
+        options: [
+          SpuSelectFilterOption(id: 'graded_cards', label: 'View Graded Cards'),
+        ],
+      ),
+      
+      // Graded Slabs 评级公司
+      const SpuSelectFilterSection(
+        title: 'Graded Slabs',
+        options: [
+          SpuSelectFilterOption(id: 'psa', label: 'PSA'),
+          SpuSelectFilterOption(id: 'bgs', label: 'BGS'),
+          SpuSelectFilterOption(id: 'cgc', label: 'CGC'),
+          SpuSelectFilterOption(id: 'pgc', label: 'PGC'),
+        ],
+      ),
+      
+      // Rarity 稀有度 - 根据Figma设计包含5个选项
+      const SpuSelectFilterSection(
+        title: 'Rarity',
+        options: [
+          SpuSelectFilterOption(id: 'amazing', label: 'Amazing'),
+          SpuSelectFilterOption(id: 'rainbow', label: 'Rainbow'),
+          SpuSelectFilterOption(id: 'radiant_1', label: 'Radiant'),
+          SpuSelectFilterOption(id: 'radiant_2', label: 'Radiant'),
+          SpuSelectFilterOption(id: 'holo', label: 'Holo'),
+        ],
+      ),
+      
+      // Series & Expansion 系列扩展 - 根据Figma设计包含4个Amazing选项
+      const SpuSelectFilterSection(
+        title: 'Series & Expansion',
+        options: [
+          SpuSelectFilterOption(id: 'series_amazing_1', label: 'Amazing'),
+          SpuSelectFilterOption(id: 'series_amazing_2', label: 'Amazing'),
+          SpuSelectFilterOption(id: 'series_amazing_3', label: 'Amazing'),
+          SpuSelectFilterOption(id: 'series_amazing_4', label: 'Amazing'),
+        ],
+      ),
+    ];
   }
 
   @override
@@ -305,7 +378,8 @@ class _ProductManagementScreenState extends State<ProductManagementScreen> {
           // 批量编辑按钮
           GestureDetector(
             onTap: () {
-              // 批量编辑功能
+              // 导航到批量编辑页面
+              Navigator.pushNamed(context, '/home/bulk-edit');
             },
             child: Container(
               height: 44.h,
@@ -375,7 +449,7 @@ class _ProductManagementScreenState extends State<ProductManagementScreen> {
           // 筛选按钮
           GestureDetector(
             onTap: () {
-              // 显示筛选选项
+              _showFilterDrawer();
             },
             child: Row(
               children: [
