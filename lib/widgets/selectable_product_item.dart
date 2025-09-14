@@ -95,7 +95,7 @@ class SelectableProductItem extends StatelessWidget {
                 Row(
                   children: [
                     Text(
-                      product.productInfo.code ?? 'DRI-031/182',
+                      product.productInfo.code ?? 'N/A',
                       style: TextStyle(
                         fontSize: 24.sp,
                         color: const Color(0xFF919191),
@@ -108,7 +108,7 @@ class SelectableProductItem extends StatelessWidget {
                       color: const Color(0xFF919191),
                     ),
                     Text(
-                      'Holo', // 固定显示Holo，符合Figma设计
+                      _getProductTypeDisplayName(product.type),
                       style: TextStyle(
                         fontSize: 24.sp,
                         color: const Color(0xFF919191),
@@ -120,32 +120,18 @@ class SelectableProductItem extends StatelessWidget {
                 const Spacer(),
                 
                 // 价格
-                RichText(
-                  text: TextSpan(
-                    children: [
-                      TextSpan(
-                        text: 'RM',
-                        style: TextStyle(
-                          fontSize: 24.sp,
-                          fontWeight: FontWeight.w500,
-                          color: const Color(0xFFF86700),
-                        ),
-                      ),
-                      TextSpan(
-                        text: ' ${product.price.toStringAsFixed(0)}',
-                        style: TextStyle(
-                          fontSize: 30.sp,
-                          fontWeight: FontWeight.w500,
-                          color: const Color(0xFFF86700),
-                        ),
-                      ),
-                    ],
+                Text(
+                  'RM ${product.price.toStringAsFixed(2)}',
+                  style: TextStyle(
+                    fontSize: 30.sp,
+                    fontWeight: FontWeight.w500,
+                    color: const Color(0xFFF86700),
                   ),
                 ),
                 
                 SizedBox(height: 12.h),
                 
-                // 底部信息：品质和数量
+                // 底部信息：品质、评级、数量
                 Row(
                   children: [
                     // 品质标签
@@ -169,29 +155,52 @@ class SelectableProductItem extends StatelessWidget {
                     
                     const Spacer(),
                     
-                    // 数量标签
-                    Container(
-                      height: 34.h,
-                      width: 44.w,
-                      decoration: BoxDecoration(
-                        gradient: const LinearGradient(
-                          colors: [Color(0xFF4D5862), Color(0xFF737373)],
-                          begin: Alignment.topCenter,
-                          end: Alignment.bottomCenter,
+                    // 评级标签（如果有）
+                    if (product.hasRatedCard) ...[
+                      Container(
+                        height: 34.h,
+                        padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 5.h),
+                        decoration: BoxDecoration(
+                          gradient: _getGradeGradient(product.ratedCard!.cardScore),
+                          borderRadius: BorderRadius.circular(8.r),
                         ),
-                        borderRadius: BorderRadius.circular(8.r),
-                      ),
-                      child: Center(
-                        child: Text(
-                          'x${product.quantity}',
-                          style: TextStyle(
-                            fontSize: 24.sp,
-                            fontWeight: FontWeight.w600,
-                            color: Colors.white,
+                        child: Center(
+                          child: Text(
+                            '${product.ratedCard!.ratingCompany.name} ${product.ratedCard!.cardScore}',
+                            style: TextStyle(
+                              fontSize: 24.sp,
+                              fontWeight: FontWeight.w500,
+                              color: Colors.white,
+                            ),
                           ),
                         ),
                       ),
-                    ),
+                      SizedBox(width: 12.w),
+                    ] else ...[
+                      // 数量标签（无评级时）
+                      Container(
+                        height: 34.h,
+                        width: 44.w,
+                        decoration: BoxDecoration(
+                          gradient: const LinearGradient(
+                            colors: [Color(0xFF4D5862), Color(0xFF737373)],
+                            begin: Alignment.topCenter,
+                            end: Alignment.bottomCenter,
+                          ),
+                          borderRadius: BorderRadius.circular(8.r),
+                        ),
+                        child: Center(
+                          child: Text(
+                            'x${product.quantity}',
+                            style: TextStyle(
+                              fontSize: 24.sp,
+                              fontWeight: FontWeight.w600,
+                              color: Colors.white,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
                   ],
                 ),
               ],
@@ -285,17 +294,45 @@ class SelectableProductItem extends StatelessWidget {
     );
   }
 
+  /// 获取商品类型显示名称
+  String _getProductTypeDisplayName(PersonalProductType type) {
+    switch (type) {
+      case PersonalProductType.rawCard:
+        return '普通卡';
+      case PersonalProductType.box:
+        return '原盒';
+      case PersonalProductType.ratedCard:
+        return '评级卡';
+    }
+  }
+  
   /// 获取品相显示名称
   String _getConditionDisplayName(PersonalProductCondition condition) {
     switch (condition) {
       case PersonalProductCondition.mint:
-        return 'Mint';
+        return '完美品相';
       case PersonalProductCondition.nearMint:
-        return 'Near Mint';
+        return '近完美品相';
       case PersonalProductCondition.lightlyPlayed:
-        return 'Lightly Played';
+        return '轻微磨损';
       case PersonalProductCondition.damaged:
-        return 'Damaged';
+        return '有损伤';
     }
+  }
+  
+  /// 获取评级渐变色
+  LinearGradient _getGradeGradient(String grade) {
+    if (grade.contains('10') || grade.toUpperCase().contains('BLACK LABEL')) {
+      return const LinearGradient(
+        colors: [Color(0xFFF86700), Color(0xFFF89900)],
+        begin: Alignment.topCenter,
+        end: Alignment.bottomCenter,
+      );
+    }
+    return const LinearGradient(
+      colors: [Color(0xFF4D5862), Color(0xFF737373)],
+      begin: Alignment.topCenter,
+      end: Alignment.bottomCenter,
+    );
   }
 }

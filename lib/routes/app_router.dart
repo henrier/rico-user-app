@@ -149,7 +149,12 @@ final routerProvider = Provider<GoRouter>((ref) {
           GoRoute(
             path: 'bulk-edit',
             name: 'bulk-edit',
-            builder: (context, state) => const BulkEditScreen(),
+            builder: (context, state) {
+              debugPrint('路由构建 BulkEditScreen，extra参数: ${state.extra}');
+              return BulkEditScreen(
+                routeData: state.extra as Map<String, dynamic>?,
+              );
+            },
           ),
         ],
       ),

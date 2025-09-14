@@ -377,36 +377,49 @@ class PersonalProduct {
 
   /// 从JSON创建PersonalProduct对象
   factory PersonalProduct.fromJson(Map<String, dynamic> json) {
-    return PersonalProduct(
-      id: json['id'] ?? '',
-      productInfo: ProductInfo.fromJson(json['productInfo'] ?? {}),
-      price: (json['price'] as num?)?.toDouble() ?? 0.0,
-      notes: json['notes'] ?? '',
-      images: List<String>.from(json['images'] ?? []),
-      isMainImage: json['isMainImage'] ?? false,
-      owner: UserShop.fromJson(json['owner'] ?? {}),
-      type: json['type'] != null
-          ? PersonalProductType.fromString(json['type'] as String)
-          : PersonalProductType.rawCard,
-      status: json['status'] != null
-          ? PersonalProductStatus.fromString(json['status'] as String)
-          : PersonalProductStatus.pendingListing,
-      ratedCard: json['ratedCard'] != null
-          ? RatedCard.fromJson(json['ratedCard'] as Map<String, dynamic>)
-          : null,
-      quantity: json['quantity'] ?? 1,
-      condition: json['condition'] != null
-          ? PersonalProductCondition.fromString(json['condition'] as String)
-          : PersonalProductCondition.mint,
-      limitedTimePrice: (json['limitedTimePrice'] as num?)?.toDouble() ?? 0.0,
-      deadline: json['deadline'] ?? '',
-      bundleProduct: json['bundleProduct'] != null
-          ? PackagedProduct.fromJson(
-              json['bundleProduct'] as Map<String, dynamic>)
-          : null,
-      bundleInfo: BundleInfo.fromJson(json['bundleInfo'] ?? {}),
-      auditMetadata: AuditMetadata.fromJson(json['auditMetadata'] ?? {}),
-    );
+    try {
+      return PersonalProduct(
+        id: json['id']?.toString() ?? '',
+        productInfo: json['productInfo'] != null 
+            ? ProductInfo.fromJson(json['productInfo'] as Map<String, dynamic>)
+            : ProductInfo.fromJson({}),
+        price: (json['price'] as num?)?.toDouble() ?? 0.0,
+        notes: json['notes']?.toString() ?? '',
+        images: json['images'] != null 
+            ? List<String>.from(json['images'] as List<dynamic>)
+            : <String>[],
+        isMainImage: json['isMainImage'] == true,
+        owner: json['owner'] != null
+            ? UserShop.fromJson(json['owner'] as Map<String, dynamic>)
+            : UserShop.fromJson({}),
+        type: json['type'] != null
+            ? PersonalProductType.fromString(json['type'] as String)
+            : PersonalProductType.rawCard,
+        status: json['status'] != null
+            ? PersonalProductStatus.fromString(json['status'] as String)
+            : PersonalProductStatus.pendingListing,
+        ratedCard: json['ratedCard'] != null
+            ? RatedCard.fromJson(json['ratedCard'] as Map<String, dynamic>)
+            : null,
+        quantity: (json['quantity'] as num?)?.toInt() ?? 1,
+        condition: json['condition'] != null
+            ? PersonalProductCondition.fromString(json['condition'] as String)
+            : PersonalProductCondition.mint,
+        limitedTimePrice: (json['limitedTimePrice'] as num?)?.toDouble() ?? 0.0,
+        deadline: json['deadline']?.toString() ?? '',
+        bundleProduct: json['bundleProduct'] != null
+            ? PackagedProduct.fromJson(json['bundleProduct'] as Map<String, dynamic>)
+            : null,
+        bundleInfo: json['bundleInfo'] != null
+            ? BundleInfo.fromJson(json['bundleInfo'] as Map<String, dynamic>)
+            : BundleInfo.fromJson({}),
+        auditMetadata: json['auditMetadata'] != null
+            ? AuditMetadata.fromJson(json['auditMetadata'] as Map<String, dynamic>)
+            : AuditMetadata.fromJson({}),
+      );
+    } catch (e) {
+      throw FormatException('PersonalProduct.fromJson 解析失败: $e, JSON数据: $json');
+    }
   }
 
   /// 转换为JSON

@@ -37,14 +37,20 @@ class UserShop {
 
   /// 从JSON创建UserShop对象
   factory UserShop.fromJson(Map<String, dynamic> json) {
-    return UserShop(
-      id: json['id'] ?? '',
-      userId: json['userId'] ?? '',
-      shopName: json['shopName'] ?? '',
-      description: json['description'] ?? '',
-      avatar: json['avatar'] ?? '',
-      auditMetadata: AuditMetadata.fromJson(json['auditMetadata'] ?? {}),
-    );
+    try {
+      return UserShop(
+        id: json['id']?.toString() ?? '',
+        userId: json['userId']?.toString() ?? '',
+        shopName: json['shopName']?.toString() ?? '',
+        description: json['description']?.toString() ?? '',
+        avatar: json['avatar']?.toString() ?? '',
+        auditMetadata: json['auditMetadata'] != null
+            ? AuditMetadata.fromJson(json['auditMetadata'] as Map<String, dynamic>)
+            : AuditMetadata.fromJson({}),
+      );
+    } catch (e) {
+      throw FormatException('UserShop.fromJson 解析失败: $e, JSON数据: $json');
+    }
   }
 
   /// 转换为JSON

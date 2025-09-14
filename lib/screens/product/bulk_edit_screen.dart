@@ -3,13 +3,17 @@ import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:go_router/go_router.dart';
 import '../../models/personalproduct/data.dart';
 import '../../models/personalproduct/service.dart';
+import '../../models/page_data.dart';
 import '../../widgets/selectable_product_item.dart';
 import '../../widgets/bulk_action_bottom_sheet.dart';
 import '../../widgets/bulk_edit_dialog.dart';
-import '../../common/data/mock_bulk_edit_data.dart';
+import '../../widgets/spu_select_filter.dart';
+import '../../common/utils/logger.dart';
 
 class BulkEditScreen extends StatefulWidget {
-  const BulkEditScreen({super.key});
+  final Map<String, dynamic>? routeData;
+  
+  const BulkEditScreen({super.key, this.routeData});
 
   @override
   State<BulkEditScreen> createState() => _BulkEditScreenState();
@@ -23,19 +27,35 @@ class _BulkEditScreenState extends State<BulkEditScreen> {
   // 筛选状态
   String selectedFilter = 'Raw';
   String selectedSort = 'Latest Listing';
+  bool isDropdownVisible = false;
   
   // 数据状态
   List<PersonalProduct> products = [];
   bool isLoading = true;
+  String? errorMessage;
   
   // API服务
   late final PersonalProductService _personalProductService;
+  
+  // 分页参数
+  int _currentPage = 1;
+  final int _pageSize = 20;
+  bool _hasMoreData = true;
+  
+  // 从路由传递的参数
+  String? _currentStatus;
+  SpuFilterSelections _filterSelections = {};
+  
+  // 页面内部排序参数（不从路由传递）
+  List<String> _sortFields = ['createdAt'];
+  List<String> _sortDirections = ['desc'];
 
   @override
   void initState() {
     super.initState();
     _personalProductService = PersonalProductService();
-    _loadMockProducts();
+    _initializeFromRouteData();
+    _loadProducts();
   }
 
   @override
@@ -44,22 +64,247 @@ class _BulkEditScreenState extends State<BulkEditScreen> {
     super.dispose();
   }
 
-  void _loadMockProducts() {
-    setState(() {
-      isLoading = true;
-    });
+  /// 从路由数据初始化参数
+  void _initializeFromRouteData() {
+    AppLogger.i('BulkEditScreen 接收到的路由数据: ${widget.routeData}');
+    
+    if (widget.routeData != null) {
+      _currentStatus = widget.routeData!['currentStatus'] as String?;
+      _filterSelections = widget.routeData!['filterSelections'] as SpuFilterSelections? ?? {};
+      
+      AppLogger.i('从路由初始化参数:');
+      AppLogger.i('  - status: $_currentStatus');
+      AppLogger.i('  - filters: $_filterSelections');
+    } else {
+      AppLogger.w('未接收到路由数据，使用默认参数');
+    }
+    
+    // 初始化页面内部排序参数
+    AppLogger.i('初始化排序参数:');
+    AppLogger.i('  - sortFields: $_sortFields');
+    AppLogger.i('  - sortDirections: $_sortDirections');
+  }
 
-    // 模拟加载延迟
-    Future.delayed(const Duration(milliseconds: 500), () {
-      if (mounted) {
-        setState(() {
-          products = MockBulkEditData.getMockProducts();
-          selectedProductIds = MockBulkEditData.getInitialSelectedIds();
-          selectAll = false; // 根据Figma设计，不是全选状态
-          isLoading = false;
-        });
+  /// 加载商品数据
+  Future<void> _loadProducts({bool isRefresh = false}) async {
+    try {
+      if (isRefresh) {
+        _currentPage = 1;
+        _hasMoreData = true;
       }
-    });
+      
+      setState(() {
+        if (isRefresh) {
+          products.clear();
+          selectedProductIds.clear();
+          selectAll = false;
+        }
+        isLoading = true;
+        errorMessage = null;
+      });
+      
+      AppLogger.i('正在加载批量编辑商品数据，页码: $_currentPage');
+      
+      // 获取状态筛选
+      final statusFilter = _getStatusFromTab(_currentStatus);
+      AppLogger.i('状态筛选: _currentStatus=$_currentStatus, statusFilter=$statusFilter');
+      
+      // 获取类型筛选
+      final typeFilter = _getFilteredProductTypes();
+      AppLogger.i('类型筛选: selectedFilter=$selectedFilter, typeFilter=$typeFilter');
+      
+      // 构建基础查询参数
+      final baseParams = PersonalProductManualPageParams(
+        current: _currentPage,
+        pageSize: _pageSize,
+        // 根据传递的状态筛选
+        status: statusFilter != null ? [statusFilter.value] : null,
+        // 应用筛选条件
+        ratedCardRatingCompany: _getFilteredRatingCompanies(),
+        ratedCardCardScore: _getFilteredCardScores(),
+        type: typeFilter,
+      );
+      
+      AppLogger.i('API查询参数: ${baseParams.toJson()}');
+      
+      // 构建排序参数
+      final params = PersonalProductPageWithSortParams(
+        current: _currentPage,
+        pageSize: _pageSize,
+        sortFields: _sortFields,
+        sortDirections: _sortDirections,
+        baseParams: baseParams,
+      );
+      
+      final pageData = await _personalProductService.getPersonalProductsPageWithSort(params);
+      
+      AppLogger.i('API响应成功，数据长度: ${pageData.list.length}');
+      
+      setState(() {
+        if (isRefresh) {
+          products = pageData.list;
+        } else {
+          products.addAll(pageData.list);
+        }
+        _hasMoreData = pageData.list.length >= _pageSize;
+        isLoading = false;
+      });
+      
+      AppLogger.i('成功加载${pageData.list.length}个商品，当前总数: ${products.length}');
+      
+    } catch (e) {
+      AppLogger.e('加载批量编辑商品数据失败', e);
+      setState(() {
+        isLoading = false;
+        errorMessage = '加载商品数据失败: ${e.toString()}';
+      });
+      
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('加载商品数据失败: ${e.toString()}'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
+
+  /// 加载更多数据
+  Future<void> _loadMoreProducts() async {
+    if (!_hasMoreData || isLoading) return;
+    
+    _currentPage++;
+    await _loadProducts();
+  }
+
+  /// 根据选中的Tab获取对应的状态
+  PersonalProductStatus? _getStatusFromTab(String? tab) {
+    if (tab == null) return null;
+    switch (tab) {
+      case 'Published':
+        return PersonalProductStatus.listed;
+      case 'Pending':
+        return PersonalProductStatus.pendingListing;
+      case 'Sold Out':
+        return PersonalProductStatus.soldOut;
+      default:
+        return null; // 显示所有状态
+    }
+  }
+  
+  /// 获取筛选的评级公司列表
+  List<String>? _getFilteredRatingCompanies() {
+    final gradedSlabsSelections = _filterSelections['Graded Slabs'];
+    if (gradedSlabsSelections == null || gradedSlabsSelections.isEmpty) {
+      return null;
+    }
+    
+    // 将筛选选项ID映射为评级公司名称
+    final companies = <String>[];
+    for (final selection in gradedSlabsSelections) {
+      switch (selection) {
+        case 'psa':
+          companies.add('PSA');
+          break;
+        case 'bgs':
+          companies.add('BGS');
+          break;
+        case 'cgc':
+          companies.add('CGC');
+          break;
+        case 'pgc':
+          companies.add('PGC');
+          break;
+      }
+    }
+    
+    return companies.isNotEmpty ? companies : null;
+  }
+  
+  /// 获取筛选的卡牌评分列表
+  List<String>? _getFilteredCardScores() {
+    final raritySelections = _filterSelections['Rarity'];
+    if (raritySelections == null || raritySelections.isEmpty) {
+      return null;
+    }
+    
+    // 将稀有度映射为卡牌评分（这里是示例映射，实际应根据业务逻辑调整）
+    final scores = <String>[];
+    for (final selection in raritySelections) {
+      switch (selection) {
+        case 'amazing':
+          scores.add('10');
+          break;
+        case 'rainbow':
+          scores.add('9.5');
+          break;
+        case 'radiant_1':
+        case 'radiant_2':
+          scores.add('9');
+          break;
+        case 'holo':
+          scores.add('8.5');
+          break;
+      }
+    }
+    
+    return scores.isNotEmpty ? scores : null;
+  }
+  
+  /// 获取筛选的商品类型列表
+  List<String>? _getFilteredProductTypes() {
+    // 优先根据筛选标签进行筛选
+    switch (selectedFilter) {
+      case 'Raw':
+        return [PersonalProductType.rawCard.value];
+      case 'Graded':
+        return [PersonalProductType.ratedCard.value];
+      case 'Sealed':
+        return [PersonalProductType.box.value];
+      default:
+        break;
+    }
+    
+    // 其次根据筛选条件进行筛选
+    final viewGradedCards = _filterSelections['View Graded Cards'];
+    if (viewGradedCards != null && viewGradedCards.isNotEmpty) {
+      // 如果选择了View Graded Cards，则只显示评级卡
+      if (viewGradedCards.contains('graded_cards')) {
+        return [PersonalProductType.ratedCard.value];
+      }
+    }
+    
+    return null;
+  }
+
+  /// 根据排序选项更新排序参数
+  void _updateSortParams(String sortOption) {
+    switch (sortOption) {
+      case 'Latest Listing':
+        _sortFields = ['createdAt'];
+        _sortDirections = ['desc'];
+        break;
+      case 'Price: Low to High':
+        _sortFields = ['price'];
+        _sortDirections = ['asc'];
+        break;
+      case 'Price: High to Low':
+        _sortFields = ['price'];
+        _sortDirections = ['desc'];
+        break;
+      case 'Stock: Low to High':
+        _sortFields = ['quantity'];
+        _sortDirections = ['asc'];
+        break;
+      case 'Stock: High to Low':
+        _sortFields = ['quantity'];
+        _sortDirections = ['desc'];
+        break;
+      default:
+        _sortFields = ['createdAt'];
+        _sortDirections = ['desc'];
+    }
   }
 
   void _toggleSelectAll() {
@@ -249,33 +494,51 @@ class _BulkEditScreenState extends State<BulkEditScreen> {
     return Scaffold(
       backgroundColor: Colors.white,
       body: SafeArea(
-        child: Column(
+        child: Stack(
           children: [
-            // 顶部导航栏
-            _buildTopBar(),
-            
-            // 筛选标签栏
-            _buildFilterTabs(),
-            
-            // 排序和筛选栏
-            _buildSortAndFilterBar(),
-            
-            // 分割线
-            Container(
-              height: 20.h,
-              color: const Color(0xFFF4F4F6),
+            // 主要内容
+            Column(
+              children: [
+                // 顶部导航栏
+                _buildTopBar(),
+                
+                // 筛选标签栏
+                _buildFilterTabs(),
+                
+                // 排序和筛选栏
+                _buildSortAndFilterBar(),
+                
+                // 分割线
+                Container(
+                  height: 20.h,
+                  color: const Color(0xFFF4F4F6),
+                ),
+                
+                // 全选栏
+                _buildSelectAllBar(),
+                
+                // 商品列表
+                Expanded(
+                  child: _buildProductList(),
+                ),
+                
+                // 底部操作按钮
+                if (selectedProductIds.isNotEmpty) _buildBottomActionBar(),
+                
+                // 调试信息（临时）
+                Container(
+                  padding: EdgeInsets.all(16.w),
+                  color: Colors.yellow.withOpacity(0.1),
+                  child: Text(
+                    'Debug: Status=$_currentStatus, Filter=$selectedFilter, Products=${products.length}',
+                    style: TextStyle(fontSize: 12.sp, color: Colors.grey),
+                  ),
+                ),
+              ],
             ),
             
-            // 全选栏
-            _buildSelectAllBar(),
-            
-            // 商品列表
-            Expanded(
-              child: _buildProductList(),
-            ),
-            
-            // 底部操作按钮
-            if (selectedProductIds.isNotEmpty) _buildBottomActionBar(),
+            // 下拉菜单覆盖层
+            if (isDropdownVisible) _buildDropdownOverlay(),
           ],
         ),
       ),
@@ -307,7 +570,7 @@ class _BulkEditScreenState extends State<BulkEditScreen> {
           // 标题
           Center(
             child: Text(
-              'Bulk Edit',
+              'Bulk Edit${_currentStatus != null ? ' - $_currentStatus' : ''}',
               style: TextStyle(
                 fontSize: 36.sp,
                 fontWeight: FontWeight.w500,
@@ -334,6 +597,8 @@ class _BulkEditScreenState extends State<BulkEditScreen> {
               setState(() {
                 selectedFilter = filter;
               });
+              // 切换筛选标签时重新加载数据
+              _loadProducts(isRefresh: true);
             },
             child: Container(
               margin: EdgeInsets.only(right: 20.w),
@@ -370,7 +635,9 @@ class _BulkEditScreenState extends State<BulkEditScreen> {
           // 排序选项
           GestureDetector(
             onTap: () {
-              // TODO: 显示排序选项
+              setState(() {
+                isDropdownVisible = !isDropdownVisible;
+              });
             },
             child: Row(
               children: [
@@ -378,14 +645,21 @@ class _BulkEditScreenState extends State<BulkEditScreen> {
                   selectedSort,
                   style: TextStyle(
                     fontSize: 24.sp,
-                    color: const Color(0xFF212222),
+                    color: selectedSort == 'Latest Listing' 
+                        ? const Color(0xFF00D86F) 
+                        : const Color(0xFF212222),
                   ),
                 ),
                 SizedBox(width: 8.w),
-                Icon(
-                  Icons.keyboard_arrow_down,
-                  size: 22.w,
-                  color: const Color(0xFF212222),
+                Transform.rotate(
+                  angle: isDropdownVisible ? 3.14159 : 0, // 180度旋转
+                  child: Icon(
+                    Icons.keyboard_arrow_down,
+                    size: 22.w,
+                    color: selectedSort == 'Latest Listing' 
+                        ? const Color(0xFF00D86F) 
+                        : const Color(0xFF212222),
+                  ),
                 ),
               ],
             ),
@@ -463,9 +737,46 @@ class _BulkEditScreenState extends State<BulkEditScreen> {
   }
 
   Widget _buildProductList() {
-    if (isLoading) {
+    if (isLoading && products.isEmpty) {
       return const Center(
         child: CircularProgressIndicator(),
+      );
+    }
+    
+    if (errorMessage != null && products.isEmpty) {
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              Icons.error_outline,
+              size: 64.w,
+              color: Colors.grey,
+            ),
+            SizedBox(height: 16.h),
+            Text(
+              '加载失败',
+              style: TextStyle(
+                fontSize: 18.sp,
+                color: Colors.grey[600],
+              ),
+            ),
+            SizedBox(height: 8.h),
+            Text(
+              errorMessage!,
+              style: TextStyle(
+                fontSize: 14.sp,
+                color: Colors.grey[500],
+              ),
+              textAlign: TextAlign.center,
+            ),
+            SizedBox(height: 16.h),
+            ElevatedButton(
+              onPressed: () => _loadProducts(isRefresh: true),
+              child: const Text('重试'),
+            ),
+          ],
+        ),
       );
     }
 
@@ -487,28 +798,54 @@ class _BulkEditScreenState extends State<BulkEditScreen> {
                 color: Colors.grey[600],
               ),
             ),
+            SizedBox(height: 8.h),
+            Text(
+              '当前筛选条件下没有找到商品',
+              style: TextStyle(
+                fontSize: 14.sp,
+                color: Colors.grey[500],
+              ),
+            ),
           ],
         ),
       );
     }
 
-    return ListView.separated(
-      padding: EdgeInsets.zero,
-      itemCount: products.length,
-      separatorBuilder: (context, index) => Container(
-        height: 1.h,
-        color: const Color(0xFFF4F4F6),
+    return RefreshIndicator(
+      onRefresh: () => _loadProducts(isRefresh: true),
+      child: ListView.separated(
+        padding: EdgeInsets.zero,
+        itemCount: products.length + (_hasMoreData ? 1 : 0),
+        separatorBuilder: (context, index) => Container(
+          height: 1.h,
+          color: const Color(0xFFF4F4F6),
+        ),
+        itemBuilder: (context, index) {
+          if (index == products.length) {
+            // 加载更多指示器
+            return Container(
+              padding: EdgeInsets.all(16.h),
+              child: Center(
+                child: isLoading
+                    ? const CircularProgressIndicator()
+                    : ElevatedButton(
+                        onPressed: _loadMoreProducts,
+                        child: const Text('加载更多'),
+                      ),
+              ),
+            );
+          }
+          
+          final product = products[index];
+          final isSelected = selectedProductIds.contains(product.id);
+          
+          return SelectableProductItem(
+            product: product,
+            isSelected: isSelected,
+            onSelectionChanged: () => _toggleProductSelection(product.id),
+          );
+        },
       ),
-      itemBuilder: (context, index) {
-        final product = products[index];
-        final isSelected = selectedProductIds.contains(product.id);
-        
-        return SelectableProductItem(
-          product: product,
-          isSelected: isSelected,
-          onSelectionChanged: () => _toggleProductSelection(product.id),
-        );
-      },
     );
   }
 
@@ -605,6 +942,114 @@ class _BulkEditScreenState extends State<BulkEditScreen> {
           ),
         ),
       ),
+    );
+  }
+
+  Widget _buildDropdownOverlay() {
+    final sortOptions = [
+      'Latest Listing',
+      'Price: Low to High',
+      'Price: High to Low',
+      'Stock: Low to High',
+      'Stock: High to Low',
+    ];
+    
+    return Stack(
+      children: [
+        // 点击遮罩层关闭下拉菜单
+        GestureDetector(
+          onTap: () {
+            setState(() {
+              isDropdownVisible = false;
+            });
+          },
+          child: Container(
+            color: Colors.transparent,
+            width: double.infinity,
+            height: double.infinity,
+          ),
+        ),
+        
+        // 下拉菜单 - 在排序按钮下方
+        Positioned(
+          top: 240.h, // 88h(顶部导航) + 64h(筛选标签栏) + 32h(排序栏padding) = 184h，菜单紧贴排序栏下方
+          left: 0,
+          right: 0,
+          child: Container(
+            decoration: BoxDecoration(
+              color: Colors.white,
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.1),
+                  blurRadius: 8,
+                  offset: const Offset(0, 2),
+                ),
+              ],
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: sortOptions.map((option) {
+                final isSelected = option == selectedSort;
+                return GestureDetector(
+                  onTap: () {
+                    setState(() {
+                      selectedSort = option;
+                      isDropdownVisible = false;
+                      // 更新排序参数并重新加载数据
+                      _updateSortParams(option);
+                    });
+                    // 重新加载数据
+                    _loadProducts(isRefresh: true);
+                  },
+                  child: Container(
+                    height: 80.h,
+                    width: double.infinity,
+                    padding: EdgeInsets.symmetric(horizontal: 50.w),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      border: Border(
+                        bottom: BorderSide(
+                          color: Colors.grey.withOpacity(0.1),
+                          width: 1,
+                        ),
+                      ),
+                    ),
+                    child: Align(
+                      alignment: Alignment.centerLeft,
+                      child: Text(
+                        option,
+                        style: TextStyle(
+                          fontSize: 28.sp,
+                          color: isSelected ? const Color(0xFF00D86F) : const Color(0xFF212222),
+                          fontWeight: FontWeight.normal,
+                        ),
+                      ),
+                    ),
+                  ),
+                );
+              }).toList(),
+            ),
+          ),
+        ),
+        
+        // 下方遮罩层 - 只遮罩菜单下方的内容
+        Positioned(
+          top: 240.h + (80.h * sortOptions.length), // 菜单底部开始
+          left: 0,
+          right: 0,
+          bottom: 0,
+          child: GestureDetector(
+            onTap: () {
+              setState(() {
+                isDropdownVisible = false;
+              });
+            },
+            child: Container(
+              color: Colors.black.withOpacity(0.7),
+            ),
+          ),
+        ),
+      ],
     );
   }
 }

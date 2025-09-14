@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
 
 import '../common/constants/app_constants.dart' as constants;
 
@@ -28,7 +29,7 @@ Future<SpuFilterSelections?> showSpuSelectFilter(
 }) {
   return showGeneralDialog<SpuFilterSelections>(
     context: context,
-    barrierColor: Colors.black45,
+    barrierColor: const Color(0xB3000000), // rgba(0,0,0,0.7) 匹配Figma设计
     barrierDismissible: true,
     barrierLabel: 'Dismiss',
     transitionDuration: constants.AppConstants.mediumAnimation,
@@ -89,8 +90,7 @@ class _SpuSelectFilterDrawerState extends State<_SpuSelectFilterDrawer> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final media = MediaQuery.of(context);
-    final drawerWidth = media.size.width * 0.78; // leave left gap to tap back
+    final drawerWidth = 479.w; // 根据Figma设计稿宽度
 
     return Material(
       color: Colors.transparent,
@@ -107,12 +107,12 @@ class _SpuSelectFilterDrawerState extends State<_SpuSelectFilterDrawer> {
               width: drawerWidth,
               height: double.infinity,
               decoration: BoxDecoration(
-                color: theme.colorScheme.surface,
+                color: Colors.white,
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.black.withOpacity(0.1),
-                    blurRadius: 12,
-                    offset: const Offset(-4, 0),
+                    color: const Color(0x1A000000), // rgba(0,0,0,0.1)
+                    blurRadius: 12.r,
+                    offset: Offset(-4.w, 0),
                   ),
                 ],
               ),
@@ -120,25 +120,28 @@ class _SpuSelectFilterDrawerState extends State<_SpuSelectFilterDrawer> {
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
                   Padding(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: constants.AppConstants.largePadding,
-                      vertical: constants.AppConstants.defaultPadding,
+                    padding: EdgeInsets.symmetric(
+                      horizontal: 40.w,
+                      vertical: 30.h,
                     ),
                     child: Text(
                       widget.title,
-                      style: theme.textTheme.titleLarge,
+                      style: theme.textTheme.titleLarge?.copyWith(
+                        color: const Color(0xFF212222),
+                        fontWeight: FontWeight.w500,
+                        fontSize: 36.sp, // 根据Figma设计稿调整
+                      ),
                       textAlign: TextAlign.center,
                     ),
                   ),
-                  const Divider(height: 1),
                   Expanded(
                     child: ListView.separated(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: constants.AppConstants.largePadding,
-                        vertical: constants.AppConstants.defaultPadding,
+                      padding: EdgeInsets.symmetric(
+                        horizontal: 40.w,
+                        vertical: 20.h,
                       ),
                       itemCount: widget.sections.length,
-                      separatorBuilder: (_, __) => const SizedBox(height: 16),
+                      separatorBuilder: (_, __) => SizedBox(height: 40.h),
                       itemBuilder: (context, index) {
                         final section = widget.sections[index];
                         final selected = selections[section.title]!;
@@ -159,22 +162,21 @@ class _SpuSelectFilterDrawerState extends State<_SpuSelectFilterDrawer> {
                       },
                     ),
                   ),
-                  const Divider(height: 1),
                   Padding(
-                    padding: const EdgeInsets.all(constants.AppConstants.largePadding),
+                    padding: EdgeInsets.all(40.w),
                     child: Row(
                       children: [
                         Expanded(
                           child: Container(
-                            height: 56, // 88px equivalent scaled for mobile
+                            height: 88.h, // 根据Figma设计稿高度
                             decoration: BoxDecoration(
                               color: const Color(0xFFF4F4F4),
-                              borderRadius: BorderRadius.circular(28),
+                              borderRadius: BorderRadius.circular(44.r), // 完全圆角
                             ),
                             child: Material(
                               color: Colors.transparent,
                               child: InkWell(
-                                borderRadius: BorderRadius.circular(28),
+                                borderRadius: BorderRadius.circular(44.r),
                                 onTap: () {
                                   // 清空所有选择并立即返回空结果
                                   final emptySelections = <String, Set<String>>{};
@@ -189,7 +191,7 @@ class _SpuSelectFilterDrawerState extends State<_SpuSelectFilterDrawer> {
                                     style: theme.textTheme.titleMedium?.copyWith(
                                       color: const Color(0xFF090909),
                                       fontWeight: FontWeight.w500,
-                                      fontSize: 18,
+                                      fontSize: 32.sp, // 根据Figma设计稿调整
                                     ),
                                   ),
                                 ),
@@ -197,18 +199,18 @@ class _SpuSelectFilterDrawerState extends State<_SpuSelectFilterDrawer> {
                             ),
                           ),
                         ),
-                        const SizedBox(width: constants.AppConstants.defaultPadding),
+                        SizedBox(width: 25.w), // 根据Figma设计稿间距
                         Expanded(
                           child: Container(
-                            height: 56, // 88px equivalent scaled for mobile
+                            height: 88.h, // 根据Figma设计稿高度
                             decoration: BoxDecoration(
                               color: const Color(0xFF0DEE80),
-                              borderRadius: BorderRadius.circular(28),
+                              borderRadius: BorderRadius.circular(44.r), // 完全圆角
                             ),
                             child: Material(
                               color: Colors.transparent,
                               child: InkWell(
-                                borderRadius: BorderRadius.circular(28),
+                                borderRadius: BorderRadius.circular(44.r),
                                 onTap: () {
                                   Navigator.of(context).pop(selections);
                                 },
@@ -218,7 +220,7 @@ class _SpuSelectFilterDrawerState extends State<_SpuSelectFilterDrawer> {
                                     style: theme.textTheme.titleMedium?.copyWith(
                                       color: const Color(0xFF090909),
                                       fontWeight: FontWeight.w500,
-                                      fontSize: 18,
+                                      fontSize: 32.sp, // 根据Figma设计稿调整
                                     ),
                                   ),
                                 ),
@@ -258,11 +260,23 @@ class _FilterSection extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(title, style: theme.textTheme.titleMedium),
-        const SizedBox(height: 12),
+        Padding(
+          padding: EdgeInsets.only(left: 8.w),
+          child: Text(
+            title, 
+            style: theme.textTheme.titleMedium?.copyWith(
+              color: const Color(0xFF212222),
+              fontWeight: FontWeight.w500,
+              fontSize: 24.sp, // 根据Figma设计稿调整
+            ),
+          ),
+        ),
+        SizedBox(height: 20.h),
+        // 使用网格布局来更好地控制间距和对齐
         Wrap(
-          spacing: 12,
-          runSpacing: 12,
+          spacing: 20.w, // 根据Figma设计调整间距
+          runSpacing: 20.h, // 垂直间距
+          alignment: WrapAlignment.start,
           children: [
             for (final opt in options)
               _SelectableChip(
@@ -287,24 +301,34 @@ class _SelectableChip extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final selectedColor = theme.colorScheme.primary.withOpacity(0.12);
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(constants.AppConstants.defaultBorderRadius),
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-        decoration: BoxDecoration(
-          color: selected ? selectedColor : theme.colorScheme.surfaceVariant.withOpacity(0.6),
-          borderRadius: BorderRadius.circular(constants.AppConstants.defaultBorderRadius),
-          border: Border.all(
-            color: selected ? theme.colorScheme.primary : theme.dividerColor,
-          ),
-        ),
-        child: Text(
-          label,
-          style: theme.textTheme.bodyMedium?.copyWith(
-            color: selected ? theme.colorScheme.primary : theme.colorScheme.onSurface,
-            fontWeight: selected ? FontWeight.w600 : FontWeight.w400,
+    
+    return Container(
+      height: 54.h, // 根据Figma设计的高度
+      constraints: BoxConstraints(
+        minWidth: 99.w, // 最小宽度，根据Figma中最小的chip
+        maxWidth: 143.w, // 最大宽度，根据Figma中最大的chip
+      ),
+      decoration: BoxDecoration(
+        color: selected ? const Color(0xFF0DEE80) : const Color(0xFFF4F4F4),
+        borderRadius: BorderRadius.circular(27.r), // 完全圆角
+      ),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(27.r),
+          child: Container(
+            padding: EdgeInsets.symmetric(horizontal: 24.w, vertical: 13.h),
+            child: Center(
+              child: Text(
+                label,
+                style: theme.textTheme.bodyLarge?.copyWith(
+                  color: const Color(0xFF212222),
+                  fontWeight: FontWeight.w400,
+                  fontSize: 24.sp, // 根据Figma设计稿调整
+                ),
+              ),
+            ),
           ),
         ),
       ),

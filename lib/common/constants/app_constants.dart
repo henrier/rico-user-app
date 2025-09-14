@@ -39,4 +39,12 @@ class AppConstants {
   static const String serverError = 'Server error occurred';
   static const String unknownError = 'An unknown error occurred';
   static const String authError = 'Authentication failed';
+
+  // 阿里云OSS配置
+  static const String ossEndpoint = 'https://oss-cn-hangzhou.aliyuncs.com';
+  static const String ossBucketName = 'rico-user-app';
+  static const String ossAccessKeyId = 'YOUR_ACCESS_KEY_ID'; // 需要替换为实际的AccessKeyId
+  static const String ossAccessKeySecret = 'YOUR_ACCESS_KEY_SECRET'; // 需要替换为实际的AccessKeySecret
+  static const String ossImageFolder = 'images/products/';
+  static const int ossMaxFileSize = 10 * 1024 * 1024; // 10MB
 }

@@ -4,11 +4,13 @@ import 'package:go_router/go_router.dart';
 import '../../common/themes/app_theme.dart';
 import '../../widgets/stats_section.dart';
 import '../../widgets/bottom_action_buttons.dart';
-import '../../widgets/spu_select_filter.dart';
 import '../../models/personalproduct/service.dart';
 import '../../models/personalproduct/data.dart';
 import '../../models/page_data.dart';
 import '../../common/utils/logger.dart';
+
+// 筛选选择类型定义
+typedef SpuFilterSelections = Map<String, Set<String>>; // sectionTitle -> set of option ids
 
 class ProductManagementScreen extends StatefulWidget {
   const ProductManagementScreen({super.key});
@@ -38,11 +40,22 @@ class _ProductManagementScreenState extends State<ProductManagementScreen> {
   
   // 筛选参数
   SpuFilterSelections _filterSelections = {};
+  
+  // 排序参数
+  List<String> _sortFields = ['createdAt']; // 默认按创建时间排序
+  List<String> _sortDirections = ['desc']; // 默认降序
+  
+  // Tab数量统计
+  int _publishedCount = 0;
+  int _pendingCount = 0;
+  int _soldOutCount = 0;
+  bool _isLoadingCounts = true;
 
   @override
   void initState() {
     super.initState();
     _personalProductService = PersonalProductService();
+    _loadTabCounts();
     _loadProducts();
   }
   
@@ -50,6 +63,64 @@ class _ProductManagementScreenState extends State<ProductManagementScreen> {
   void dispose() {
     _personalProductService.dispose();
     super.dispose();
+  }
+  
+  /// 加载Tab数量统计
+  Future<void> _loadTabCounts() async {
+    try {
+      setState(() {
+        _isLoadingCounts = true;
+      });
+      
+      AppLogger.i('正在加载Tab数量统计');
+      
+      // 并行获取各状态的数量
+      final futures = await Future.wait([
+        // Published数量
+        _personalProductService.countPersonalProductsByCondition(
+          PersonalProductManualPageParams(
+            status: [PersonalProductStatus.listed.value],
+          ),
+        ),
+        // Pending数量  
+        _personalProductService.countPersonalProductsByCondition(
+          PersonalProductManualPageParams(
+            status: [PersonalProductStatus.pendingListing.value],
+          ),
+        ),
+        // Sold Out数量
+        _personalProductService.countPersonalProductsByCondition(
+          PersonalProductManualPageParams(
+            status: [PersonalProductStatus.soldOut.value],
+          ),
+        ),
+      ]);
+      
+      setState(() {
+        _publishedCount = futures[0];
+        _pendingCount = futures[1];
+        _soldOutCount = futures[2];
+        _isLoadingCounts = false;
+      });
+      
+      AppLogger.i('Tab数量统计加载完成: Published=$_publishedCount, Pending=$_pendingCount, SoldOut=$_soldOutCount');
+      
+    } catch (e) {
+      AppLogger.e('加载Tab数量统计失败', e);
+      setState(() {
+        _isLoadingCounts = false;
+        // 保持默认值0
+      });
+      
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('加载统计数据失败: ${e.toString()}'),
+            backgroundColor: Colors.orange,
+          ),
+        );
+      }
+    }
   }
   
   /// 加载商品数据
@@ -70,14 +141,33 @@ class _ProductManagementScreenState extends State<ProductManagementScreen> {
       
       AppLogger.i('正在加载商品数据，页码: $_currentPage');
       
-      final params = PersonalProductPageParams(
+      // 构建基础查询参数
+      final baseParams = PersonalProductManualPageParams(
         current: _currentPage,
         pageSize: _pageSize,
         // 根据选中的状态筛选
-        status: _getStatusFromTab(selectedTab),
+        status: _getStatusFromTab(selectedTab) != null 
+            ? [_getStatusFromTab(selectedTab)!.value] 
+            : null,
+        // 应用筛选条件
+        ratedCardRatingCompany: _getFilteredRatingCompanies(),
+        ratedCardCardScore: _getFilteredCardScores(),
+        type: _getFilteredProductTypes(),
       );
       
-      final pageData = await _personalProductService.getPersonalProductPage(params);
+      // 构建排序参数
+      final params = PersonalProductPageWithSortParams(
+        current: _currentPage,
+        pageSize: _pageSize,
+        sortFields: _sortFields,
+        sortDirections: _sortDirections,
+        baseParams: baseParams,
+      );
+      
+      final pageData = await _personalProductService.getPersonalProductsPageWithSort(params);
+      
+      AppLogger.i('API响应成功，数据长度: ${pageData.list.length}');
+      AppLogger.d('第一个商品数据: ${pageData.list.isNotEmpty ? pageData.list.first.toString() : "无数据"}');
       
       setState(() {
         if (isRefresh) {
@@ -89,7 +179,7 @@ class _ProductManagementScreenState extends State<ProductManagementScreen> {
         _isLoading = false;
       });
       
-      AppLogger.i('成功加载${pageData.list.length}个商品');
+      AppLogger.i('成功加载${pageData.list.length}个商品，当前总数: ${_products.length}');
       
     } catch (e) {
       AppLogger.e('加载商品数据失败', e);
@@ -131,74 +221,169 @@ class _ProductManagementScreenState extends State<ProductManagementScreen> {
     }
   }
   
-  /// 显示筛选抽屉
-  Future<void> _showFilterDrawer() async {
-    final filterSections = _buildFilterSections();
+  /// 获取筛选的评级公司列表
+  List<String>? _getFilteredRatingCompanies() {
+    final gradedSlabsSelections = _filterSelections['Graded Slabs'];
+    if (gradedSlabsSelections == null || gradedSlabsSelections.isEmpty) {
+      return null;
+    }
     
-    final result = await showSpuSelectFilter(
-      context,
-      sections: filterSections,
-      initialSelections: _filterSelections,
-      title: 'Filtering',
-      clearText: 'Clear',
-      confirmText: 'Confirm',
-    );
+    // 将筛选选项ID映射为评级公司名称
+    final companies = <String>[];
+    for (final selection in gradedSlabsSelections) {
+      switch (selection) {
+        case 'psa':
+          companies.add('PSA');
+          break;
+        case 'bgs':
+          companies.add('BGS');
+          break;
+        case 'cgc':
+          companies.add('CGC');
+          break;
+        case 'pgc':
+          companies.add('PGC');
+          break;
+      }
+    }
     
-    if (result != null) {
-      setState(() {
-        _filterSelections = result;
-      });
-      // 应用筛选条件，重新加载数据
-      _loadProducts(isRefresh: true);
+    return companies.isNotEmpty ? companies : null;
+  }
+  
+  /// 获取筛选的卡牌评分列表
+  List<String>? _getFilteredCardScores() {
+    final raritySelections = _filterSelections['Rarity'];
+    if (raritySelections == null || raritySelections.isEmpty) {
+      return null;
+    }
+    
+    // 将稀有度映射为卡牌评分（这里是示例映射，实际应根据业务逻辑调整）
+    final scores = <String>[];
+    for (final selection in raritySelections) {
+      switch (selection) {
+        case 'amazing':
+          scores.add('10');
+          break;
+        case 'rainbow':
+          scores.add('9.5');
+          break;
+        case 'radiant_1':
+        case 'radiant_2':
+          scores.add('9');
+          break;
+        case 'holo':
+          scores.add('8.5');
+          break;
+      }
+    }
+    
+    return scores.isNotEmpty ? scores : null;
+  }
+  
+  /// 获取筛选的商品类型列表
+  List<String>? _getFilteredProductTypes() {
+    final viewGradedCards = _filterSelections['View Graded Cards'];
+    if (viewGradedCards == null || viewGradedCards.isEmpty) {
+      return null;
+    }
+    
+    // 如果选择了View Graded Cards，则只显示评级卡
+    if (viewGradedCards.contains('view_graded_cards')) {
+      return [PersonalProductType.ratedCard.value];
+    }
+    
+    return null;
+  }
+  
+  /// 根据排序选项更新排序参数
+  void _updateSortParams(String sortOption) {
+    switch (sortOption) {
+      case 'Latest Listing':
+        _sortFields = ['createdAt'];
+        _sortDirections = ['desc'];
+        break;
+      case 'Price: Low to High':
+        _sortFields = ['price'];
+        _sortDirections = ['asc'];
+        break;
+      case 'Price: High to Low':
+        _sortFields = ['price'];
+        _sortDirections = ['desc'];
+        break;
+      case 'Stock: Low to High':
+        _sortFields = ['quantity'];
+        _sortDirections = ['asc'];
+        break;
+      case 'Stock: High to Low':
+        _sortFields = ['quantity'];
+        _sortDirections = ['desc'];
+        break;
+      default:
+        _sortFields = ['createdAt'];
+        _sortDirections = ['desc'];
     }
   }
   
-  /// 构建筛选选项
-  List<SpuSelectFilterSection> _buildFilterSections() {
-    return [
-      // View Graded Cards 开关
-      const SpuSelectFilterSection(
-        title: 'View Graded Cards',
-        options: [
-          SpuSelectFilterOption(id: 'graded_cards', label: 'View Graded Cards'),
-        ],
-      ),
+  /// 显示筛选抽屉
+  Future<void> _showFilterDrawer() async {
+    final result = await _showCustomFilterDrawer();
+    
+    if (result != null) {
+      // 处理开关逻辑：如果View Graded Cards关闭，清除Graded Slabs选择
+      final processedResult = _processFilterResult(result);
       
-      // Graded Slabs 评级公司
-      const SpuSelectFilterSection(
-        title: 'Graded Slabs',
-        options: [
-          SpuSelectFilterOption(id: 'psa', label: 'PSA'),
-          SpuSelectFilterOption(id: 'bgs', label: 'BGS'),
-          SpuSelectFilterOption(id: 'cgc', label: 'CGC'),
-          SpuSelectFilterOption(id: 'pgc', label: 'PGC'),
-        ],
-      ),
-      
-      // Rarity 稀有度 - 根据Figma设计包含5个选项
-      const SpuSelectFilterSection(
-        title: 'Rarity',
-        options: [
-          SpuSelectFilterOption(id: 'amazing', label: 'Amazing'),
-          SpuSelectFilterOption(id: 'rainbow', label: 'Rainbow'),
-          SpuSelectFilterOption(id: 'radiant_1', label: 'Radiant'),
-          SpuSelectFilterOption(id: 'radiant_2', label: 'Radiant'),
-          SpuSelectFilterOption(id: 'holo', label: 'Holo'),
-        ],
-      ),
-      
-      // Series & Expansion 系列扩展 - 根据Figma设计包含4个Amazing选项
-      const SpuSelectFilterSection(
-        title: 'Series & Expansion',
-        options: [
-          SpuSelectFilterOption(id: 'series_amazing_1', label: 'Amazing'),
-          SpuSelectFilterOption(id: 'series_amazing_2', label: 'Amazing'),
-          SpuSelectFilterOption(id: 'series_amazing_3', label: 'Amazing'),
-          SpuSelectFilterOption(id: 'series_amazing_4', label: 'Amazing'),
-        ],
-      ),
-    ];
+      setState(() {
+        _filterSelections = processedResult;
+      });
+      // 应用筛选条件，重新加载数据
+      _loadProducts(isRefresh: true);
+      // 筛选条件变化时也需要重新加载Tab数量
+      _loadTabCounts();
+    }
   }
+  
+  /// 显示自定义筛选抽屉（带开关控件）
+  Future<SpuFilterSelections?> _showCustomFilterDrawer() async {
+    return showGeneralDialog<SpuFilterSelections>(
+      context: context,
+      barrierColor: Colors.black.withOpacity(0.7),
+      barrierDismissible: true,
+      barrierLabel: 'Dismiss',
+      transitionDuration: const Duration(milliseconds: 300),
+      pageBuilder: (context, _, __) {
+        return Align(
+          alignment: Alignment.centerRight,
+          child: _CustomFilterDrawer(
+            initialSelections: _filterSelections,
+            onResult: (result) => Navigator.of(context).pop(result),
+          ),
+        );
+      },
+      transitionBuilder: (context, animation, secondaryAnimation, child) {
+        final curved = CurvedAnimation(parent: animation, curve: Curves.easeOutCubic);
+        return SlideTransition(
+          position: Tween<Offset>(begin: const Offset(1.0, 0.0), end: Offset.zero).animate(curved),
+          child: child,
+        );
+      },
+    );
+  }
+  
+  /// 处理筛选结果，确保开关逻辑正确
+  SpuFilterSelections _processFilterResult(SpuFilterSelections result) {
+    final processedResult = Map<String, Set<String>>.from(result);
+    
+    // 检查View Graded Cards开关状态
+    final isViewGradedCardsEnabled = processedResult['View Graded Cards']?.contains('view_graded_cards') ?? false;
+    
+    // 如果开关关闭，清除Graded Slabs的所有选择
+    if (!isViewGradedCardsEnabled) {
+      processedResult.remove('Graded Slabs');
+    }
+    
+    return processedResult;
+  }
+  
 
   @override
   Widget build(BuildContext context) {
@@ -216,6 +401,10 @@ class _ProductManagementScreenState extends State<ProductManagementScreen> {
                 // 统计信息
               StatsSection(
                 selectedTab: selectedTab,
+                publishedCount: _publishedCount,
+                pendingCount: _pendingCount,
+                soldOutCount: _soldOutCount,
+                isLoadingCounts: _isLoadingCounts,
                 onTabChanged: (tab) {
                   setState(() {
                     selectedTab = tab;
@@ -379,8 +568,17 @@ class _ProductManagementScreenState extends State<ProductManagementScreen> {
           // 批量编辑按钮
           GestureDetector(
             onTap: () {
-              // 导航到批量编辑页面
-              context.push('/home/bulk-edit');
+              // 导航到批量编辑页面，携带当前状态
+              final routeData = {
+                'currentStatus': selectedTab,
+                'filterSelections': _filterSelections,
+              };
+              
+              // 添加调试日志
+              AppLogger.i('跳转到批量编辑页面，携带参数: $routeData');
+              AppLogger.i('当前状态Tab: $selectedTab');
+              
+              context.pushNamed('bulk-edit', extra: routeData);
             },
             child: Container(
               height: 44.h,
@@ -710,7 +908,10 @@ class _ProductManagementScreenState extends State<ProductManagementScreen> {
   }
 
   Widget _buildProductList() {
+    AppLogger.d('构建商品列表: isLoading=$_isLoading, products.length=${_products.length}, errorMessage=$_errorMessage');
+    
     if (_isLoading && _products.isEmpty) {
+      AppLogger.d('显示加载指示器');
       return const Center(
         child: CircularProgressIndicator(),
       );
@@ -815,6 +1016,7 @@ class _ProductManagementScreenState extends State<ProductManagementScreen> {
   }
   
   Widget _buildProductItem(PersonalProduct product) {
+    AppLogger.d('构建商品项: id=${product.id}, name=${product.displayName}');
     
     return Container(
       height: 274.h,
@@ -1002,81 +1204,102 @@ class _ProductManagementScreenState extends State<ProductManagementScreen> {
       'Stock: High to Low',
     ];
     
-    return GestureDetector(
-      onTap: () {
-        setState(() {
-          isDropdownVisible = false;
-        });
-      },
-      child: Container(
-        color: Colors.black.withOpacity(0.7),
-        child: Column(
-          children: [
-            // 保持顶部区域不被遮罩
-            Container(
-              height: 338.h, // 顶部导航栏 + 统计栏 + 操作栏的高度
-              color: Colors.transparent,
-            ),
-            
-            // 下拉菜单区域
-            Container(
-              width: 750.w,
-              decoration: const BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.only(
-                  topLeft: Radius.circular(16),
-                  topRight: Radius.circular(16),
+    return Stack(
+      children: [
+        // 点击遮罩层关闭下拉菜单
+        GestureDetector(
+          onTap: () {
+            setState(() {
+              isDropdownVisible = false;
+            });
+          },
+          child: Container(
+            color: Colors.transparent,
+            width: double.infinity,
+            height: double.infinity,
+          ),
+        ),
+        
+        // 下拉菜单 - 直接从操作区域底部开始，不包含Bundle Sales
+        Positioned(
+          top: 257.h, // 88h(顶部导航) + 1h(分割线) + 90h(统计区域) + 1h(分割线) + 64h(操作区域总高度) + 13h(到操作区域底部) = 257h
+          left: 0,
+          right: 0,
+          child: Container(
+            decoration: BoxDecoration(
+              color: Colors.white,
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.1),
+                  blurRadius: 8,
+                  offset: const Offset(0, 2),
                 ),
-              ),
-              child: Column(
-                children: sortOptions.map((option) {
-                  final isSelected = option == selectedSortOption;
-                  return GestureDetector(
-                    onTap: () {
-                      setState(() {
-                        selectedSortOption = option;
-                        isDropdownVisible = false;
-                      });
-                    },
-                    child: Container(
-                      height: 80.h,
-                      width: double.infinity,
-                      padding: EdgeInsets.symmetric(horizontal: 50.w),
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        border: Border(
-                          bottom: BorderSide(
-                            color: Colors.grey.withOpacity(0.1),
-                            width: 1,
-                          ),
-                        ),
-                      ),
-                      child: Align(
-                        alignment: Alignment.centerLeft,
-                        child: Text(
-                          option,
-                          style: TextStyle(
-                            fontSize: 28.sp,
-                            color: isSelected ? const Color(0xFF00D86F) : Colors.black,
-                            fontWeight: isSelected ? FontWeight.w500 : FontWeight.normal,
-                          ),
+              ],
+            ),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: sortOptions.map((option) {
+                final isSelected = option == selectedSortOption;
+                return GestureDetector(
+                  onTap: () {
+                    setState(() {
+                      selectedSortOption = option;
+                      isDropdownVisible = false;
+                      // 更新排序参数并重新加载数据
+                      _updateSortParams(option);
+                    });
+                    // 重新加载数据
+                    _loadProducts(isRefresh: true);
+                  },
+                  child: Container(
+                    height: 80.h,
+                    width: double.infinity,
+                    padding: EdgeInsets.symmetric(horizontal: 50.w),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      border: Border(
+                        bottom: BorderSide(
+                          color: Colors.grey.withOpacity(0.1),
+                          width: 1,
                         ),
                       ),
                     ),
-                  );
-                }).toList(),
-              ),
+                    child: Align(
+                      alignment: Alignment.centerLeft,
+                      child: Text(
+                        option,
+                        style: TextStyle(
+                          fontSize: 28.sp,
+                          color: isSelected ? const Color(0xFF00D86F) : const Color(0xFF212222),
+                          fontWeight: FontWeight.normal,
+                        ),
+                      ),
+                    ),
+                  ),
+                );
+              }).toList(),
             ),
-            
-            // 剩余空间填充
-            Expanded(
-              child: Container(
-                color: Colors.transparent,
-              ),
-            ),
-          ],
+          ),
         ),
-      ),
+        
+        // 下方遮罩层 - 只遮罩菜单下方的内容
+        Positioned(
+          top: 257.h + (80.h * sortOptions.length), // 菜单底部开始
+          left: 0,
+          right: 0,
+          bottom: 0,
+          child: GestureDetector(
+            onTap: () {
+              setState(() {
+                isDropdownVisible = false;
+              });
+            },
+            child: Container(
+              color: Colors.black.withOpacity(0.7),
+            ),
+          ),
+        ),
+      ],
     );
   }
   
@@ -1122,4 +1345,382 @@ class _ProductManagementScreenState extends State<ProductManagementScreen> {
     );
   }
 
+}
+
+/// 自定义筛选抽屉组件
+class _CustomFilterDrawer extends StatefulWidget {
+  final SpuFilterSelections initialSelections;
+  final Function(SpuFilterSelections) onResult;
+
+  const _CustomFilterDrawer({
+    required this.initialSelections,
+    required this.onResult,
+  });
+
+  @override
+  State<_CustomFilterDrawer> createState() => _CustomFilterDrawerState();
+}
+
+class _CustomFilterDrawerState extends State<_CustomFilterDrawer> {
+  late SpuFilterSelections _selections;
+  late bool _viewGradedCardsEnabled;
+
+  @override
+  void initState() {
+    super.initState();
+    _selections = Map<String, Set<String>>.from(widget.initialSelections);
+    _viewGradedCardsEnabled = _selections['View Graded Cards']?.contains('view_graded_cards') ?? false;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: 479.w,
+      height: double.infinity,
+      decoration: const BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.only(
+          topLeft: Radius.circular(0),
+          bottomLeft: Radius.circular(0),
+        ),
+      ),
+      child: Column(
+        children: [
+          // 标题栏
+          _buildHeader(),
+          
+          // 筛选内容
+          Expanded(
+            child: SingleChildScrollView(
+              padding: EdgeInsets.symmetric(horizontal: 30.w),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  SizedBox(height: 30.h),
+                  
+                  // View Graded Cards 开关
+                  _buildViewGradedCardsSection(),
+                  
+                  SizedBox(height: 30.h),
+                  
+                  // Graded Slabs（条件显示）
+                  if (_viewGradedCardsEnabled) ...[
+                    _buildGradedSlabsSection(),
+                    SizedBox(height: 30.h),
+                  ],
+                  
+                  // Rarity
+                  _buildRaritySection(),
+                  
+                  SizedBox(height: 30.h),
+                  
+                  // Series & Expansion
+                  _buildSeriesExpansionSection(),
+                  
+                  SizedBox(height: 50.h),
+                ],
+              ),
+            ),
+          ),
+          
+          // 底部按钮
+          _buildBottomButtons(),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildHeader() {
+    return Container(
+      height: 98.h,
+      decoration: const BoxDecoration(
+        color: Colors.white,
+        border: Border(
+          bottom: BorderSide(color: Color(0xFFF1F1F3), width: 1),
+        ),
+      ),
+      child: Center(
+        child: Text(
+          'Filtering',
+          style: TextStyle(
+            fontSize: 36.sp,
+            fontWeight: FontWeight.w600,
+            color: const Color(0xFF212222),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildViewGradedCardsSection() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'View Graded Cards',
+          style: TextStyle(
+            fontSize: 24.sp,
+            fontWeight: FontWeight.w500,
+            color: const Color(0xFF212222),
+          ),
+        ),
+        SizedBox(height: 16.h),
+        Container(
+          width: double.infinity,
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.end,
+            children: [
+              GestureDetector(
+                onTap: () {
+                  setState(() {
+                    _viewGradedCardsEnabled = !_viewGradedCardsEnabled;
+                    if (_viewGradedCardsEnabled) {
+                      _selections['View Graded Cards'] = {'view_graded_cards'};
+                    } else {
+                      _selections.remove('View Graded Cards');
+                      _selections.remove('Graded Slabs'); // 清除相关选择
+                    }
+                  });
+                },
+                child: Container(
+                  width: 60.w,
+                  height: 32.h,
+                  decoration: BoxDecoration(
+                    color: _viewGradedCardsEnabled 
+                        ? const Color(0xFF0DEE80) 
+                        : const Color(0xFFE0E0E0),
+                    borderRadius: BorderRadius.circular(16.r),
+                    border: Border.all(
+                      color: _viewGradedCardsEnabled 
+                          ? const Color(0xFF0DEE80) 
+                          : const Color(0xFFCCCCCC),
+                      width: 1,
+                    ),
+                  ),
+                  child: Stack(
+                    children: [
+                      AnimatedPositioned(
+                        duration: const Duration(milliseconds: 200),
+                        curve: Curves.easeInOut,
+                        left: _viewGradedCardsEnabled ? 30.w : 2.w,
+                        top: 2.h,
+                        child: Container(
+                          width: 28.w,
+                          height: 28.h,
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(14.r),
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.black.withOpacity(0.2),
+                                blurRadius: 4,
+                                offset: const Offset(0, 2),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildGradedSlabsSection() {
+    final selectedOptions = _selections['Graded Slabs'] ?? <String>{};
+    
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'Graded Slabs',
+          style: TextStyle(
+            fontSize: 24.sp,
+            fontWeight: FontWeight.w500,
+            color: const Color(0xFF212222),
+          ),
+        ),
+        SizedBox(height: 16.h),
+        Wrap(
+          spacing: 10.w,
+          runSpacing: 10.h,
+          children: [
+            _buildOptionButton('psa', 'PSA', selectedOptions, 'Graded Slabs'),
+            _buildOptionButton('bgs', 'BGS', selectedOptions, 'Graded Slabs'),
+            _buildOptionButton('cgc', 'CGC', selectedOptions, 'Graded Slabs'),
+            _buildOptionButton('pgc', 'PGC', selectedOptions, 'Graded Slabs'),
+          ],
+        ),
+      ],
+    );
+  }
+
+  Widget _buildRaritySection() {
+    final selectedOptions = _selections['Rarity'] ?? <String>{};
+    
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'Rarity',
+          style: TextStyle(
+            fontSize: 24.sp,
+            fontWeight: FontWeight.w500,
+            color: const Color(0xFF212222),
+          ),
+        ),
+        SizedBox(height: 16.h),
+        Wrap(
+          spacing: 10.w,
+          runSpacing: 10.h,
+          children: [
+            _buildOptionButton('amazing', 'Amazing', selectedOptions, 'Rarity'),
+            _buildOptionButton('rainbow', 'Rainbow', selectedOptions, 'Rarity'),
+            _buildOptionButton('radiant_1', 'Radiant', selectedOptions, 'Rarity'),
+            _buildOptionButton('radiant_2', 'Radiant', selectedOptions, 'Rarity'),
+            _buildOptionButton('holo', 'Holo', selectedOptions, 'Rarity'),
+          ],
+        ),
+      ],
+    );
+  }
+
+  Widget _buildSeriesExpansionSection() {
+    final selectedOptions = _selections['Series & Expansion'] ?? <String>{};
+    
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'Series & Expansion',
+          style: TextStyle(
+            fontSize: 24.sp,
+            fontWeight: FontWeight.w500,
+            color: const Color(0xFF212222),
+          ),
+        ),
+        SizedBox(height: 16.h),
+        Wrap(
+          spacing: 10.w,
+          runSpacing: 10.h,
+          children: [
+            _buildOptionButton('series_amazing_1', 'Amazing', selectedOptions, 'Series & Expansion'),
+            _buildOptionButton('series_amazing_2', 'Amazing', selectedOptions, 'Series & Expansion'),
+            _buildOptionButton('series_amazing_3', 'Amazing', selectedOptions, 'Series & Expansion'),
+            _buildOptionButton('series_amazing_4', 'Amazing', selectedOptions, 'Series & Expansion'),
+          ],
+        ),
+      ],
+    );
+  }
+
+  Widget _buildOptionButton(String id, String label, Set<String> selectedOptions, String sectionTitle) {
+    final isSelected = selectedOptions.contains(id);
+    
+    return GestureDetector(
+      onTap: () {
+        setState(() {
+          if (isSelected) {
+            _selections[sectionTitle]?.remove(id);
+            if (_selections[sectionTitle]?.isEmpty ?? false) {
+              _selections.remove(sectionTitle);
+            }
+          } else {
+            _selections[sectionTitle] = (_selections[sectionTitle] ?? <String>{})..add(id);
+          }
+        });
+      },
+      child: Container(
+        height: 54.h,
+        constraints: BoxConstraints(
+          minWidth: 80.w, // 最小宽度
+        ),
+        padding: EdgeInsets.symmetric(horizontal: 24.w),
+        decoration: BoxDecoration(
+          color: isSelected ? const Color(0xFF0DEE80) : const Color(0xFFF4F4F4),
+          borderRadius: BorderRadius.circular(47.r),
+        ),
+        child: Center(
+          child: Text(
+            label,
+            style: TextStyle(
+              fontSize: 24.sp,
+              color: isSelected ? Colors.white : const Color(0xFF212222),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildBottomButtons() {
+    return Container(
+      padding: EdgeInsets.all(30.w),
+      child: Row(
+        children: [
+          // Reset 按钮
+          Expanded(
+            child: GestureDetector(
+              onTap: () {
+                setState(() {
+                  _selections.clear();
+                  _viewGradedCardsEnabled = false;
+                });
+              },
+              child: Container(
+                height: 88.h,
+                decoration: BoxDecoration(
+                  color: const Color(0xFFF4F4F4),
+                  borderRadius: BorderRadius.circular(66.r),
+                ),
+                child: Center(
+                  child: Text(
+                    'Reset',
+                    style: TextStyle(
+                      fontSize: 28.sp,
+                      fontWeight: FontWeight.bold,
+                      color: const Color(0xFF090909),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ),
+          
+          SizedBox(width: 20.w),
+          
+          // Confirm 按钮
+          Expanded(
+            child: GestureDetector(
+              onTap: () {
+                widget.onResult(_selections);
+              },
+              child: Container(
+                height: 88.h,
+                decoration: BoxDecoration(
+                  color: const Color(0xFF0DEE80),
+                  borderRadius: BorderRadius.circular(66.r),
+                ),
+                child: Center(
+                  child: Text(
+                    'Confirm',
+                    style: TextStyle(
+                      fontSize: 28.sp,
+                      fontWeight: FontWeight.bold,
+                      color: const Color(0xFF090909),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
 }

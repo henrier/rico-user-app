@@ -15,16 +15,28 @@ class AuditMetadata {
   });
 
   factory AuditMetadata.fromJson(Map<String, dynamic> json) {
-    return AuditMetadata(
-      createdAt: DateTime.parse(json['createdAt']),
-      updatedAt: DateTime.parse(json['updatedAt']),
-      createdBy: json['createdBy'] != null
-          ? UserInfo.fromJson(json['createdBy'] as Map<String, dynamic>)
-          : null,
-      updatedBy: json['updatedBy'] != null
-          ? UserInfo.fromJson(json['updatedBy'] as Map<String, dynamic>)
-          : null,
-    );
+    try {
+      return AuditMetadata(
+        createdAt: json['createdAt'] != null 
+            ? DateTime.parse(json['createdAt'] as String)
+            : DateTime.now(),
+        updatedAt: json['updatedAt'] != null 
+            ? DateTime.parse(json['updatedAt'] as String)
+            : DateTime.now(),
+        createdBy: json['createdBy'] != null
+            ? UserInfo.fromJson(json['createdBy'] as Map<String, dynamic>)
+            : null,
+        updatedBy: json['updatedBy'] != null
+            ? UserInfo.fromJson(json['updatedBy'] as Map<String, dynamic>)
+            : null,
+      );
+    } catch (e) {
+      // 如果解析失败，返回默认值
+      return AuditMetadata(
+        createdAt: DateTime.now(),
+        updatedAt: DateTime.now(),
+      );
+    }
   }
 
   Map<String, dynamic> toJson() {

@@ -15,6 +15,7 @@ import '../../models/audit_metadata.dart';
 import '../../models/i18n_string.dart';
 import '../../providers/auth_provider.dart';
 import '../../common/utils/logger.dart';
+import '../../api/oss_api.dart';
 
 /// 商品详情新增/编辑页面
 /// 对应Figma设计中的"7 商品详情编辑 - raw 裸卡"页面
@@ -2510,17 +2511,151 @@ class _ProductDetailCreateScreenState
     );
   }
 
-  /// 处理图片上传
-  /// 在实际应用中，这里应该将图片上传到服务器并返回URL列表
-  /// 目前暂时返回本地路径作为占位符
+  /// 处理图片上传到阿里云OSS
+  /// 上传图片到阿里云OSS并返回URL列表
   Future<List<String>> _processImages(List<File> imageFiles) async {
-    // TODO: 实现图片上传到服务器的逻辑
-    // 1. 压缩图片
-    // 2. 上传到云存储服务（如阿里云OSS、腾讯云COS等）
-    // 3. 返回上传后的URL列表
-    
-    // 暂时返回本地路径，实际应用中需要替换为服务器URL
-    return imageFiles.map((file) => file.path).toList();
+    if (imageFiles.isEmpty) return [];
+
+    try {
+      // 显示上传进度对话框
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (context) => _buildUploadProgressDialog(),
+      );
+
+      final ossApi = OssApi();
+      final List<String> uploadedUrls = [];
+
+      // 批量上传图片
+      for (int i = 0; i < imageFiles.length; i++) {
+        final file = imageFiles[i];
+        
+        // 验证文件类型
+        if (!ossApi.validateFileType(file, OssApi.supportedImageTypes)) {
+          AppLogger.warning('不支持的图片格式: ${file.path}');
+          continue;
+        }
+
+        try {
+          // 压缩图片（可选）
+          final compressedFile = await ossApi.compressImage(
+            file,
+            quality: 85,
+            maxWidth: 1024,
+            maxHeight: 1024,
+          );
+
+          // 上传到OSS
+          final String uploadedUrl = await ossApi.uploadFile(
+            compressedFile,
+            folder: 'images/products/',
+          );
+
+          uploadedUrls.add(uploadedUrl);
+          AppLogger.info('图片上传成功 ${i + 1}/${imageFiles.length}: $uploadedUrl');
+
+        } catch (e) {
+          AppLogger.error('图片上传失败 ${i + 1}/${imageFiles.length}: $e');
+          // 继续上传其他图片
+        }
+      }
+
+      // 关闭进度对话框
+      if (mounted) {
+        Navigator.of(context).pop();
+      }
+
+      // 显示上传结果
+      if (uploadedUrls.length == imageFiles.length) {
+        _showUploadSuccessMessage('所有图片上传成功！');
+      } else if (uploadedUrls.isNotEmpty) {
+        _showUploadWarningMessage('部分图片上传成功 (${uploadedUrls.length}/${imageFiles.length})');
+      } else {
+        _showUploadErrorMessage('图片上传失败，请重试');
+      }
+
+      return uploadedUrls;
+
+    } catch (e) {
+      // 关闭进度对话框
+      if (mounted) {
+        Navigator.of(context).pop();
+      }
+      
+      AppLogger.error('图片批量上传失败: $e');
+      _showUploadErrorMessage('图片上传失败: $e');
+      return [];
+    }
+  }
+
+  /// 构建上传进度对话框
+  Widget _buildUploadProgressDialog() {
+    return AlertDialog(
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(16.r),
+      ),
+      content: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          CircularProgressIndicator(
+            valueColor: AlwaysStoppedAnimation<Color>(Colors.green[600]!),
+          ),
+          SizedBox(height: 20.h),
+          Text(
+            '正在上传图片...',
+            style: TextStyle(
+              fontSize: 16.sp,
+              color: Colors.black87,
+            ),
+          ),
+          SizedBox(height: 8.h),
+          Text(
+            '请稍候，不要关闭页面',
+            style: TextStyle(
+              fontSize: 14.sp,
+              color: Colors.grey[600],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// 显示上传成功消息
+  void _showUploadSuccessMessage(String message) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        backgroundColor: Colors.green[600],
+        duration: const Duration(seconds: 3),
+      ),
+    );
+  }
+
+  /// 显示上传警告消息
+  void _showUploadWarningMessage(String message) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        backgroundColor: Colors.orange[600],
+        duration: const Duration(seconds: 3),
+      ),
+    );
+  }
+
+  /// 显示上传错误消息
+  void _showUploadErrorMessage(String message) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        backgroundColor: Colors.red[600],
+        duration: const Duration(seconds: 4),
+      ),
+    );
   }
 
   /// 显示删除确认对话框

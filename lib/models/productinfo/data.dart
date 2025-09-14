@@ -124,35 +124,44 @@ class ProductInfo {
 
   /// 从JSON创建ProductInfo对象
   factory ProductInfo.fromJson(Map<String, dynamic> json) {
-    return ProductInfo(
-      id: json['id'] ?? '',
-      name: I18NString.fromJson(json['name'] ?? {}),
-      code: json['code'] ?? '',
-      level: json['level'] ?? '',
-      suggestedPrice: (json['suggestedPrice'] as num?)?.toDouble() ?? 0.0,
-      cardLanguage: json['cardLanguage'] != null
-          ? CardLanguage.fromString(json['cardLanguage'] as String)
-          : CardLanguage.zh,
-      type: json['type'] != null
-          ? ProductType.fromString(json['type'] as String)
-          : ProductType.raw,
-      categories: (json['categories'] as List<dynamic>?)
-              ?.map((category) =>
-                  ProductCategory.fromJson(category as Map<String, dynamic>))
-              .toList() ??
-          [],
-      cardEffectTemplate: json['cardEffectTemplate'] != null
-          ? CardEffectFields.fromJson(
-              json['cardEffectTemplate'] as Map<String, dynamic>)
-          : null,
-      cardEffects: (json['cardEffects'] as List<dynamic>?)
-              ?.map((effect) =>
-                  DynamicField.fromJson(effect as Map<String, dynamic>))
-              .toList() ??
-          [],
-      images: List<String>.from(json['images'] ?? []),
-      auditMetadata: AuditMetadata.fromJson(json['auditMetadata'] ?? {}),
-    );
+    try {
+      return ProductInfo(
+        id: json['id']?.toString() ?? '',
+        name: json['name'] != null 
+            ? I18NString.fromJson(json['name'] as Map<String, dynamic>)
+            : I18NString.fromJson({}),
+        code: json['code']?.toString() ?? '',
+        level: json['level']?.toString() ?? '',
+        suggestedPrice: (json['suggestedPrice'] as num?)?.toDouble() ?? 0.0,
+        cardLanguage: json['cardLanguage'] != null
+            ? CardLanguage.fromString(json['cardLanguage'] as String)
+            : CardLanguage.zh,
+        type: json['type'] != null
+            ? ProductType.fromString(json['type'] as String)
+            : ProductType.raw,
+        categories: json['categories'] != null
+            ? (json['categories'] as List<dynamic>)
+                .map((category) => ProductCategory.fromJson(category as Map<String, dynamic>))
+                .toList()
+            : <ProductCategory>[],
+        cardEffectTemplate: json['cardEffectTemplate'] != null
+            ? CardEffectFields.fromJson(json['cardEffectTemplate'] as Map<String, dynamic>)
+            : null,
+        cardEffects: json['cardEffects'] != null
+            ? (json['cardEffects'] as List<dynamic>)
+                .map((effect) => DynamicField.fromJson(effect as Map<String, dynamic>))
+                .toList()
+            : <DynamicField>[],
+        images: json['images'] != null 
+            ? List<String>.from(json['images'] as List<dynamic>)
+            : <String>[],
+        auditMetadata: json['auditMetadata'] != null
+            ? AuditMetadata.fromJson(json['auditMetadata'] as Map<String, dynamic>)
+            : AuditMetadata.fromJson({}),
+      );
+    } catch (e) {
+      throw FormatException('ProductInfo.fromJson 解析失败: $e, JSON数据: $json');
+    }
   }
 
   /// 转换为JSON
