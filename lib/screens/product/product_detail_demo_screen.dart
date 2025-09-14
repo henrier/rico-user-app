@@ -177,9 +177,9 @@ class ProductDetailDemoScreen extends ConsumerWidget {
       'product-detail-create',
       queryParameters: {
         'spuId': spuId,
-        'spuName': title,
+        'spuName': Uri.encodeComponent(title),
         'spuCode': code,
-        'spuImageUrl': imageUrl,
+        'spuImageUrl': Uri.encodeComponent(imageUrl),
       },
     );
   }

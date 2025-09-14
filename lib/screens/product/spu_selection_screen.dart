@@ -636,9 +636,33 @@ class _SpuSelectionScreenState extends ConsumerState<SpuSelectionScreen> {
       ),
     );
 
-    // 直接跳转到商品详情创建页面
-    context.push(
-      '/home/product-detail-create?spuId=${Uri.encodeComponent(spu.id)}&spuName=${Uri.encodeComponent(spu.displayName)}&spuCode=${Uri.encodeComponent(spu.code)}&spuImageUrl=${Uri.encodeComponent(spu.hasImages ? spu.images.first : '')}',
+    // 跳转到商品详情创建页面 - 使用pushNamed方式传递参数
+    context.pushNamed(
+      'product-detail-create',
+      queryParameters: {
+        'spuId': spu.id,
+        'spuName': Uri.encodeComponent(spu.displayName),
+        'spuCode': spu.code,
+        'spuImageUrl': spu.hasImages ? Uri.encodeComponent(spu.images.first) : '',
+      },
+      extra: {
+        'isEditMode': false,
+        'categoryId': widget.categoryId,
+        'sourceScreen': 'spu-selection',
+        // 传递完整的SPU对象信息，便于后续使用
+        'spuData': {
+          'id': spu.id,
+          'displayName': spu.displayName,
+          'code': spu.code,
+          'level': spu.level,
+          'categories': spu.categories.map((cat) => {
+            'id': cat.id,
+            'displayName': cat.displayName,
+          }).toList(),
+          'images': spu.images,
+          'type': spu.type?.value,
+        },
+      },
     );
   }
 

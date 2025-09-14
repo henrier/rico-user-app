@@ -100,32 +100,90 @@ final routerProvider = Provider<GoRouter>((ref) {
             path: 'product-detail-create',
             name: 'product-detail-create',
             builder: (context, state) {
-              // 从查询参数获取基本信息
+              // 从查询参数获取基本信息（主要用于新增模式）
               final spuId = state.uri.queryParameters['spuId'] ?? '';
               final spuName = Uri.decodeComponent(state.uri.queryParameters['spuName'] ?? '');
               final spuCode = state.uri.queryParameters['spuCode'] ?? '';
               final spuImageUrl = Uri.decodeComponent(state.uri.queryParameters['spuImageUrl'] ?? '');
               
-              // 从extra获取编辑模式参数
+              // 从extra获取扩展参数
               final extra = state.extra as Map<String, dynamic>?;
               final isEditMode = extra?['isEditMode'] ?? false;
               final personalProductId = extra?['personalProductId'];
-              final existingData = extra?['existingData'] as Map<String, dynamic>?;
               
-              // 如果extra中有基本信息，优先使用extra中的数据
+              // 如果extra中有基本信息，优先使用extra中的数据（编辑模式）
               final finalSpuId = extra?['spuId'] ?? spuId;
               final finalSpuName = extra?['spuName'] ?? spuName;
               final finalSpuCode = extra?['spuCode'] ?? spuCode;
               final finalSpuImageUrl = extra?['spuImageUrl'] ?? spuImageUrl;
 
+              // 调试日志
+              debugPrint('=== 商品详情页面路由调试 ===');
+              debugPrint('查询参数: spuId="$spuId", spuName="$spuName", spuCode="$spuCode"');
+              debugPrint('Extra参数: $extra');
+              debugPrint('最终参数: finalSpuId="$finalSpuId" (长度: ${finalSpuId.length}), isEditMode=$isEditMode, personalProductId=$personalProductId');
+              debugPrint('SPU扩展数据: ${extra?['spuData']}');
+
+              // 参数验证 - 编辑模式下允许spuId为空，因为可以通过personalProductId获取
+              if (!isEditMode && finalSpuId.isEmpty) {
+                debugPrint('❌ 新增模式下缺少SPU参数');
+                return Scaffold(
+                  appBar: AppBar(
+                    title: const Text('参数错误'),
+                    backgroundColor: Colors.red,
+                  ),
+                  body: const Center(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(Icons.error, size: 64, color: Colors.red),
+                        SizedBox(height: 16),
+                        Text(
+                          '缺少必要的SPU参数',
+                          style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                        ),
+                        SizedBox(height: 8),
+                        Text('请从正确的页面进入商品创建流程'),
+                      ],
+                    ),
+                  ),
+                );
+              }
+
+              // 编辑模式下验证personalProductId
+              if (isEditMode && (personalProductId == null || personalProductId.isEmpty)) {
+                return Scaffold(
+                  appBar: AppBar(
+                    title: const Text('参数错误'),
+                    backgroundColor: Colors.red,
+                  ),
+                  body: const Center(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(Icons.error, size: 64, color: Colors.red),
+                        SizedBox(height: 16),
+                        Text(
+                          '编辑模式缺少商品ID',
+                          style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                        ),
+                        SizedBox(height: 8),
+                        Text('无法获取要编辑的商品信息'),
+                      ],
+                    ),
+                  ),
+                );
+              }
+
               return ProductDetailCreateScreen(
-                spuId: finalSpuId,
+                spuId: finalSpuId.isNotEmpty ? finalSpuId : (isEditMode ? 'temp_spu_id' : finalSpuId),
                 spuName: finalSpuName,
                 spuCode: finalSpuCode,
                 spuImageUrl: finalSpuImageUrl,
                 isEditMode: isEditMode,
                 personalProductId: personalProductId,
-                existingData: existingData,
+                existingData: null, // 不再使用existingData，通过API获取
+                spuData: extra?['spuData'] as Map<String, dynamic>?, // 传递SPU扩展数据
               );
             },
           ),

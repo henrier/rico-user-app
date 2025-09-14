@@ -365,7 +365,7 @@ class PersonalProductService extends BaseApi {
   /// 批量整体更新个人商品（移动端专用）
   /// 对应 TypeScript: batchUpdatePersonalProductForMobile
   Future<void> batchUpdatePersonalProductForMobile(
-      List<UpdatePersonalProductManualParams> paramsList) async {
+      List<BatchUpdatePersonalProductManualParams> paramsList) async {
     try {
       AppLogger.i('正在批量整体更新个人商品（移动端专用）: ${paramsList.length}个');
 

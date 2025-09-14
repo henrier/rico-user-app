@@ -1018,179 +1018,182 @@ class _ProductManagementScreenState extends State<ProductManagementScreen> {
   Widget _buildProductItem(PersonalProduct product) {
     AppLogger.d('构建商品项: id=${product.id}, name=${product.displayName}');
     
-    return Container(
-      height: 274.h,
-      color: Colors.white,
-      padding: EdgeInsets.symmetric(horizontal: 30.w, vertical: 30.h),
-      child: Row(
-        children: [
-          // 商品图片
-          Container(
-            width: 154.w,
-            height: 214.h,
-            decoration: BoxDecoration(
-              color: const Color(0xFFF4F4F6),
-              borderRadius: BorderRadius.circular(8.r),
+    return GestureDetector(
+      onTap: () => _navigateToProductEdit(product),
+      child: Container(
+        height: 274.h,
+        color: Colors.white,
+        padding: EdgeInsets.symmetric(horizontal: 30.w, vertical: 30.h),
+        child: Row(
+          children: [
+            // 商品图片
+            Container(
+              width: 154.w,
+              height: 214.h,
+              decoration: BoxDecoration(
+                color: const Color(0xFFF4F4F6),
+                borderRadius: BorderRadius.circular(8.r),
+              ),
+              child: product.hasImages
+                  ? ClipRRect(
+                      borderRadius: BorderRadius.circular(8.r),
+                      child: Image.network(
+                        product.images.first,
+                        fit: BoxFit.cover,
+                        errorBuilder: (context, error, stackTrace) {
+                          return Icon(
+                            Icons.image,
+                            color: Colors.grey[400],
+                            size: 60.w,
+                          );
+                        },
+                      ),
+                    )
+                  : Icon(
+                      Icons.image,
+                      color: Colors.grey[400],
+                      size: 60.w,
+                    ),
             ),
-            child: product.hasImages
-                ? ClipRRect(
-                    borderRadius: BorderRadius.circular(8.r),
-                    child: Image.network(
-                      product.images.first,
-                      fit: BoxFit.cover,
-                      errorBuilder: (context, error, stackTrace) {
-                        return Icon(
-                          Icons.image,
-                          color: Colors.grey[400],
-                          size: 60.w,
-                        );
-                      },
+            
+            SizedBox(width: 24.w),
+            
+            // 商品信息
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // 商品名称
+                  Text(
+                    product.displayName,
+                    style: TextStyle(
+                      fontSize: 32.sp,
+                      fontWeight: FontWeight.w500,
+                      color: const Color(0xFF212222),
                     ),
-                  )
-                : Icon(
-                    Icons.image,
-                    color: Colors.grey[400],
-                    size: 60.w,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
                   ),
-          ),
-          
-          SizedBox(width: 24.w),
-          
-          // 商品信息
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // 商品名称
-                Text(
-                  product.displayName,
-                  style: TextStyle(
-                    fontSize: 32.sp,
-                    fontWeight: FontWeight.w500,
-                    color: const Color(0xFF212222),
-                  ),
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                ),
-                
-                SizedBox(height: 8.h),
-                
-                // 商品代码和类型
-                Row(
-                  children: [
-                    Text(
-                      product.productInfo.code ?? 'N/A',
-                      style: TextStyle(
-                        fontSize: 24.sp,
+                  
+                  SizedBox(height: 8.h),
+                  
+                  // 商品代码和类型
+                  Row(
+                    children: [
+                      Text(
+                        product.productInfo.code ?? 'N/A',
+                        style: TextStyle(
+                          fontSize: 24.sp,
+                          color: const Color(0xFF919191),
+                        ),
+                      ),
+                      Container(
+                        width: 2.w,
+                        height: 19.h,
+                        margin: EdgeInsets.symmetric(horizontal: 10.w),
                         color: const Color(0xFF919191),
                       ),
-                    ),
-                    Container(
-                      width: 2.w,
-                      height: 19.h,
-                      margin: EdgeInsets.symmetric(horizontal: 10.w),
-                      color: const Color(0xFF919191),
-                    ),
-                    Text(
-                      _getProductTypeDisplayName(product.type),
-                      style: TextStyle(
-                        fontSize: 24.sp,
-                        color: const Color(0xFF919191),
-                      ),
-                    ),
-                  ],
-                ),
-                
-                const Spacer(),
-                
-                // 价格
-                Text(
-                  'RM ${product.price.toStringAsFixed(2)}',
-                  style: TextStyle(
-                    fontSize: 30.sp,
-                    fontWeight: FontWeight.w500,
-                    color: const Color(0xFFF86700),
-                  ),
-                ),
-                
-                SizedBox(height: 12.h),
-                
-                // 底部信息：品质、评级、数量
-                Row(
-                  children: [
-                    // 品质标签
-                    Container(
-                      height: 36.h,
-                      padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 6.h),
-                      decoration: BoxDecoration(
-                        border: Border.all(color: const Color(0xFFD3D3D3)),
-                        borderRadius: BorderRadius.circular(8.r),
-                      ),
-                      child: Center(
-                        child: Text(
-                          _getConditionDisplayName(product.condition),
-                          style: TextStyle(
-                            fontSize: 22.sp,
-                            color: const Color(0xFF919191),
-                          ),
-                        ),
-                      ),
-                    ),
-                    
-                    const Spacer(),
-                    
-                    // 评级标签（如果有）
-                    if (product.hasRatedCard) ...[
-                      Container(
-                        height: 34.h,
-                        padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 5.h),
-                        decoration: BoxDecoration(
-                          gradient: _getGradeGradient(product.ratedCard!.cardScore),
-                          borderRadius: BorderRadius.circular(8.r),
-                        ),
-                        child: Center(
-                          child: Text(
-                            '${product.ratedCard!.ratingCompany.name} ${product.ratedCard!.cardScore}',
-                            style: TextStyle(
-                              fontSize: 24.sp,
-                              fontWeight: FontWeight.w500,
-                              color: Colors.white,
-                            ),
-                          ),
-                        ),
-                      ),
-                      SizedBox(width: 12.w),
-                    ] else ...[
-                      // 数量标签（无评级时）
-                      Container(
-                        height: 34.h,
-                        width: 44.w,
-                        decoration: BoxDecoration(
-                          gradient: const LinearGradient(
-                            colors: [Color(0xFF4D5862), Color(0xFF737373)],
-                            begin: Alignment.topCenter,
-                            end: Alignment.bottomCenter,
-                          ),
-                          borderRadius: BorderRadius.circular(8.r),
-                        ),
-                        child: Center(
-                          child: Text(
-                            'x${product.quantity}',
-                            style: TextStyle(
-                              fontSize: 24.sp,
-                              fontWeight: FontWeight.w600,
-                              color: Colors.white,
-                            ),
-                          ),
+                      Text(
+                        _getProductTypeDisplayName(product.type),
+                        style: TextStyle(
+                          fontSize: 24.sp,
+                          color: const Color(0xFF919191),
                         ),
                       ),
                     ],
-                  ],
-                ),
-              ],
+                  ),
+                  
+                  const Spacer(),
+                  
+                  // 价格
+                  Text(
+                    'RM ${product.price.toStringAsFixed(2)}',
+                    style: TextStyle(
+                      fontSize: 30.sp,
+                      fontWeight: FontWeight.w500,
+                      color: const Color(0xFFF86700),
+                    ),
+                  ),
+                  
+                  SizedBox(height: 12.h),
+                  
+                  // 底部信息：品质、评级、数量
+                  Row(
+                    children: [
+                      // 品质标签
+                      Container(
+                        height: 36.h,
+                        padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 6.h),
+                        decoration: BoxDecoration(
+                          border: Border.all(color: const Color(0xFFD3D3D3)),
+                          borderRadius: BorderRadius.circular(8.r),
+                        ),
+                        child: Center(
+                          child: Text(
+                            _getConditionDisplayName(product.condition),
+                            style: TextStyle(
+                              fontSize: 22.sp,
+                              color: const Color(0xFF919191),
+                            ),
+                          ),
+                        ),
+                      ),
+                      
+                      const Spacer(),
+                      
+                      // 评级标签（如果有）
+                      if (product.hasRatedCard) ...[
+                        Container(
+                          height: 34.h,
+                          padding: EdgeInsets.symmetric(horizontal: 12.w, vertical: 5.h),
+                          decoration: BoxDecoration(
+                            gradient: _getGradeGradient(product.ratedCard!.cardScore),
+                            borderRadius: BorderRadius.circular(8.r),
+                          ),
+                          child: Center(
+                            child: Text(
+                              '${product.ratedCard!.ratingCompany.name} ${product.ratedCard!.cardScore}',
+                              style: TextStyle(
+                                fontSize: 24.sp,
+                                fontWeight: FontWeight.w500,
+                                color: Colors.white,
+                              ),
+                            ),
+                          ),
+                        ),
+                        SizedBox(width: 12.w),
+                      ] else ...[
+                        // 数量标签（无评级时）
+                        Container(
+                          height: 34.h,
+                          width: 44.w,
+                          decoration: BoxDecoration(
+                            gradient: const LinearGradient(
+                              colors: [Color(0xFF4D5862), Color(0xFF737373)],
+                              begin: Alignment.topCenter,
+                              end: Alignment.bottomCenter,
+                            ),
+                            borderRadius: BorderRadius.circular(8.r),
+                          ),
+                          child: Center(
+                            child: Text(
+                              'x${product.quantity}',
+                              style: TextStyle(
+                                fontSize: 24.sp,
+                                fontWeight: FontWeight.w600,
+                                color: Colors.white,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ],
+                  ),
+                ],
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
@@ -1345,6 +1348,163 @@ class _ProductManagementScreenState extends State<ProductManagementScreen> {
     );
   }
 
+  /// 导航到商品编辑页面
+  Future<void> _navigateToProductEdit(PersonalProduct product) async {
+    try {
+      AppLogger.i('点击商品卡片，准备跳转到编辑页面: ${product.id}');
+      
+      // 调试日志：检查关键参数
+      AppLogger.i('商品信息调试:');
+      AppLogger.i('  - personalProductId: ${product.id}');
+      AppLogger.i('  - spuId: "${product.productInfo.id}" (长度: ${product.productInfo.id.length})');
+      AppLogger.i('  - spuName: ${product.displayName}');
+      AppLogger.i('  - spuCode: ${product.productInfo.code ?? ""}');
+      AppLogger.i('  - productInfo完整对象: ${product.productInfo.toString()}');
+      
+      // 跳转到商品详情编辑页面，让目标页面自己获取详细数据
+      final result = await context.pushNamed(
+        'product-detail-create',
+        extra: {
+          'isEditMode': true,
+          'personalProductId': product.id,
+          'spuId': product.productInfo.id,
+          'spuName': product.displayName,
+          'spuCode': product.productInfo.code ?? '',
+          'spuImageUrl': product.hasImages ? product.images.first : '',
+          // 不再传递existingData，让目标页面通过API获取
+        },
+      );
+      
+      // 处理编辑结果
+      if (result != null && result is Map<String, dynamic>) {
+        AppLogger.i('商品编辑页面返回结果: $result');
+        
+        if (result['success'] == true) {
+          // 编辑成功，刷新商品列表
+          _loadProducts(isRefresh: true);
+          
+          // 显示成功提示
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text(result['message'] ?? '操作成功'),
+                backgroundColor: const Color(0xFF0DEE80),
+                behavior: SnackBarBehavior.floating,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(10.r),
+                ),
+              ),
+            );
+          }
+        } else if (result['deleted'] == true) {
+          // 商品被删除，刷新列表和统计
+          _loadProducts(isRefresh: true);
+          _loadTabCounts();
+          
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: const Text('商品删除成功'),
+                backgroundColor: const Color(0xFF0DEE80),
+                behavior: SnackBarBehavior.floating,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(10.r),
+                ),
+              ),
+            );
+          }
+        }
+      }
+      
+    } catch (e) {
+      AppLogger.e('跳转到商品编辑页面失败', e);
+      
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('打开编辑页面失败: $e'),
+            backgroundColor: Colors.red,
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(10.r),
+            ),
+          ),
+        );
+      }
+    }
+  }
+
+  /// 从PersonalProduct构建编辑模式的现有数据
+  Map<String, dynamic> _buildExistingDataFromProduct(PersonalProduct product) {
+    return {
+      'type': _getTypeStringFromPersonalProductType(product.type),
+      'condition': _getConditionStringFromPersonalProductCondition(product.condition),
+      'gradedBy': product.hasRatedCard ? product.ratedCard!.ratingCompany.name : '',
+      'grade': product.hasRatedCard ? product.ratedCard!.cardScore : '',
+      'serialNumber': product.hasRatedCard ? (product.ratedCard!.gradedCardNumber ?? '') : '',
+      'price': product.price,
+      'stock': product.quantity,
+      'notes': product.notes,
+      'setCoverPhoto': false, // 默认值，实际应根据图片信息判断
+      'listingStatus': product.status == PersonalProductStatus.listed,
+      // TODO: 添加图片URL列表，需要从PersonalProduct获取
+      'imageUrls': product.images,
+    };
+  }
+
+  /// 将PersonalProductType转换为字符串
+  String _getTypeStringFromPersonalProductType(PersonalProductType type) {
+    switch (type) {
+      case PersonalProductType.rawCard:
+        return 'Raw';
+      case PersonalProductType.box:
+        return 'Sealed';
+      case PersonalProductType.ratedCard:
+        return 'Graded';
+    }
+  }
+
+  /// 将PersonalProductCondition转换为字符串
+  String _getConditionStringFromPersonalProductCondition(PersonalProductCondition condition) {
+    switch (condition) {
+      case PersonalProductCondition.mint:
+        return 'Mint';
+      case PersonalProductCondition.nearMint:
+        return 'Near Mint';
+      case PersonalProductCondition.lightlyPlayed:
+        return 'Lightly Played';
+      case PersonalProductCondition.damaged:
+        return 'Damaged';
+    }
+  }
+
+}
+
+/// 筛选选项数据类
+class _FilterOption {
+  final String id;
+  final String label;
+
+  const _FilterOption({required this.id, required this.label});
+}
+
+/// 筛选分组数据类
+class _FilterSection {
+  final String title;
+  final List<_FilterOption>? options;
+  final bool isToggleSection;
+  final bool isInlineToggle; // 标题和开关是否在同一行
+  final bool? toggleValue;
+  final ValueChanged<bool>? onToggleChanged;
+
+  const _FilterSection({
+    required this.title,
+    this.options,
+    this.isToggleSection = false,
+    this.isInlineToggle = false,
+    this.toggleValue,
+    this.onToggleChanged,
+  });
 }
 
 /// 自定义筛选抽屉组件
@@ -1374,353 +1534,388 @@ class _CustomFilterDrawerState extends State<_CustomFilterDrawer> {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      width: 479.w,
-      height: double.infinity,
-      decoration: const BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.only(
-          topLeft: Radius.circular(0),
-          bottomLeft: Radius.circular(0),
-        ),
-      ),
-      child: Column(
-        children: [
-          // 标题栏
-          _buildHeader(),
-          
-          // 筛选内容
-          Expanded(
-            child: SingleChildScrollView(
-              padding: EdgeInsets.symmetric(horizontal: 30.w),
+    final theme = Theme.of(context);
+    final drawerWidth = 479.w; // 根据Figma设计稿宽度
+
+    return Material(
+      color: Colors.transparent,
+      child: SafeArea(
+        child: Row(
+          children: [
+            Expanded(
+              child: GestureDetector(
+                behavior: HitTestBehavior.opaque,
+                onTap: () => Navigator.of(context).maybePop(),
+              ),
+            ),
+            Container(
+              width: drawerWidth,
+              height: double.infinity,
+              decoration: BoxDecoration(
+                color: Colors.white,
+                boxShadow: [
+                  BoxShadow(
+                    color: const Color(0x1A000000), // rgba(0,0,0,0.1)
+                    blurRadius: 12.r,
+                    offset: Offset(-4.w, 0),
+                  ),
+                ],
+              ),
               child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  SizedBox(height: 30.h),
-                  
-                  // View Graded Cards 开关
-                  _buildViewGradedCardsSection(),
-                  
-                  SizedBox(height: 30.h),
-                  
-                  // Graded Slabs（条件显示）
-                  if (_viewGradedCardsEnabled) ...[
-                    _buildGradedSlabsSection(),
-                    SizedBox(height: 30.h),
-                  ],
-                  
-                  // Rarity
-                  _buildRaritySection(),
-                  
-                  SizedBox(height: 30.h),
-                  
-                  // Series & Expansion
-                  _buildSeriesExpansionSection(),
-                  
-                  SizedBox(height: 50.h),
+                  Padding(
+                    padding: EdgeInsets.symmetric(
+                      horizontal: 40.w,
+                      vertical: 30.h,
+                    ),
+                    child: Text(
+                      'Filtering',
+                      style: theme.textTheme.titleLarge?.copyWith(
+                        color: const Color(0xFF212222),
+                        fontWeight: FontWeight.w500,
+                        fontSize: 36.sp, // 根据Figma设计稿调整
+                      ),
+                      textAlign: TextAlign.center,
+                    ),
+                  ),
+                  Expanded(
+                    child: ListView.separated(
+                      padding: EdgeInsets.symmetric(
+                        horizontal: 40.w,
+                        vertical: 20.h,
+                      ),
+                      itemCount: _getFilterSections().length,
+                      separatorBuilder: (_, __) => SizedBox(height: 40.h),
+                      itemBuilder: (context, index) {
+                        final section = _getFilterSections()[index];
+                        return _buildFilterSection(section);
+                      },
+                    ),
+                  ),
+                  Padding(
+                    padding: EdgeInsets.all(40.w),
+                    child: Row(
+                      children: [
+                        Expanded(
+                          child: Container(
+                            height: 88.h, // 根据Figma设计稿高度
+                            decoration: BoxDecoration(
+                              color: const Color(0xFFF4F4F4),
+                              borderRadius: BorderRadius.circular(44.r), // 完全圆角
+                            ),
+                            child: Material(
+                              color: Colors.transparent,
+                              child: InkWell(
+                                borderRadius: BorderRadius.circular(44.r),
+                                onTap: () {
+                                  // 清空所有选择并立即返回空结果
+                                  final emptySelections = <String, Set<String>>{};
+                                  for (final key in _selections.keys) {
+                                    emptySelections[key] = <String>{};
+                                  }
+                                  Navigator.of(context).pop(emptySelections);
+                                },
+                                child: Center(
+                                  child: Text(
+                                    'Clear',
+                                    style: theme.textTheme.titleMedium?.copyWith(
+                                      color: const Color(0xFF090909),
+                                      fontWeight: FontWeight.w500,
+                                      fontSize: 32.sp, // 根据Figma设计稿调整
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                        SizedBox(width: 25.w), // 根据Figma设计稿间距
+                        Expanded(
+                          child: Container(
+                            height: 88.h, // 根据Figma设计稿高度
+                            decoration: BoxDecoration(
+                              color: const Color(0xFF0DEE80),
+                              borderRadius: BorderRadius.circular(44.r), // 完全圆角
+                            ),
+                            child: Material(
+                              color: Colors.transparent,
+                              child: InkWell(
+                                borderRadius: BorderRadius.circular(44.r),
+                                onTap: () {
+                                  Navigator.of(context).pop(_selections);
+                                },
+                                child: Center(
+                                  child: Text(
+                                    'Confirm',
+                                    style: theme.textTheme.titleMedium?.copyWith(
+                                      color: const Color(0xFF090909),
+                                      fontWeight: FontWeight.w500,
+                                      fontSize: 32.sp, // 根据Figma设计稿调整
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
                 ],
               ),
             ),
-          ),
-          
-          // 底部按钮
-          _buildBottomButtons(),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildHeader() {
-    return Container(
-      height: 98.h,
-      decoration: const BoxDecoration(
-        color: Colors.white,
-        border: Border(
-          bottom: BorderSide(color: Color(0xFFF1F1F3), width: 1),
-        ),
-      ),
-      child: Center(
-        child: Text(
-          'Filtering',
-          style: TextStyle(
-            fontSize: 36.sp,
-            fontWeight: FontWeight.w600,
-            color: const Color(0xFF212222),
-          ),
+          ],
         ),
       ),
     );
   }
 
-  Widget _buildViewGradedCardsSection() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          'View Graded Cards',
-          style: TextStyle(
-            fontSize: 24.sp,
-            fontWeight: FontWeight.w500,
-            color: const Color(0xFF212222),
-          ),
-        ),
-        SizedBox(height: 16.h),
-        Container(
-          width: double.infinity,
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.end,
-            children: [
-              GestureDetector(
-                onTap: () {
-                  setState(() {
-                    _viewGradedCardsEnabled = !_viewGradedCardsEnabled;
-                    if (_viewGradedCardsEnabled) {
-                      _selections['View Graded Cards'] = {'view_graded_cards'};
-                    } else {
-                      _selections.remove('View Graded Cards');
-                      _selections.remove('Graded Slabs'); // 清除相关选择
-                    }
-                  });
-                },
-                child: Container(
-                  width: 60.w,
-                  height: 32.h,
-                  decoration: BoxDecoration(
-                    color: _viewGradedCardsEnabled 
-                        ? const Color(0xFF0DEE80) 
-                        : const Color(0xFFE0E0E0),
-                    borderRadius: BorderRadius.circular(16.r),
-                    border: Border.all(
-                      color: _viewGradedCardsEnabled 
-                          ? const Color(0xFF0DEE80) 
-                          : const Color(0xFFCCCCCC),
-                      width: 1,
-                    ),
-                  ),
-                  child: Stack(
-                    children: [
-                      AnimatedPositioned(
-                        duration: const Duration(milliseconds: 200),
-                        curve: Curves.easeInOut,
-                        left: _viewGradedCardsEnabled ? 30.w : 2.w,
-                        top: 2.h,
-                        child: Container(
-                          width: 28.w,
-                          height: 28.h,
-                          decoration: BoxDecoration(
-                            color: Colors.white,
-                            borderRadius: BorderRadius.circular(14.r),
-                            boxShadow: [
-                              BoxShadow(
-                                color: Colors.black.withOpacity(0.2),
-                                blurRadius: 4,
-                                offset: const Offset(0, 2),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildGradedSlabsSection() {
-    final selectedOptions = _selections['Graded Slabs'] ?? <String>{};
+  /// 获取筛选分组列表
+  List<_FilterSection> _getFilterSections() {
+    final sections = <_FilterSection>[];
     
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          'Graded Slabs',
-          style: TextStyle(
-            fontSize: 24.sp,
-            fontWeight: FontWeight.w500,
-            color: const Color(0xFF212222),
-          ),
-        ),
-        SizedBox(height: 16.h),
-        Wrap(
-          spacing: 10.w,
-          runSpacing: 10.h,
-          children: [
-            _buildOptionButton('psa', 'PSA', selectedOptions, 'Graded Slabs'),
-            _buildOptionButton('bgs', 'BGS', selectedOptions, 'Graded Slabs'),
-            _buildOptionButton('cgc', 'CGC', selectedOptions, 'Graded Slabs'),
-            _buildOptionButton('pgc', 'PGC', selectedOptions, 'Graded Slabs'),
-          ],
-        ),
-      ],
-    );
-  }
-
-  Widget _buildRaritySection() {
-    final selectedOptions = _selections['Rarity'] ?? <String>{};
-    
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          'Rarity',
-          style: TextStyle(
-            fontSize: 24.sp,
-            fontWeight: FontWeight.w500,
-            color: const Color(0xFF212222),
-          ),
-        ),
-        SizedBox(height: 16.h),
-        Wrap(
-          spacing: 10.w,
-          runSpacing: 10.h,
-          children: [
-            _buildOptionButton('amazing', 'Amazing', selectedOptions, 'Rarity'),
-            _buildOptionButton('rainbow', 'Rainbow', selectedOptions, 'Rarity'),
-            _buildOptionButton('radiant_1', 'Radiant', selectedOptions, 'Rarity'),
-            _buildOptionButton('radiant_2', 'Radiant', selectedOptions, 'Rarity'),
-            _buildOptionButton('holo', 'Holo', selectedOptions, 'Rarity'),
-          ],
-        ),
-      ],
-    );
-  }
-
-  Widget _buildSeriesExpansionSection() {
-    final selectedOptions = _selections['Series & Expansion'] ?? <String>{};
-    
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          'Series & Expansion',
-          style: TextStyle(
-            fontSize: 24.sp,
-            fontWeight: FontWeight.w500,
-            color: const Color(0xFF212222),
-          ),
-        ),
-        SizedBox(height: 16.h),
-        Wrap(
-          spacing: 10.w,
-          runSpacing: 10.h,
-          children: [
-            _buildOptionButton('series_amazing_1', 'Amazing', selectedOptions, 'Series & Expansion'),
-            _buildOptionButton('series_amazing_2', 'Amazing', selectedOptions, 'Series & Expansion'),
-            _buildOptionButton('series_amazing_3', 'Amazing', selectedOptions, 'Series & Expansion'),
-            _buildOptionButton('series_amazing_4', 'Amazing', selectedOptions, 'Series & Expansion'),
-          ],
-        ),
-      ],
-    );
-  }
-
-  Widget _buildOptionButton(String id, String label, Set<String> selectedOptions, String sectionTitle) {
-    final isSelected = selectedOptions.contains(id);
-    
-    return GestureDetector(
-      onTap: () {
+    // View Graded Cards 开关分组
+    sections.add(_FilterSection(
+      title: 'View Graded Cards',
+      isToggleSection: true,
+      isInlineToggle: true, // 标题和开关在同一行
+      toggleValue: _viewGradedCardsEnabled,
+      onToggleChanged: (value) {
         setState(() {
-          if (isSelected) {
-            _selections[sectionTitle]?.remove(id);
-            if (_selections[sectionTitle]?.isEmpty ?? false) {
-              _selections.remove(sectionTitle);
-            }
+          _viewGradedCardsEnabled = value;
+          if (_viewGradedCardsEnabled) {
+            _selections['View Graded Cards'] = {'view_graded_cards'};
           } else {
-            _selections[sectionTitle] = (_selections[sectionTitle] ?? <String>{})..add(id);
+            _selections.remove('View Graded Cards');
+            _selections.remove('Graded Slabs'); // 清除相关选择
           }
         });
       },
+    ));
+    
+    // Graded Slabs 分组（条件显示）
+    if (_viewGradedCardsEnabled) {
+      sections.add(_FilterSection(
+        title: 'Graded Slabs',
+        options: [
+          _FilterOption(id: 'psa', label: 'PSA'),
+          _FilterOption(id: 'bgs', label: 'BGS'),
+          _FilterOption(id: 'cgc', label: 'CGC'),
+          _FilterOption(id: 'pgc', label: 'PGC'),
+        ],
+      ));
+    }
+    
+    // Rarity 分组
+    sections.add(_FilterSection(
+      title: 'Rarity',
+      options: [
+        _FilterOption(id: 'amazing', label: 'Amazing'),
+        _FilterOption(id: 'rainbow', label: 'Rainbow'),
+        _FilterOption(id: 'radiant_1', label: 'Radiant'),
+        _FilterOption(id: 'radiant_2', label: 'Radiant'),
+        _FilterOption(id: 'holo', label: 'Holo'),
+      ],
+    ));
+    
+    // Series & Expansion 分组
+    sections.add(_FilterSection(
+      title: 'Series & Expansion',
+      options: [
+        _FilterOption(id: 'series_amazing_1', label: 'Amazing'),
+        _FilterOption(id: 'series_amazing_2', label: 'Amazing'),
+        _FilterOption(id: 'series_amazing_3', label: 'Amazing'),
+        _FilterOption(id: 'series_amazing_4', label: 'Amazing'),
+      ],
+    ));
+    
+    return sections;
+  }
+  
+  /// 构建筛选分组
+  Widget _buildFilterSection(_FilterSection section) {
+    final theme = Theme.of(context);
+    
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // 如果是内联开关分组（标题和开关在同一行）
+        if (section.isToggleSection && section.isInlineToggle)
+          Padding(
+            padding: EdgeInsets.only(left: 8.w),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  section.title, 
+                  style: theme.textTheme.titleMedium?.copyWith(
+                    color: const Color(0xFF212222),
+                    fontWeight: FontWeight.w500,
+                    fontSize: 24.sp, // 根据Figma设计稿调整
+                  ),
+                ),
+                _buildToggleSwitch(section.toggleValue!, section.onToggleChanged!),
+              ],
+            ),
+          )
+        else ...[
+          // 普通标题
+          Padding(
+            padding: EdgeInsets.only(left: 8.w),
+            child: Text(
+              section.title, 
+              style: theme.textTheme.titleMedium?.copyWith(
+                color: const Color(0xFF212222),
+                fontWeight: FontWeight.w500,
+                fontSize: 24.sp, // 根据Figma设计稿调整
+              ),
+            ),
+          ),
+          SizedBox(height: 20.h),
+          
+          // 如果是非内联开关分组
+          if (section.isToggleSection) 
+            _buildToggleSwitch(section.toggleValue!, section.onToggleChanged!)
+          else if (section.title == 'Series & Expansion')
+            // Series & Expansion 模块：每个选项单独一行显示
+            Column(
+              children: [
+                for (int i = 0; i < section.options!.length; i++) ...[
+                  if (i > 0) SizedBox(height: 20.h), // 选项间距
+                  Align(
+                    alignment: Alignment.centerLeft,
+                    child: _buildSelectableChip(
+                      label: section.options![i].label,
+                      selected: (_selections[section.title] ?? <String>{}).contains(section.options![i].id),
+                      onTap: () => _toggleOption(section.title, section.options![i].id),
+                    ),
+                  ),
+                ],
+              ],
+            )
+          else
+            // 其他模块：使用网格布局来更好地控制间距和对齐
+            Wrap(
+              spacing: 20.w, // 根据Figma设计调整间距
+              runSpacing: 20.h, // 垂直间距
+              alignment: WrapAlignment.start,
+              children: [
+                for (final opt in section.options!)
+                  _buildSelectableChip(
+                    label: opt.label,
+                    selected: (_selections[section.title] ?? <String>{}).contains(opt.id),
+                    onTap: () => _toggleOption(section.title, opt.id),
+                  ),
+              ],
+            ),
+        ],
+      ],
+    );
+  }
+  
+  /// 构建开关控件
+  Widget _buildToggleSwitch(bool value, ValueChanged<bool> onChanged) {
+    return GestureDetector(
+      onTap: () => onChanged(!value),
       child: Container(
-        height: 54.h,
-        constraints: BoxConstraints(
-          minWidth: 80.w, // 最小宽度
-        ),
-        padding: EdgeInsets.symmetric(horizontal: 24.w),
+        width: 60.w,
+        height: 32.h,
         decoration: BoxDecoration(
-          color: isSelected ? const Color(0xFF0DEE80) : const Color(0xFFF4F4F4),
-          borderRadius: BorderRadius.circular(47.r),
+          color: value 
+              ? const Color(0xFF0DEE80) 
+              : const Color(0xFFE0E0E0),
+          borderRadius: BorderRadius.circular(16.r),
+          border: Border.all(
+            color: value 
+                ? const Color(0xFF0DEE80) 
+                : const Color(0xFFCCCCCC),
+            width: 1,
+          ),
         ),
-        child: Center(
-          child: Text(
-            label,
-            style: TextStyle(
-              fontSize: 24.sp,
-              color: isSelected ? Colors.white : const Color(0xFF212222),
+        child: Stack(
+          children: [
+            AnimatedPositioned(
+              duration: const Duration(milliseconds: 200),
+              curve: Curves.easeInOut,
+              left: value ? 30.w : 2.w,
+              top: 2.h,
+              child: Container(
+                width: 28.w,
+                height: 28.h,
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(14.r),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.2),
+                      blurRadius: 4,
+                      offset: const Offset(0, 2),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+  
+  /// 构建可选择的芯片
+  Widget _buildSelectableChip({
+    required String label,
+    required bool selected,
+    required VoidCallback onTap,
+  }) {
+    final theme = Theme.of(context);
+    
+    return Container(
+      height: 54.h, // 根据Figma设计的高度
+      constraints: BoxConstraints(
+        minWidth: 99.w, // 最小宽度，根据Figma中最小的chip
+        maxWidth: 143.w, // 最大宽度，根据Figma中最大的chip
+      ),
+      decoration: BoxDecoration(
+        color: selected ? const Color(0xFF0DEE80) : const Color(0xFFF4F4F4),
+        borderRadius: BorderRadius.circular(27.r), // 完全圆角
+      ),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(27.r),
+          child: Container(
+            padding: EdgeInsets.symmetric(horizontal: 24.w, vertical: 13.h),
+            child: Center(
+              child: Text(
+                label,
+                style: theme.textTheme.bodyLarge?.copyWith(
+                  color: const Color(0xFF212222),
+                  fontWeight: FontWeight.w400,
+                  fontSize: 24.sp, // 根据Figma设计稿调整
+                ),
+              ),
             ),
           ),
         ),
       ),
     );
+  }
+  
+  /// 切换选项状态
+  void _toggleOption(String sectionTitle, String optionId) {
+    setState(() {
+      final currentSelections = _selections[sectionTitle] ?? <String>{};
+      if (currentSelections.contains(optionId)) {
+        currentSelections.remove(optionId);
+        if (currentSelections.isEmpty) {
+          _selections.remove(sectionTitle);
+        }
+      } else {
+        _selections[sectionTitle] = currentSelections..add(optionId);
+      }
+    });
   }
 
-  Widget _buildBottomButtons() {
-    return Container(
-      padding: EdgeInsets.all(30.w),
-      child: Row(
-        children: [
-          // Reset 按钮
-          Expanded(
-            child: GestureDetector(
-              onTap: () {
-                setState(() {
-                  _selections.clear();
-                  _viewGradedCardsEnabled = false;
-                });
-              },
-              child: Container(
-                height: 88.h,
-                decoration: BoxDecoration(
-                  color: const Color(0xFFF4F4F4),
-                  borderRadius: BorderRadius.circular(66.r),
-                ),
-                child: Center(
-                  child: Text(
-                    'Reset',
-                    style: TextStyle(
-                      fontSize: 28.sp,
-                      fontWeight: FontWeight.bold,
-                      color: const Color(0xFF090909),
-                    ),
-                  ),
-                ),
-              ),
-            ),
-          ),
-          
-          SizedBox(width: 20.w),
-          
-          // Confirm 按钮
-          Expanded(
-            child: GestureDetector(
-              onTap: () {
-                widget.onResult(_selections);
-              },
-              child: Container(
-                height: 88.h,
-                decoration: BoxDecoration(
-                  color: const Color(0xFF0DEE80),
-                  borderRadius: BorderRadius.circular(66.r),
-                ),
-                child: Center(
-                  child: Text(
-                    'Confirm',
-                    style: TextStyle(
-                      fontSize: 28.sp,
-                      fontWeight: FontWeight.bold,
-                      color: const Color(0xFF090909),
-                    ),
-                  ),
-                ),
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
 }

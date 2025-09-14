@@ -29,6 +29,9 @@ class ProductDetailCreateScreen extends ConsumerStatefulWidget {
   final bool isEditMode;
   final String? personalProductId;
   final Map<String, dynamic>? existingData;
+  
+  // SPU扩展数据
+  final Map<String, dynamic>? spuData;
 
   const ProductDetailCreateScreen({
     super.key,
@@ -39,6 +42,7 @@ class ProductDetailCreateScreen extends ConsumerStatefulWidget {
     this.isEditMode = false,
     this.personalProductId,
     this.existingData,
+    this.spuData,
   });
 
   @override
@@ -85,6 +89,9 @@ class _ProductDetailCreateScreenState
   // 设计图中的络色
   static const Color designGreen = Color(0xFF0DEE80);
   static const Color designOrange = Color(0xFFF86700);
+  
+  // SPU扩展数据（从路由extra参数获取）
+  Map<String, dynamic>? _spuData;
 
   @override
   void initState() {
@@ -93,8 +100,15 @@ class _ProductDetailCreateScreenState
     _personalProductService = PersonalProductService();
     _ratingCompanyService = RatingCompanyService();
     
-    // 如果是编辑模式，预填充数据
-    if (widget.isEditMode && widget.existingData != null) {
+    // 直接使用构造函数传递的SPU扩展数据
+    _spuData = widget.spuData;
+    AppLogger.i('ProductDetailCreateScreen初始化，SPU扩展数据: $_spuData');
+    
+    // 如果是编辑模式，通过API获取个人商品详情
+    if (widget.isEditMode && widget.personalProductId != null) {
+      _loadPersonalProductDetail();
+    } else if (widget.isEditMode && widget.existingData != null) {
+      // 兼容旧的数据传递方式
       _initializeEditData();
     }
     
@@ -104,7 +118,96 @@ class _ProductDetailCreateScreenState
     });
   }
   
-  /// 初始化编辑模式数据
+  /// 通过API加载个人商品详情
+  Future<void> _loadPersonalProductDetail() async {
+    if (widget.personalProductId == null) return;
+    
+    try {
+      setState(() {
+        _isLoading = true;
+        _errorMessage = null;
+      });
+      
+      AppLogger.i('正在通过API获取个人商品详情: ${widget.personalProductId}');
+      
+      // 调用API获取个人商品详情
+      final personalProduct = await _personalProductService.getPersonalProductDetail(widget.personalProductId!);
+      
+      // 使用API返回的数据初始化表单
+      _initializeEditDataFromPersonalProduct(personalProduct);
+      
+      setState(() {
+        _isLoading = false;
+      });
+      
+      AppLogger.i('成功获取个人商品详情并初始化表单');
+      
+    } catch (e) {
+      setState(() {
+        _isLoading = false;
+        _errorMessage = '获取商品详情失败: $e';
+      });
+      
+      AppLogger.e('获取个人商品详情失败', e);
+      
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('获取商品详情失败: $e'),
+            backgroundColor: Colors.red,
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(10.r),
+            ),
+          ),
+        );
+      }
+    }
+  }
+  
+  /// 从PersonalProduct对象初始化编辑模式数据
+  void _initializeEditDataFromPersonalProduct(PersonalProduct product) {
+    // 预填充基本信息
+    _selectedType = _getTypeStringFromPersonalProductType(product.type);
+    _selectedCondition = _getConditionStringFromPersonalProductCondition(product.condition);
+    _listingStatus = product.status == PersonalProductStatus.listed;
+    
+    // 预填充评级信息
+    if (product.hasRatedCard) {
+      _selectedGradedBy = product.ratedCard!.ratingCompany.name;
+      _selectedGrade = product.ratedCard!.cardScore;
+      _serialNumber = product.ratedCard!.gradedCardNumber ?? '';
+      _serialNumberController.text = _serialNumber;
+    } else {
+      _selectedGradedBy = '';
+      _selectedGrade = '';
+      _serialNumber = '';
+      _serialNumberController.text = '';
+    }
+    
+    // 预填充价格和库存
+    _priceController.text = product.price.toString();
+    _stockController.text = product.quantity.toString();
+    
+    // 预填充备注
+    if (product.notes != null && product.notes!.isNotEmpty) {
+      _notesController.text = product.notes!;
+    }
+    
+    // 预填充封面照片设置（默认为false，实际应根据图片信息判断）
+    _setCoverPhoto = false;
+    
+    // 处理图片列表
+    if (product.hasImages) {
+      AppLogger.i('编辑模式：检测到${product.images.length}张现有图片');
+      // 注意：这里暂时不处理URL转File的逻辑，因为编辑模式下通常显示现有图片
+      // 如果需要编辑图片，用户可以重新选择
+    }
+    
+    AppLogger.i('成功从PersonalProduct初始化编辑数据');
+  }
+  
+  /// 初始化编辑模式数据（兼容旧的数据传递方式）
   void _initializeEditData() {
     final data = widget.existingData!;
     
@@ -137,8 +240,13 @@ class _ProductDetailCreateScreenState
     // 预填充封面照片设置
     _setCoverPhoto = data['setCoverPhoto'] ?? false;
     
-    // TODO: 预填充图片列表（需要从URL转换为File对象）
-    // _selectedImages = ...
+    // 预填充图片列表（从URL列表处理）
+    if (data['imageUrls'] != null && data['imageUrls'] is List) {
+      final imageUrls = data['imageUrls'] as List;
+      // 注意：这里暂时不处理URL转File的逻辑，因为编辑模式下通常显示现有图片
+      // 如果需要编辑图片，用户可以重新选择
+      AppLogger.i('编辑模式：检测到${imageUrls.length}张现有图片');
+    }
   }
 
   @override
@@ -157,53 +265,162 @@ class _ProductDetailCreateScreenState
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.white,
-      body: CustomScrollView(
-        slivers: [
-          // 自定义AppBar
-          _buildSliverAppBar(),
-          // 主要内容
-          SliverToBoxAdapter(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // 商品信息展示区域
-                _buildProductInfoSection(),
-                // 分隔条
-                _buildSectionDivider(),
-                // Type & Condition 区域
-                _buildTypeConditionSection(),
-                 // 分隔条
-                _buildSectionDivider(),
-                if (_selectedType == 'Graded') ...[
-                // Serial Number区域容器
-                _buildSerialNumberInput(),
-                // 分隔条
-                _buildSectionDivider(),
-                // Price区域（仅在Graded类型时显示）
-                _buildGradedPriceSection(),
-                ],
-                // 分隔条
-                _buildSectionDivider(),
-                // Price & Stock 区域（在Raw和Sealed类型时显示）
-                if (_selectedType == 'Raw' || _selectedType == 'Sealed') _buildPriceStockSection(),
-                // 分隔条
-                if (_selectedType == 'Raw' || _selectedType == 'Sealed') _buildSectionDivider(),
-                // Notes to Buyer 区域
-                _buildNotesSection(),
-                // 分隔条
-                _buildSectionDivider(),
-                // Upload Item Photo 区域
-                _buildPhotoUploadSection(),
-                // Done按钮区域
-                _buildDoneButtonSection(),
-                // 底部安全区域间距
-                SizedBox(height: MediaQuery.of(context).padding.bottom + 20.h),
+      body: _isLoading && widget.isEditMode
+          ? _buildLoadingView()
+          : CustomScrollView(
+              slivers: [
+                // 自定义AppBar
+                _buildSliverAppBar(),
+                // 主要内容
+                SliverToBoxAdapter(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // 商品信息展示区域
+                      _buildProductInfoSection(),
+                      // 分隔条
+                      _buildSectionDivider(),
+                      // Type & Condition 区域
+                      _buildTypeConditionSection(),
+                      // 分隔条
+                      _buildSectionDivider(),
+                      if (_selectedType == 'Graded') ...[
+                        // Serial Number区域容器
+                        _buildSerialNumberInput(),
+                        // 分隔条
+                        _buildSectionDivider(),
+                        // Price区域（仅在Graded类型时显示）
+                        _buildGradedPriceSection(),
+                      ],
+                      // 分隔条
+                      _buildSectionDivider(),
+                      // Price & Stock 区域（在Raw和Sealed类型时显示）
+                      if (_selectedType == 'Raw' || _selectedType == 'Sealed') _buildPriceStockSection(),
+                      // 分隔条
+                      if (_selectedType == 'Raw' || _selectedType == 'Sealed') _buildSectionDivider(),
+                      // Notes to Buyer 区域
+                      _buildNotesSection(),
+                      // 分隔条
+                      _buildSectionDivider(),
+                      // Upload Item Photo 区域
+                      _buildPhotoUploadSection(),
+                      // Done按钮区域
+                      _buildDoneButtonSection(),
+                      // 底部安全区域间距
+                      SizedBox(height: MediaQuery.of(context).padding.bottom + 20.h),
+                    ],
+                  ),
+                ),
               ],
             ),
+    );
+  }
+
+  /// 构建加载视图
+  Widget _buildLoadingView() {
+    return Scaffold(
+      backgroundColor: Colors.white,
+      appBar: AppBar(
+        backgroundColor: Colors.white,
+        elevation: 0,
+        title: Text(
+          widget.isEditMode ? 'Adjust Listing' : 'Edit Listing',
+          style: TextStyle(
+            color: const Color(0xFF212222),
+            fontSize: 36.sp,
+            fontWeight: FontWeight.w500,
+            fontFamily: 'Roboto',
           ),
-        ],
+        ),
+        centerTitle: true,
+        leading: IconButton(
+          icon: Icon(
+            Icons.arrow_back_ios,
+            color: Colors.grey[700],
+            size: 20.sp,
+          ),
+          onPressed: () => Navigator.of(context).pop(),
+        ),
+      ),
+      body: Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            CircularProgressIndicator(
+              valueColor: AlwaysStoppedAnimation<Color>(designGreen),
+            ),
+            SizedBox(height: 20.h),
+            Text(
+              '正在加载商品详情...',
+              style: TextStyle(
+                fontSize: 16.sp,
+                color: Colors.grey[600],
+              ),
+            ),
+            if (_errorMessage != null) ...[
+              SizedBox(height: 20.h),
+              Container(
+                margin: EdgeInsets.symmetric(horizontal: 40.w),
+                padding: EdgeInsets.all(16.w),
+                decoration: BoxDecoration(
+                  color: Colors.red.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(8.r),
+                  border: Border.all(color: Colors.red.withOpacity(0.3)),
+                ),
+                child: Column(
+                  children: [
+                    Icon(
+                      Icons.error_outline,
+                      color: Colors.red,
+                      size: 32.sp,
+                    ),
+                    SizedBox(height: 8.h),
+                    Text(
+                      _errorMessage!,
+                      style: TextStyle(
+                        fontSize: 14.sp,
+                        color: Colors.red[700],
+                      ),
+                      textAlign: TextAlign.center,
+                    ),
+                    SizedBox(height: 16.h),
+                    ElevatedButton(
+                      onPressed: () => _loadPersonalProductDetail(),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: designGreen,
+                        foregroundColor: Colors.black,
+                      ),
+                      child: Text('重试'),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ],
+        ),
       ),
     );
+  }
+  
+  /// 获取SPU等级信息
+  String _getSpuLevel() {
+    // 优先从SPU扩展数据获取
+    if (_spuData != null && _spuData!['level'] != null) {
+      final level = _spuData!['level'] as String;
+      if (level.isNotEmpty) return level;
+    }
+    
+    // 如果没有扩展数据，返回空字符串
+    return '';
+  }
+  
+  /// 获取SPU类别信息
+  List<String> _getSpuCategories() {
+    if (_spuData != null && _spuData!['categories'] != null) {
+      final categories = _spuData!['categories'] as List<dynamic>;
+      return categories.map((cat) => cat['displayName'] as String).toList();
+    }
+    return ['Pokémon']; // 默认类别
   }
 
   /// 构建SliverAppBar
@@ -328,9 +545,10 @@ class _ProductDetailCreateScreenState
                   overflow: TextOverflow.ellipsis,
                 ),
                 SizedBox(height: 8.h),
-                // 商品编码和稀有度 - 分开显示
+                // 商品编码和等级信息 - 动态显示
                 Row(
                   children: [
+                    // 商品编码
                     Text(
                       widget.spuCode,
                       style: TextStyle(
@@ -339,24 +557,55 @@ class _ProductDetailCreateScreenState
                         fontFamily: 'Roboto',
                       ),
                     ),
-                    SizedBox(width: 24.w),
-                    Text(
-                      'Rainbow',
-                      style: TextStyle(
-                        fontSize: 24.sp,
-                        color: const Color(0xFF919191),
-                        fontFamily: 'Roboto',
+                    // 如果有等级信息，显示等级
+                    if (_getSpuLevel().isNotEmpty) ...[
+                      SizedBox(width: 24.w),
+                      Container(
+                        padding: EdgeInsets.symmetric(horizontal: 8.w, vertical: 2.h),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFF919191).withOpacity(0.1),
+                          borderRadius: BorderRadius.circular(4.r),
+                        ),
+                        child: Text(
+                          _getSpuLevel(),
+                          style: TextStyle(
+                            fontSize: 20.sp,
+                            color: const Color(0xFF919191),
+                            fontFamily: 'Roboto',
+                          ),
+                        ),
                       ),
-                    ),
+                    ],
+                    // 默认显示稀有度（如果没有其他信息）
+                    if (_getSpuLevel().isEmpty) ...[
+                      SizedBox(width: 24.w),
+                      Text(
+                        'Rainbow',
+                        style: TextStyle(
+                          fontSize: 24.sp,
+                          color: const Color(0xFF919191),
+                          fontFamily: 'Roboto',
+                        ),
+                      ),
+                    ],
                   ],
                 ),
                 SizedBox(height: 32.h), // 增加间距
-                // 标签区域 - 按设计图样式
+                // 标签区域 - 动态显示SPU类别信息
                 Row(
                   children: [
-                    _buildInfoTag('Pokémon'),
-                    SizedBox(width: 12.w),
+                    // 显示第一个类别（如果有的话）
+                    if (_getSpuCategories().isNotEmpty)
+                      _buildInfoTag(_getSpuCategories().first),
+                    if (_getSpuCategories().isNotEmpty)
+                      SizedBox(width: 12.w),
+                    // 语言标签
                     _buildInfoTag('EN'),
+                    // 如果有多个类别，显示更多标签
+                    if (_getSpuCategories().length > 1) ...[
+                      SizedBox(width: 12.w),
+                      _buildInfoTag(_getSpuCategories()[1]),
+                    ],
                   ],
                 ),
                 SizedBox(height: 24.h),
@@ -1037,6 +1286,9 @@ class _ProductDetailCreateScreenState
           _selectedGradedBy = isSelected ? '' : gradedBy;
           // 当选择不同的评级公司时，清空当前选择的等级
           if (!isSelected) {
+            _selectedGrade = '';
+          } else {
+            // 取消选择评级公司时，也清空等级
             _selectedGrade = '';
           }
         });
@@ -1840,6 +2092,8 @@ class _ProductDetailCreateScreenState
         _showErrorSnackBar('请选择等级');
         return;
       }
+      // 确保序列号字段与控制器同步
+      _serialNumber = _serialNumberController.text.trim();
       if (_serialNumber.isEmpty) {
         _showErrorSnackBar('请输入序列号');
         return;
@@ -1869,6 +2123,9 @@ class _ProductDetailCreateScreenState
 
   /// 构建商品详情数据
   Map<String, dynamic> _buildProductDetailData() {
+    // 确保序列号与控制器同步
+    _serialNumber = _serialNumberController.text.trim();
+    
     return {
       'spuId': widget.spuId,
       'spuName': widget.spuName,
@@ -2103,7 +2360,9 @@ class _ProductDetailCreateScreenState
       ratedCard = RatedCard(
         ratingCompany: ratingCompany,
         cardScore: _selectedGrade,
-        gradedCardNumber: _serialNumber,
+        gradedCardNumber: _serialNumberController.text.trim().isNotEmpty 
+            ? _serialNumberController.text.trim() 
+            : '',
         ratingInfos: [],
       );
     }
@@ -2182,7 +2441,9 @@ class _ProductDetailCreateScreenState
       ratedCard = RatedCard(
         ratingCompany: ratingCompany,
         cardScore: _selectedGrade,
-        gradedCardNumber: _serialNumber,
+        gradedCardNumber: _serialNumberController.text.trim().isNotEmpty 
+            ? _serialNumberController.text.trim() 
+            : '',
         ratingInfos: [],
       );
     }
@@ -2287,6 +2548,32 @@ class _ProductDetailCreateScreenState
       orElse: () => throw Exception('未找到评级公司: $gradedBy'),
     );
     return company.id;
+  }
+
+  /// 将PersonalProductType转换为字符串
+  String _getTypeStringFromPersonalProductType(PersonalProductType type) {
+    switch (type) {
+      case PersonalProductType.rawCard:
+        return 'Raw';
+      case PersonalProductType.box:
+        return 'Sealed';
+      case PersonalProductType.ratedCard:
+        return 'Graded';
+    }
+  }
+
+  /// 将PersonalProductCondition转换为字符串
+  String _getConditionStringFromPersonalProductCondition(PersonalProductCondition condition) {
+    switch (condition) {
+      case PersonalProductCondition.mint:
+        return 'Mint';
+      case PersonalProductCondition.nearMint:
+        return 'Near Mint';
+      case PersonalProductCondition.lightlyPlayed:
+        return 'Lightly Played';
+      case PersonalProductCondition.damaged:
+        return 'Damaged';
+    }
   }
 
   /// 获取当前用户ID

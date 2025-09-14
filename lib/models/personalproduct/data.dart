@@ -825,6 +825,32 @@ class UpdatePersonalProductManualParams {
   }
 }
 
+/// 个人商品批量更新参数（移动端专用）
+/// 对应 TypeScript: UpdatePersonalProductManualParams & { id: string }
+class BatchUpdatePersonalProductManualParams extends UpdatePersonalProductManualParams {
+  /// 个人商品ID（必填）
+  final String id;
+
+  const BatchUpdatePersonalProductManualParams({
+    required this.id,
+    super.condition,
+    super.ratedCard,
+    super.price,
+    super.quantity,
+    super.notes,
+    super.images,
+    super.status,
+    super.isMainImage,
+  });
+
+  @override
+  Map<String, dynamic> toJson() {
+    final json = super.toJson();
+    json['id'] = id;
+    return json;
+  }
+}
+
 // 其他更新参数类型（省略具体实现，与TypeScript版本对应）...
 
 /// 分页查询个人商品参数

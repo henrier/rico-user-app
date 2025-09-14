@@ -56,6 +56,15 @@ class _BatchAddProductScreenState extends ConsumerState<BatchAddProductScreen> {
   bool _isEditMode = false;
   List<PersonalProduct>? _selectedPersonalProducts;
   
+  // Notes输入框控制器列表
+  List<TextEditingController> _notesControllers = [];
+  
+  // Price输入框控制器列表
+  List<TextEditingController> _priceControllers = [];
+  
+  // Stock输入框控制器列表
+  List<TextEditingController> _stockControllers = [];
+  
   // 商品列表
   final List<ProductItem> _productList = [
     ProductItem(
@@ -111,8 +120,16 @@ class _BatchAddProductScreenState extends ConsumerState<BatchAddProductScreen> {
     _productInfoService = ProductInfoService();
     _personalProductService = PersonalProductService();
     _initializeFromRouteData();
-    // 临时设置为Sealed Products模式以展示功能
-    _selectedProductType = 'Sealed';
+    
+    // 如果不是编辑模式，默认设置为Raw模式
+    if (!_isEditMode) {
+      _selectedProductType = 'Raw';
+    }
+    
+    // 初始化Notes、Price和Stock控制器
+    _initializeNotesControllers();
+    _initializePriceControllers();
+    _initializeStockControllers();
   }
 
   void _initializeFromRouteData() {
@@ -140,11 +157,11 @@ class _BatchAddProductScreenState extends ConsumerState<BatchAddProductScreen> {
               personalProduct.productInfo.name.english ?? 
               'Unknown Product',
         code: personalProduct.productInfo.code ?? 'N/A',
-        variant: 'Holo', // 从PersonalProduct中获取变体信息，这里暂时使用固定值
+        variant: _getVariantFromPersonalProduct(personalProduct), // 从PersonalProduct中获取变体信息
         condition: _mapConditionToString(personalProduct.condition),
         price: personalProduct.price,
         stock: personalProduct.quantity,
-        notes: '', // PersonalProduct中可能没有notes字段，使用空字符串
+        notes: _getNotesFromPersonalProduct(personalProduct), // 从PersonalProduct中获取备注信息
         imageUrl: personalProduct.images.isNotEmpty 
             ? personalProduct.images.first 
             : 'https://via.placeholder.com/164x228',
@@ -155,6 +172,18 @@ class _BatchAddProductScreenState extends ConsumerState<BatchAddProductScreen> {
       );
       _productList.add(productItem);
     }
+    
+    // 根据第一个商品设置页面的商品类型和条件
+    if (_selectedPersonalProducts!.isNotEmpty) {
+      final firstProduct = _selectedPersonalProducts!.first;
+      _selectedProductType = _mapPersonalProductTypeToPageType(firstProduct.type);
+      _selectedCondition = _mapConditionToString(firstProduct.condition);
+    }
+    
+    // 重新初始化Notes、Price和Stock控制器
+    _initializeNotesControllers();
+    _initializePriceControllers();
+    _initializeStockControllers();
   }
 
   String _mapConditionToString(PersonalProductCondition condition) {
@@ -205,10 +234,105 @@ class _BatchAddProductScreenState extends ConsumerState<BatchAddProductScreen> {
     }
   }
 
+  /// 从PersonalProduct获取变体信息
+  String _getVariantFromPersonalProduct(PersonalProduct personalProduct) {
+    // 根据商品类型和评级信息确定变体
+    switch (personalProduct.type) {
+      case PersonalProductType.ratedCard:
+        // 评级卡显示评级公司和分数
+        if (personalProduct.ratedCard != null) {
+          final ratedCard = personalProduct.ratedCard!;
+          return '${ratedCard.ratingCompany.name} ${ratedCard.cardScore}';
+        }
+        return 'Graded';
+      case PersonalProductType.rawCard:
+        // 原卡显示稀有度或其他特征
+        return 'Holo'; // 可以根据ProductInfo中的稀有度信息来设置
+      case PersonalProductType.box:
+        // 盒装商品显示包装类型
+        return 'Sealed';
+    }
+  }
+
+  /// 从PersonalProduct获取备注信息
+  String _getNotesFromPersonalProduct(PersonalProduct personalProduct) {
+    // PersonalProduct中有notes字段
+    return personalProduct.notes;
+  }
+
+  /// 将PersonalProductType映射为页面显示的商品类型
+  String _mapPersonalProductTypeToPageType(PersonalProductType type) {
+    switch (type) {
+      case PersonalProductType.rawCard:
+        return 'Raw';
+      case PersonalProductType.ratedCard:
+        return 'Graded Slabs';
+      case PersonalProductType.box:
+        return 'Sealed';
+    }
+  }
+
+  /// 初始化Notes控制器
+  void _initializeNotesControllers() {
+    // 清空现有控制器
+    for (var controller in _notesControllers) {
+      controller.dispose();
+    }
+    _notesControllers.clear();
+    
+    // 为每个商品创建Notes控制器
+    for (int i = 0; i < _productList.length; i++) {
+      final controller = TextEditingController(text: _productList[i].notes);
+      _notesControllers.add(controller);
+    }
+  }
+
+  /// 初始化Price控制器
+  void _initializePriceControllers() {
+    // 清空现有控制器
+    for (var controller in _priceControllers) {
+      controller.dispose();
+    }
+    _priceControllers.clear();
+    
+    // 为每个商品创建Price控制器
+    for (int i = 0; i < _productList.length; i++) {
+      final controller = TextEditingController(text: _productList[i].price.toString());
+      _priceControllers.add(controller);
+    }
+  }
+
+  /// 初始化Stock控制器
+  void _initializeStockControllers() {
+    // 清空现有控制器
+    for (var controller in _stockControllers) {
+      controller.dispose();
+    }
+    _stockControllers.clear();
+    
+    // 为每个商品创建Stock控制器
+    for (int i = 0; i < _productList.length; i++) {
+      final controller = TextEditingController(text: _productList[i].stock.toString());
+      _stockControllers.add(controller);
+    }
+  }
+
   @override
   void dispose() {
     _productInfoService.dispose();
     _personalProductService.dispose();
+    // 释放Notes控制器
+    for (var controller in _notesControllers) {
+      controller.dispose();
+    }
+    // 释放Price控制器
+    for (var controller in _priceControllers) {
+      controller.dispose();
+    }
+    // 释放Stock控制器
+    for (var controller in _stockControllers) {
+      controller.dispose();
+    }
     super.dispose();
   }
 
@@ -920,6 +1044,8 @@ class _BatchAddProductScreenState extends ConsumerState<BatchAddProductScreen> {
                         borderRadius: BorderRadius.circular(47.r),
                       ),
                       child: TextField(
+                        controller: index < _priceControllers.length ? _priceControllers[index] : null,
+                        keyboardType: TextInputType.numberWithOptions(decimal: true),
                         decoration: InputDecoration(
                           hintText: 'RM ${product.price}',
                           hintStyle: TextStyle(
@@ -930,6 +1056,27 @@ class _BatchAddProductScreenState extends ConsumerState<BatchAddProductScreen> {
                           contentPadding: EdgeInsets.symmetric(horizontal: 16.w),
                         ),
                         style: TextStyle(fontSize: 20.sp),
+                        onChanged: (value) {
+                          // 更新ProductItem中的price值
+                          if (index < _productList.length) {
+                            final price = double.tryParse(value) ?? _productList[index].price;
+                            _productList[index] = ProductItem(
+                              id: _productList[index].id,
+                              name: _productList[index].name,
+                              code: _productList[index].code,
+                              variant: _productList[index].variant,
+                              condition: _productList[index].condition,
+                              price: price, // 更新price值
+                              stock: _productList[index].stock,
+                              notes: _productList[index].notes,
+                              imageUrl: _productList[index].imageUrl,
+                              type: _productList[index].type,
+                              cardLanguage: _productList[index].cardLanguage,
+                              categories: _productList[index].categories,
+                              images: _productList[index].images,
+                            );
+                          }
+                        },
                       ),
                     ),
                     SizedBox(width: 20.w),
@@ -1005,15 +1152,45 @@ class _BatchAddProductScreenState extends ConsumerState<BatchAddProductScreen> {
                                 ),
                               ),
                             ),
-                            // 数量显示
+                            // 数量输入框
                             Expanded(
-                              child: Text(
-                                '1',
+                              child: TextField(
+                                controller: index < _stockControllers.length ? _stockControllers[index] : null,
+                                keyboardType: TextInputType.number,
                                 textAlign: TextAlign.center,
                                 style: TextStyle(
                                   fontSize: 24.sp,
                                   color: Colors.black,
                                 ),
+                                decoration: InputDecoration(
+                                  border: InputBorder.none,
+                                  hintText: '1',
+                                  hintStyle: TextStyle(
+                                    fontSize: 24.sp,
+                                    color: Colors.black,
+                                  ),
+                                ),
+                                onChanged: (value) {
+                                  // 更新ProductItem中的stock值
+                                  if (index < _productList.length) {
+                                    final stock = int.tryParse(value) ?? _productList[index].stock;
+                                    _productList[index] = ProductItem(
+                                      id: _productList[index].id,
+                                      name: _productList[index].name,
+                                      code: _productList[index].code,
+                                      variant: _productList[index].variant,
+                                      condition: _productList[index].condition,
+                                      price: _productList[index].price,
+                                      stock: stock, // 更新stock值
+                                      notes: _productList[index].notes,
+                                      imageUrl: _productList[index].imageUrl,
+                                      type: _productList[index].type,
+                                      cardLanguage: _productList[index].cardLanguage,
+                                      categories: _productList[index].categories,
+                                      images: _productList[index].images,
+                                    );
+                                  }
+                                },
                               ),
                             ),
                             // 加号按钮
@@ -1105,15 +1282,45 @@ class _BatchAddProductScreenState extends ConsumerState<BatchAddProductScreen> {
                               ),
                             ),
                           ),
-                          // 数量显示
+                          // 数量输入框
                           Expanded(
-                            child: Text(
-                              '${product.stock}',
+                            child: TextField(
+                              controller: index < _stockControllers.length ? _stockControllers[index] : null,
+                              keyboardType: TextInputType.number,
                               textAlign: TextAlign.center,
                               style: TextStyle(
                                 fontSize: 24.sp,
                                 color: Colors.black,
                               ),
+                              decoration: InputDecoration(
+                                border: InputBorder.none,
+                                hintText: '${product.stock}',
+                                hintStyle: TextStyle(
+                                  fontSize: 24.sp,
+                                  color: Colors.black,
+                                ),
+                              ),
+                              onChanged: (value) {
+                                // 更新ProductItem中的stock值
+                                if (index < _productList.length) {
+                                  final stock = int.tryParse(value) ?? _productList[index].stock;
+                                  _productList[index] = ProductItem(
+                                    id: _productList[index].id,
+                                    name: _productList[index].name,
+                                    code: _productList[index].code,
+                                    variant: _productList[index].variant,
+                                    condition: _productList[index].condition,
+                                    price: _productList[index].price,
+                                    stock: stock, // 更新stock值
+                                    notes: _productList[index].notes,
+                                    imageUrl: _productList[index].imageUrl,
+                                    type: _productList[index].type,
+                                    cardLanguage: _productList[index].cardLanguage,
+                                    categories: _productList[index].categories,
+                                    images: _productList[index].images,
+                                  );
+                                }
+                              },
                             ),
                           ),
                           // 加号按钮
@@ -1183,6 +1390,7 @@ class _BatchAddProductScreenState extends ConsumerState<BatchAddProductScreen> {
                           borderRadius: BorderRadius.circular(47.r),
                         ),
                         child: TextField(
+                          controller: index < _notesControllers.length ? _notesControllers[index] : null,
                           decoration: InputDecoration(
                             hintText: 'Up to 50 characters',
                             hintStyle: TextStyle(
@@ -1193,6 +1401,26 @@ class _BatchAddProductScreenState extends ConsumerState<BatchAddProductScreen> {
                             contentPadding: EdgeInsets.symmetric(horizontal: 16.w),
                           ),
                           style: TextStyle(fontSize: 22.sp),
+                          onChanged: (value) {
+                            // 更新ProductItem中的notes值
+                            if (index < _productList.length) {
+                              _productList[index] = ProductItem(
+                                id: _productList[index].id,
+                                name: _productList[index].name,
+                                code: _productList[index].code,
+                                variant: _productList[index].variant,
+                                condition: _productList[index].condition,
+                                price: _productList[index].price,
+                                stock: _productList[index].stock,
+                                notes: value, // 更新notes值
+                                imageUrl: _productList[index].imageUrl,
+                                type: _productList[index].type,
+                                cardLanguage: _productList[index].cardLanguage,
+                                categories: _productList[index].categories,
+                                images: _productList[index].images,
+                              );
+                            }
+                          },
                         ),
                       ),
                     ),
@@ -1446,45 +1674,37 @@ class _BatchAddProductScreenState extends ConsumerState<BatchAddProductScreen> {
     });
 
     try {
-      List<String> updatedProductIds = [];
-      List<String> errors = [];
-
-      // 逐个更新商品
+      // 构建批量更新参数列表
+      List<BatchUpdatePersonalProductManualParams> paramsList = [];
+      
       for (int i = 0; i < _productList.length; i++) {
         final product = _productList[i];
         
-        try {
-          // 构建更新参数
-          final updateParams = UpdatePersonalProductManualParams(
-            price: product.price,
-            quantity: product.stock,
-            condition: _mapStringToPersonalProductCondition(_selectedCondition),
-            images: product.images ?? [],
-            notes: product.notes,
-          );
-          
-          // 调用单个更新API
-          await _personalProductService.updatePersonalProductForMobile(
-            product.id, 
-            updateParams
-          );
-          
-          updatedProductIds.add(product.id);
-        } catch (e) {
-          errors.add('商品 ${i + 1}: ${e.toString()}');
-        }
+        // 构建更新参数（包含商品ID）
+        final updateParams = BatchUpdatePersonalProductManualParams(
+          id: product.id,  // 必须包含商品ID
+          price: product.price,
+          quantity: product.stock,
+          condition: _mapStringToPersonalProductCondition(_selectedCondition),
+          images: product.images ?? [],
+          notes: product.notes,
+        );
+        
+        paramsList.add(updateParams);
       }
+
+      // 调用批量更新API
+      await _personalProductService.batchUpdatePersonalProductForMobile(paramsList);
       
       setState(() {
         _isLoading = false;
       });
 
-      // 显示结果
-      if (updatedProductIds.isNotEmpty) {
-        _showBatchUpdateResult(updatedProductIds, errors);
-      } else {
-        _showErrorSnackBar('所有商品更新失败');
-      }
+      // 显示成功结果
+      _showBatchUpdateResult(
+        _productList.map((product) => product.id).toList(), 
+        []
+      );
 
     } catch (e) {
       setState(() {
@@ -2168,37 +2388,114 @@ class _BatchAddProductScreenState extends ConsumerState<BatchAddProductScreen> {
   
   /// 应用批量价格编辑
   void _applyBulkPriceEdit(String priceType, String customPrice) {
-    // 这里实现批量价格编辑逻辑
-    String message = '';
-    
-    if (priceType == 'Same Price') {
-      message = '已将所有商品价格设置为 RM $customPrice';
-      // 实际应用：更新所有商品的价格为customPrice
-    } else if (priceType == 'Suggested Price') {
-      message = '已将所有商品价格设置为建议价格';
-      // 实际应用：更新所有商品的价格为各自的建议价格
-    }
-    
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(
-          message,
-          style: TextStyle(fontSize: 14.sp),
+    setState(() {
+      String message = '';
+      
+      if (priceType == 'Same Price') {
+        // 使用自定义价格
+        final price = double.tryParse(customPrice) ?? 0.0;
+        message = '已将所有商品价格设置为 RM $customPrice';
+        
+        // 更新所有商品的price值
+        for (int i = 0; i < _productList.length; i++) {
+          _productList[i] = ProductItem(
+            id: _productList[i].id,
+            name: _productList[i].name,
+            code: _productList[i].code,
+            variant: _productList[i].variant,
+            condition: _productList[i].condition,
+            price: price, // 更新price值
+            stock: _productList[i].stock,
+            notes: _productList[i].notes,
+            imageUrl: _productList[i].imageUrl,
+            type: _productList[i].type,
+            cardLanguage: _productList[i].cardLanguage,
+            categories: _productList[i].categories,
+            images: _productList[i].images,
+          );
+          
+          // 更新对应的控制器文本
+          if (i < _priceControllers.length) {
+            _priceControllers[i].text = price.toString();
+          }
+        }
+      } else if (priceType == 'Suggested Price') {
+        message = '已将所有商品价格设置为建议价格';
+        
+        // 使用各自的建议价格（这里使用当前价格作为建议价格）
+        for (int i = 0; i < _productList.length; i++) {
+          final suggestedPrice = _productList[i].price; // 这里可以替换为实际的建议价格逻辑
+          
+          _productList[i] = ProductItem(
+            id: _productList[i].id,
+            name: _productList[i].name,
+            code: _productList[i].code,
+            variant: _productList[i].variant,
+            condition: _productList[i].condition,
+            price: suggestedPrice, // 使用建议价格
+            stock: _productList[i].stock,
+            notes: _productList[i].notes,
+            imageUrl: _productList[i].imageUrl,
+            type: _productList[i].type,
+            cardLanguage: _productList[i].cardLanguage,
+            categories: _productList[i].categories,
+            images: _productList[i].images,
+          );
+          
+          // 更新对应的控制器文本
+          if (i < _priceControllers.length) {
+            _priceControllers[i].text = suggestedPrice.toString();
+          }
+        }
+      }
+      
+      // 显示成功消息
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            message,
+            style: TextStyle(fontSize: 14.sp),
+          ),
+          backgroundColor: AppTheme.primaryColor,
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(10.r),
+          ),
         ),
-        backgroundColor: AppTheme.primaryColor,
-        behavior: SnackBarBehavior.floating,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(10.r),
-        ),
-      ),
-    );
+      );
+    });
   }
   
   /// 应用批量库存编辑
   void _applyBulkStockEdit(int stockValue) {
-    // 这里实现批量库存编辑逻辑
+    setState(() {
+      // 更新所有商品的stock值
+      for (int i = 0; i < _productList.length; i++) {
+        _productList[i] = ProductItem(
+          id: _productList[i].id,
+          name: _productList[i].name,
+          code: _productList[i].code,
+          variant: _productList[i].variant,
+          condition: _productList[i].condition,
+          price: _productList[i].price,
+          stock: stockValue, // 更新stock值
+          notes: _productList[i].notes,
+          imageUrl: _productList[i].imageUrl,
+          type: _productList[i].type,
+          cardLanguage: _productList[i].cardLanguage,
+          categories: _productList[i].categories,
+          images: _productList[i].images,
+        );
+        
+        // 更新对应的控制器文本
+        if (i < _stockControllers.length) {
+          _stockControllers[i].text = stockValue.toString();
+        }
+      }
+    });
+    
+    // 显示成功消息
     String message = '已将所有商品库存设置为 $stockValue';
-    // 实际应用：更新所有商品的库存为stockValue
     
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
@@ -2217,11 +2514,36 @@ class _BatchAddProductScreenState extends ConsumerState<BatchAddProductScreen> {
   
   /// 应用批量备注编辑
   void _applyBulkNotesEdit(String notesText) {
-    // 这里实现批量备注编辑逻辑
+    setState(() {
+      // 更新所有商品的notes值
+      for (int i = 0; i < _productList.length; i++) {
+        _productList[i] = ProductItem(
+          id: _productList[i].id,
+          name: _productList[i].name,
+          code: _productList[i].code,
+          variant: _productList[i].variant,
+          condition: _productList[i].condition,
+          price: _productList[i].price,
+          stock: _productList[i].stock,
+          notes: notesText, // 更新notes值
+          imageUrl: _productList[i].imageUrl,
+          type: _productList[i].type,
+          cardLanguage: _productList[i].cardLanguage,
+          categories: _productList[i].categories,
+          images: _productList[i].images,
+        );
+        
+        // 更新对应的控制器文本
+        if (i < _notesControllers.length) {
+          _notesControllers[i].text = notesText;
+        }
+      }
+    });
+    
+    // 显示成功消息
     String message = notesText.isEmpty 
         ? '已清空所有商品备注' 
         : '已将所有商品备注设置为: $notesText';
-    // 实际应用：更新所有商品的备注为notesText
     
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
