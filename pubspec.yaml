@@ -23,6 +23,7 @@ dependencies:
   # Network & Data
   dio: ^5.4.0
   shared_preferences: ^2.2.2
+  http: ^1.1.0
   
   # Utilities
   intl: ^0.18.1
@@ -32,13 +33,13 @@ dependencies:
   # Local Storage
   sqflite: ^2.3.0
   path: ^1.8.3
+  path_provider: ^2.1.1
   
   # Image & Media
   image_picker: ^1.0.4
   cached_network_image: ^3.3.0
   
   # File Upload & Storage
-  oss_flutter_sdk: ^6.4.1
   crypto: ^3.0.3
   mime: ^1.0.4
 

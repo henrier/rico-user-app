@@ -35,4 +35,25 @@ class AppLogger {
   static void f(String message, [dynamic error, StackTrace? stackTrace]) {
     _logger.f(message, error: error, stackTrace: stackTrace);
   }
+
+  // 添加完整方法名的别名，便于使用
+  static void debug(String message, [dynamic error, StackTrace? stackTrace]) {
+    d(message, error, stackTrace);
+  }
+  
+  static void info(String message, [dynamic error, StackTrace? stackTrace]) {
+    i(message, error, stackTrace);
+  }
+  
+  static void warning(String message, [dynamic error, StackTrace? stackTrace]) {
+    w(message, error, stackTrace);
+  }
+  
+  static void error(String message, [dynamic error, StackTrace? stackTrace]) {
+    e(message, error, stackTrace);
+  }
+  
+  static void fatal(String message, [dynamic error, StackTrace? stackTrace]) {
+    f(message, error, stackTrace);
+  }
 }

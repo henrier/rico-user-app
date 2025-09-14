@@ -4,6 +4,8 @@
 
 本文档介绍如何在Rico User App中使用阿里云OSS（Object Storage Service）进行文件上传功能。
 
+**当前状态：** 开发阶段 - 使用模拟上传功能，便于开发和测试。
+
 ## 功能特性
 
 - ✅ 支持单文件和批量文件上传
@@ -22,10 +24,14 @@
 
 ```yaml
 dependencies:
+  # Network & Data
+  dio: ^5.4.0
+  http: ^1.1.0
+  
   # File Upload & Storage
-  oss_flutter_sdk: ^6.4.1
   crypto: ^3.0.3
   mime: ^1.0.4
+  path_provider: ^2.1.1
 ```
 
 ### 2. 配置OSS参数
@@ -43,6 +49,29 @@ static const int ossMaxFileSize = 10 * 1024 * 1024; // 10MB
 ```
 
 **重要：** 请将 `YOUR_ACCESS_KEY_ID` 和 `YOUR_ACCESS_KEY_SECRET` 替换为你的阿里云OSS实际凭证。
+
+## 当前实现说明
+
+**开发阶段模拟功能：**
+
+当前的OSS上传功能使用模拟实现，主要用于：
+- 开发阶段的功能测试
+- UI交互流程验证
+- 避免在开发过程中产生实际的OSS费用
+
+模拟功能包括：
+- ✅ 文件选择和验证
+- ✅ 上传进度显示
+- ✅ 成功/失败状态反馈
+- ✅ 生成模拟的OSS URL格式
+
+**生产环境建议：**
+
+在生产环境中，建议：
+1. 使用后端API处理文件上传，避免在客户端暴露OSS凭证
+2. 实现STS临时凭证机制
+3. 添加文件安全扫描
+4. 配置CDN加速访问
 
 ### 3. 安全建议
 

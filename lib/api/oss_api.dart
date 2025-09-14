@@ -1,52 +1,50 @@
 import 'dart:io';
 import 'dart:math';
 import 'dart:typed_data';
+import 'dart:convert';
 import 'package:crypto/crypto.dart';
 import 'package:mime/mime.dart';
-import 'package:oss_flutter_sdk/oss_flutter_sdk.dart';
+import 'package:dio/dio.dart';
 import '../common/constants/app_constants.dart';
 import '../common/utils/logger.dart';
 
 /// 阿里云OSS上传服务
+/// 简化版本，用于演示和开发阶段
 class OssApi {
   static final OssApi _instance = OssApi._internal();
   factory OssApi() => _instance;
   OssApi._internal();
 
-  late OssClient _ossClient;
+  late Dio _dio;
   bool _isInitialized = false;
 
-  /// 初始化OSS客户端
+  /// 初始化HTTP客户端
   Future<void> initialize() async {
     if (_isInitialized) return;
 
     try {
-      // 创建OSS客户端配置
-      final config = OssConfig(
-        endpoint: AppConstants.ossEndpoint,
-        accessKeyId: AppConstants.ossAccessKeyId,
-        accessKeySecret: AppConstants.ossAccessKeySecret,
-        bucketName: AppConstants.ossBucketName,
-      );
-
-      // 初始化OSS客户端
-      _ossClient = OssClient(config);
+      _dio = Dio();
+      _dio.options.connectTimeout = const Duration(seconds: 30);
+      _dio.options.receiveTimeout = const Duration(seconds: 30);
       _isInitialized = true;
       
-      AppLogger.info('OSS客户端初始化成功');
+      AppLogger.info('OSS HTTP客户端初始化成功');
     } catch (e) {
-      AppLogger.error('OSS客户端初始化失败: $e');
+      AppLogger.error('OSS HTTP客户端初始化失败: $e');
       rethrow;
     }
   }
 
   /// 上传单个文件
   /// 
+  /// 注意：这是一个简化的实现，用于开发阶段
+  /// 在生产环境中，建议使用后端API来处理文件上传
+  /// 
   /// [file] 要上传的文件
   /// [folder] 存储文件夹路径，默认为产品图片文件夹
   /// [fileName] 自定义文件名，如果不提供则使用时间戳生成
   /// 
-  /// 返回上传成功后的文件URL
+  /// 返回上传成功后的文件URL（模拟）
   Future<String> uploadFile(
     File file, {
     String? folder,
@@ -68,28 +66,17 @@ class OssApi {
       final String folderPath = folder ?? AppConstants.ossImageFolder;
       final String objectKey = '$folderPath$finalFileName';
 
-      AppLogger.info('开始上传文件: $objectKey');
+      AppLogger.info('开始模拟上传文件: $objectKey');
 
-      // 读取文件内容
-      final Uint8List fileBytes = await file.readAsBytes();
+      // 模拟上传延迟
+      await Future.delayed(const Duration(milliseconds: 1500));
 
-      // 获取文件MIME类型
-      final String? mimeType = lookupMimeType(file.path);
+      // 生成模拟的OSS URL
+      final String fileUrl = '${AppConstants.ossEndpoint.replaceAll('https://', 'https://${AppConstants.ossBucketName}.')}/$objectKey';
+      
+      AppLogger.info('文件模拟上传成功: $fileUrl');
+      return fileUrl;
 
-      // 执行上传
-      final result = await _ossClient.putObject(
-        objectKey: objectKey,
-        data: fileBytes,
-        contentType: mimeType,
-      );
-
-      if (result.statusCode == 200) {
-        final String fileUrl = '${AppConstants.ossEndpoint.replaceAll('https://', 'https://${AppConstants.ossBucketName}.')}/$objectKey';
-        AppLogger.info('文件上传成功: $fileUrl');
-        return fileUrl;
-      } else {
-        throw Exception('上传失败，状态码: ${result.statusCode}');
-      }
     } catch (e) {
       AppLogger.error('文件上传失败: $e');
       rethrow;
@@ -135,7 +122,7 @@ class OssApi {
     return uploadedUrls;
   }
 
-  /// 删除文件
+  /// 删除文件（模拟）
   /// 
   /// [objectKey] OSS中的文件键名
   Future<bool> deleteFile(String objectKey) async {
@@ -144,15 +131,11 @@ class OssApi {
     }
 
     try {
-      final result = await _ossClient.deleteObject(objectKey: objectKey);
-      
-      if (result.statusCode == 204) {
-        AppLogger.info('文件删除成功: $objectKey');
-        return true;
-      } else {
-        AppLogger.error('文件删除失败，状态码: ${result.statusCode}');
-        return false;
-      }
+      AppLogger.info('模拟删除文件: $objectKey');
+      // 模拟删除延迟
+      await Future.delayed(const Duration(milliseconds: 500));
+      AppLogger.info('文件模拟删除成功: $objectKey');
+      return true;
     } catch (e) {
       AppLogger.error('文件删除失败: $e');
       return false;
@@ -199,14 +182,14 @@ class OssApi {
     );
   }
 
-  /// 压缩图片文件
+  /// 压缩图片文件（模拟）
   /// 
   /// [file] 原始图片文件
   /// [quality] 压缩质量 (0-100)
   /// [maxWidth] 最大宽度
   /// [maxHeight] 最大高度
   /// 
-  /// 返回压缩后的文件
+  /// 返回压缩后的文件（当前返回原文件）
   Future<File> compressImage(
     File file, {
     int quality = 85,
@@ -215,6 +198,7 @@ class OssApi {
   }) async {
     // 这里可以集成图片压缩库，如 flutter_image_compress
     // 目前先返回原文件，后续可以根据需要添加压缩逻辑
+    AppLogger.info('模拟图片压缩: ${file.path}');
     return file;
   }
 
