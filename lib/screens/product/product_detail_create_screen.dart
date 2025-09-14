@@ -16,13 +16,18 @@ import '../../models/i18n_string.dart';
 import '../../providers/auth_provider.dart';
 import '../../common/utils/logger.dart';
 
-/// 商品详情新增页面
+/// 商品详情新增/编辑页面
 /// 对应Figma设计中的"7 商品详情编辑 - raw 裸卡"页面
 class ProductDetailCreateScreen extends ConsumerStatefulWidget {
   final String spuId;
   final String spuName;
   final String spuCode;
   final String spuImageUrl;
+  
+  // 编辑模式相关参数
+  final bool isEditMode;
+  final String? personalProductId;
+  final Map<String, dynamic>? existingData;
 
   const ProductDetailCreateScreen({
     super.key,
@@ -30,6 +35,9 @@ class ProductDetailCreateScreen extends ConsumerStatefulWidget {
     required this.spuName,
     required this.spuCode,
     required this.spuImageUrl,
+    this.isEditMode = false,
+    this.personalProductId,
+    this.existingData,
   });
 
   @override
@@ -69,6 +77,9 @@ class _ProductDetailCreateScreenState
   // 评级公司数据
   List<RatingCompany> _ratingCompanies = [];
   bool _isLoadingRatingCompanies = false;
+  
+  // 编辑模式状态
+  bool _listingStatus = true; // 上架状态，默认为true（上架）
 
   // 设计图中的络色
   static const Color designGreen = Color(0xFF0DEE80);
@@ -80,10 +91,53 @@ class _ProductDetailCreateScreenState
     _productInfoService = ProductInfoService();
     _personalProductService = PersonalProductService();
     _ratingCompanyService = RatingCompanyService();
+    
+    // 如果是编辑模式，预填充数据
+    if (widget.isEditMode && widget.existingData != null) {
+      _initializeEditData();
+    }
+    
     // 监听notes输入变化以更新字符计数
     _notesController.addListener(() {
       setState(() {});
     });
+  }
+  
+  /// 初始化编辑模式数据
+  void _initializeEditData() {
+    final data = widget.existingData!;
+    
+    // 预填充基本信息
+    _selectedType = data['type'] ?? 'Raw';
+    _selectedCondition = data['condition'] ?? '';
+    _selectedGradedBy = data['gradedBy'] ?? '';
+    _selectedGrade = data['grade'] ?? '';
+    _serialNumber = data['serialNumber'] ?? '';
+    _listingStatus = data['listingStatus'] ?? true;
+    
+    // 预填充价格和库存
+    if (data['price'] != null) {
+      _priceController.text = data['price'].toString();
+    }
+    if (data['stock'] != null) {
+      _stockController.text = data['stock'].toString();
+    }
+    
+    // 预填充备注
+    if (data['notes'] != null) {
+      _notesController.text = data['notes'];
+    }
+    
+    // 预填充序列号
+    if (data['serialNumber'] != null) {
+      _serialNumberController.text = data['serialNumber'];
+    }
+    
+    // 预填充封面照片设置
+    _setCoverPhoto = data['setCoverPhoto'] ?? false;
+    
+    // TODO: 预填充图片列表（需要从URL转换为File对象）
+    // _selectedImages = ...
   }
 
   @override
@@ -178,7 +232,7 @@ class _ProductDetailCreateScreenState
         ),
       ),
       title: Text(
-        'Edit Listing',
+        widget.isEditMode ? 'Adjust Listing' : 'Edit Listing',
         style: TextStyle(
           color: const Color(0xFF212222),
           fontSize: 36.sp,
@@ -187,6 +241,29 @@ class _ProductDetailCreateScreenState
         ),
       ),
       centerTitle: true,
+      // 编辑模式下添加Delete按钮
+      actions: widget.isEditMode ? [
+        Container(
+          margin: EdgeInsets.only(right: 26.w, top: 12.h, bottom: 12.h),
+          child: TextButton(
+            onPressed: _showDeleteConfirmDialog,
+            style: TextButton.styleFrom(
+              padding: EdgeInsets.symmetric(horizontal: 16.w),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(8.r),
+              ),
+            ),
+            child: Text(
+              'Delete',
+              style: TextStyle(
+                fontSize: 30.sp,
+                color: const Color(0xFFD83333),
+                fontFamily: 'Roboto',
+              ),
+            ),
+          ),
+        ),
+      ] : null,
       surfaceTintColor: Colors.transparent,
       // 添加底部边框
       bottom: PreferredSize(
@@ -1441,8 +1518,13 @@ class _ProductDetailCreateScreenState
           // 照片上传区域
           _buildPhotoUploadArea(),
           SizedBox(height: 24.h),
-          // 设为封面照片选项
-          _buildCoverPhotoOption(),
+                // 设为封面照片选项
+                _buildCoverPhotoOption(),
+                // 编辑模式下显示Listing Status选项
+                if (widget.isEditMode) ...[
+                  SizedBox(height: 24.h),
+                  _buildListingStatusOption(),
+                ],
         ],
       ),
     );
@@ -1641,6 +1723,32 @@ class _ProductDetailCreateScreenState
     );
   }
 
+  /// 构建Listing Status选项（编辑模式）
+  Widget _buildListingStatusOption() {
+    return Row(
+      children: [
+        Switch(
+          value: _listingStatus,
+          onChanged: (value) {
+            setState(() {
+              _listingStatus = value;
+            });
+          },
+          activeColor: designGreen,
+        ),
+        SizedBox(width: 12.w),
+        Text(
+          'Listing Status',
+          style: TextStyle(
+            fontSize: 24.sp,
+            color: Colors.black,
+            fontFamily: 'Roboto',
+          ),
+        ),
+      ],
+    );
+  }
+
   /// 构建Done按钮区域
   Widget _buildDoneButtonSection() {
     return Container(
@@ -1684,9 +1792,9 @@ class _ProductDetailCreateScreenState
                   ],
                 )
               : Text(
-                  'Done',
+                  widget.isEditMode ? 'Save' : 'Done',
                   style: TextStyle(
-                    fontSize: 30.sp,
+                    fontSize: widget.isEditMode ? 32.sp : 30.sp,
                     fontWeight: FontWeight.w600,
                     fontFamily: 'Roboto',
                   ),
@@ -1774,6 +1882,7 @@ class _ProductDetailCreateScreenState
       'notes': _notesController.text.trim(),
       'images': _selectedImages.map((file) => file.path).toList(),
       'setCoverPhoto': _setCoverPhoto,
+      'listingStatus': _listingStatus, // 添加上架状态
       'createdAt': DateTime.now().toIso8601String(),
     };
   }
@@ -1804,7 +1913,7 @@ class _ProductDetailCreateScreenState
               SizedBox(width: 12.w),
               Expanded(
                 child: Text(
-                  '确认创建商品',
+                  widget.isEditMode ? '确认保存修改' : '确认创建商品',
                   style: TextStyle(
                     fontSize: 18.sp,
                     fontWeight: FontWeight.w600,
@@ -1887,7 +1996,7 @@ class _ProductDetailCreateScreenState
                 elevation: 0,
               ),
               child: Text(
-                '确认创建',
+                widget.isEditMode ? '保存' : '确认创建',
                 style: TextStyle(
                   fontSize: 16.sp,
                   fontWeight: FontWeight.w600,
@@ -1941,80 +2050,13 @@ class _ProductDetailCreateScreenState
     });
 
     try {
-      // 第一步：使用路由传递的SPU ID作为ProductInfo ID
-      // SPU选择页面传递的spuId实际上就是ProductInfo的ID
-      final String productInfoId = widget.spuId;
-      AppLogger.i('使用路由传递的ProductInfo ID: $productInfoId');
-
-      // 第二步：构建评级卡信息（如果是Graded类型）
-      RatedCard? ratedCard;
-      if (_selectedType == 'Graded' && _selectedGradedBy.isNotEmpty && _selectedGrade.isNotEmpty) {
-        // 创建评级公司对象
-        final ratingCompany = RatingCompany(
-          id: _getRatingCompanyId(_selectedGradedBy),
-          name: _selectedGradedBy,
-          auditMetadata: AuditMetadata(
-            createdAt: DateTime.now(),
-            updatedAt: DateTime.now(),
-            createdBy: null, // 暂时设为null，实际应用中可以设置为当前用户
-            updatedBy: null,
-          ),
-        );
-
-        ratedCard = RatedCard(
-          ratingCompany: ratingCompany,
-          cardScore: _selectedGrade,
-          gradedCardNumber: _serialNumber,
-          ratingInfos: [],
-        );
+      if (widget.isEditMode) {
+        // 编辑模式：调用更新API
+        await _updatePersonalProduct(productDetail);
+      } else {
+        // 新增模式：调用创建API
+        await _createPersonalProduct(productDetail);
       }
-
-      // 第三步：构建个人商品创建参数
-      final createParams = CreatePersonalProductManualParams(
-        type: _getPersonalProductTypeFromString(_selectedType),
-        owner: _getCurrentUserId(), // 从认证状态获取当前用户ID
-        productInfoId: productInfoId, // 使用确认存在的ProductInfo ID
-        condition: _selectedCondition.isNotEmpty 
-            ? _getPersonalProductConditionFromString(_selectedCondition)
-            : null,
-        ratedCard: ratedCard,
-        price: double.tryParse(_priceController.text),
-        quantity: int.tryParse(_stockController.text) ?? 1,
-        notes: _notesController.text.trim().isNotEmpty ? _notesController.text.trim() : null,
-        images: _selectedImages.isNotEmpty 
-            ? await _processImages(_selectedImages) // 处理图片上传
-            : null,
-        isMainImage: _setCoverPhoto,
-      );
-
-      // 第四步：调用API创建个人商品
-      final personalProductId = await _personalProductService.createPersonalProductForMobile(createParams);
-
-      setState(() {
-        _isLoading = false;
-      });
-
-      // 显示成功提示
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('商品创建成功！已添加到您的商品库'),
-          backgroundColor: designGreen,
-          behavior: SnackBarBehavior.floating,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(10.r),
-          ),
-        ),
-      );
-
-      // 返回上一页，传递创建结果
-      context.pop({
-        'personalProductId': personalProductId,
-        'productInfoId': productInfoId,
-        'success': true,
-        'message': '商品创建成功',
-        ...productDetail
-      });
-
     } catch (e) {
       setState(() {
         _isLoading = false;
@@ -2024,7 +2066,7 @@ class _ProductDetailCreateScreenState
       // 显示错误提示
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('个人商品创建失败: $e'),
+          content: Text(widget.isEditMode ? '商品修改失败: $e' : '个人商品创建失败: $e'),
           backgroundColor: Colors.red,
           behavior: SnackBarBehavior.floating,
           shape: RoundedRectangleBorder(
@@ -2033,6 +2075,164 @@ class _ProductDetailCreateScreenState
         ),
       );
     }
+  }
+
+  /// 创建个人商品
+  Future<void> _createPersonalProduct(Map<String, dynamic> productDetail) async {
+    // 第一步：使用路由传递的SPU ID作为ProductInfo ID
+    // SPU选择页面传递的spuId实际上就是ProductInfo的ID
+    final String productInfoId = widget.spuId;
+    AppLogger.i('使用路由传递的ProductInfo ID: $productInfoId');
+
+    // 第二步：构建评级卡信息（如果是Graded类型）
+    RatedCard? ratedCard;
+    if (_selectedType == 'Graded' && _selectedGradedBy.isNotEmpty && _selectedGrade.isNotEmpty) {
+      // 创建评级公司对象
+      final ratingCompany = RatingCompany(
+        id: _getRatingCompanyId(_selectedGradedBy),
+        name: _selectedGradedBy,
+        auditMetadata: AuditMetadata(
+          createdAt: DateTime.now(),
+          updatedAt: DateTime.now(),
+          createdBy: null, // 暂时设为null，实际应用中可以设置为当前用户
+          updatedBy: null,
+        ),
+      );
+
+      ratedCard = RatedCard(
+        ratingCompany: ratingCompany,
+        cardScore: _selectedGrade,
+        gradedCardNumber: _serialNumber,
+        ratingInfos: [],
+      );
+    }
+
+    // 第三步：构建个人商品创建参数
+    final createParams = CreatePersonalProductManualParams(
+      type: _getPersonalProductTypeFromString(_selectedType),
+      owner: _getCurrentUserId(), // 从认证状态获取当前用户ID
+      productInfoId: productInfoId, // 使用确认存在的ProductInfo ID
+      condition: _selectedCondition.isNotEmpty 
+          ? _getPersonalProductConditionFromString(_selectedCondition)
+          : null,
+      ratedCard: ratedCard,
+      price: double.tryParse(_priceController.text),
+      quantity: int.tryParse(_stockController.text) ?? 1,
+      notes: _notesController.text.trim().isNotEmpty ? _notesController.text.trim() : null,
+      images: _selectedImages.isNotEmpty 
+          ? await _processImages(_selectedImages) // 处理图片上传
+          : null,
+      isMainImage: _setCoverPhoto,
+    );
+
+    // 第四步：调用API创建个人商品
+    final personalProductId = await _personalProductService.createPersonalProductForMobile(createParams);
+
+    setState(() {
+      _isLoading = false;
+    });
+
+    // 显示成功提示
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('商品创建成功！已添加到您的商品库'),
+        backgroundColor: designGreen,
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(10.r),
+        ),
+      ),
+    );
+
+    // 返回上一页，传递创建结果
+    context.pop({
+      'personalProductId': personalProductId,
+      'productInfoId': productInfoId,
+      'success': true,
+      'message': '商品创建成功',
+      'isEditMode': false,
+      ...productDetail
+    });
+  }
+
+  /// 更新个人商品
+  Future<void> _updatePersonalProduct(Map<String, dynamic> productDetail) async {
+    if (widget.personalProductId == null) {
+      throw Exception('编辑模式下缺少personalProductId');
+    }
+
+    AppLogger.i('正在更新个人商品: ${widget.personalProductId}');
+
+    // 第一步：构建评级卡信息（如果是Graded类型）
+    RatedCard? ratedCard;
+    if (_selectedType == 'Graded' && _selectedGradedBy.isNotEmpty && _selectedGrade.isNotEmpty) {
+      // 创建评级公司对象
+      final ratingCompany = RatingCompany(
+        id: _getRatingCompanyId(_selectedGradedBy),
+        name: _selectedGradedBy,
+        auditMetadata: AuditMetadata(
+          createdAt: DateTime.now(),
+          updatedAt: DateTime.now(),
+          createdBy: null, // 暂时设为null，实际应用中可以设置为当前用户
+          updatedBy: null,
+        ),
+      );
+
+      ratedCard = RatedCard(
+        ratingCompany: ratingCompany,
+        cardScore: _selectedGrade,
+        gradedCardNumber: _serialNumber,
+        ratingInfos: [],
+      );
+    }
+
+    // 第二步：构建个人商品更新参数
+    final updateParams = UpdatePersonalProductManualParams(
+      condition: _selectedCondition.isNotEmpty 
+          ? _getPersonalProductConditionFromString(_selectedCondition)
+          : null,
+      ratedCard: ratedCard,
+      price: double.tryParse(_priceController.text),
+      quantity: int.tryParse(_stockController.text) ?? 1,
+      notes: _notesController.text.trim().isNotEmpty ? _notesController.text.trim() : null,
+      images: _selectedImages.isNotEmpty 
+          ? await _processImages(_selectedImages) // 处理图片上传
+          : null,
+      isMainImage: _setCoverPhoto,
+      status: _listingStatus ? PersonalProductStatus.listed : PersonalProductStatus.pendingListing, // 根据上架状态设置
+    );
+
+    // 第三步：调用API更新个人商品
+    await _personalProductService.updatePersonalProductForMobile(
+      widget.personalProductId!,
+      updateParams,
+    );
+
+    setState(() {
+      _isLoading = false;
+    });
+
+    // 显示成功提示
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('商品修改成功！'),
+        backgroundColor: designGreen,
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(10.r),
+        ),
+      ),
+    );
+
+    // 返回上一页，传递更新结果
+    context.pop({
+      'personalProductId': widget.personalProductId,
+      'productInfoId': widget.spuId,
+      'success': true,
+      'message': '商品修改成功',
+      'isEditMode': true,
+      ...productDetail
+    });
   }
 
   /// 将字符串类型转换为PersonalProductType枚举
@@ -2321,6 +2521,148 @@ class _ProductDetailCreateScreenState
     
     // 暂时返回本地路径，实际应用中需要替换为服务器URL
     return imageFiles.map((file) => file.path).toList();
+  }
+
+  /// 显示删除确认对话框
+  void _showDeleteConfirmDialog() {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(20.r),
+          ),
+          title: Row(
+            children: [
+              Container(
+                padding: EdgeInsets.all(8.w),
+                decoration: BoxDecoration(
+                  color: Colors.red.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(10.r),
+                ),
+                child: Icon(
+                  Icons.delete_outline,
+                  color: Colors.red,
+                  size: 24.sp,
+                ),
+              ),
+              SizedBox(width: 12.w),
+              Expanded(
+                child: Text(
+                  '删除商品',
+                  style: TextStyle(
+                    fontSize: 18.sp,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ),
+            ],
+          ),
+          content: Text(
+            '确定要删除这个商品吗？此操作无法撤销。',
+            style: TextStyle(
+              fontSize: 16.sp,
+              color: Colors.grey[700],
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              style: TextButton.styleFrom(
+                padding: EdgeInsets.symmetric(horizontal: 24.w, vertical: 12.h),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(10.r),
+                  side: BorderSide(color: Colors.grey[300]!),
+                ),
+              ),
+              child: Text(
+                '取消',
+                style: TextStyle(
+                  fontSize: 16.sp,
+                  fontWeight: FontWeight.w500,
+                  color: Colors.grey[700],
+                ),
+              ),
+            ),
+            ElevatedButton(
+              onPressed: () {
+                Navigator.of(context).pop();
+                _deleteProduct();
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.red,
+                foregroundColor: Colors.white,
+                padding: EdgeInsets.symmetric(horizontal: 24.w, vertical: 12.h),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(10.r),
+                ),
+                elevation: 0,
+              ),
+              child: Text(
+                '删除',
+                style: TextStyle(
+                  fontSize: 16.sp,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  /// 删除商品
+  Future<void> _deleteProduct() async {
+    if (!widget.isEditMode || widget.personalProductId == null) return;
+
+    setState(() {
+      _isLoading = true;
+    });
+
+    try {
+      // 调用删除API
+      await _personalProductService.deletePersonalProduct(widget.personalProductId!);
+      
+      setState(() {
+        _isLoading = false;
+      });
+
+      // 显示成功提示
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('商品删除成功'),
+          backgroundColor: designGreen,
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(10.r),
+          ),
+        ),
+      );
+
+      // 返回上一页
+      context.pop({
+        'deleted': true,
+        'personalProductId': widget.personalProductId,
+      });
+
+    } catch (e) {
+      setState(() {
+        _isLoading = false;
+      });
+      
+      // 显示错误提示
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('删除失败: $e'),
+          backgroundColor: Colors.red,
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(10.r),
+          ),
+        ),
+      );
+    }
   }
 
 }

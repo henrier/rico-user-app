@@ -10,6 +10,7 @@ import '../../models/productinfo/service.dart';
 import '../../models/productinfo/data.dart';
 import '../../models/i18n_string.dart';
 import '../../models/personalproduct/data.dart';
+import '../../models/personalproduct/service.dart';
 
 class BatchAddProductScreen extends ConsumerStatefulWidget {
   final Map<String, dynamic>? routeData;
@@ -42,6 +43,7 @@ class _BatchAddProductScreenState extends ConsumerState<BatchAddProductScreen> {
   
   // API服务
   late final ProductInfoService _productInfoService;
+  late final PersonalProductService _personalProductService;
   
   // 加载状态
   bool _isLoading = false;
@@ -107,6 +109,7 @@ class _BatchAddProductScreenState extends ConsumerState<BatchAddProductScreen> {
   void initState() {
     super.initState();
     _productInfoService = ProductInfoService();
+    _personalProductService = PersonalProductService();
     _initializeFromRouteData();
     // 临时设置为Sealed Products模式以展示功能
     _selectedProductType = 'Sealed';
@@ -178,9 +181,34 @@ class _BatchAddProductScreenState extends ConsumerState<BatchAddProductScreen> {
     }
   }
 
+  PersonalProductCondition _mapStringToPersonalProductCondition(String condition) {
+    switch (condition) {
+      case 'Mint':
+        return PersonalProductCondition.mint;
+      case 'Near Mint':
+        return PersonalProductCondition.nearMint;
+      case 'Lightly Played':
+        return PersonalProductCondition.lightlyPlayed;
+      case 'Damaged':
+        return PersonalProductCondition.damaged;
+      default:
+        return PersonalProductCondition.mint;
+    }
+  }
+
+  PersonalProductType _mapProductTypeToPersonalProductType(ProductType type) {
+    switch (type) {
+      case ProductType.raw:
+        return PersonalProductType.rawCard;
+      case ProductType.sealed:
+        return PersonalProductType.box;
+    }
+  }
+
   @override
   void dispose() {
     _productInfoService.dispose();
+    _personalProductService.dispose();
     super.dispose();
   }
 
@@ -1421,20 +1449,32 @@ class _BatchAddProductScreenState extends ConsumerState<BatchAddProductScreen> {
       List<String> updatedProductIds = [];
       List<String> errors = [];
 
-      // 为每个商品更新信息
+      // 逐个更新商品
       for (int i = 0; i < _productList.length; i++) {
         final product = _productList[i];
         
         try {
-          // 这里应该调用更新API，目前模拟更新成功
-          // 实际应用中需要调用PersonalProductService的更新方法
-          updatedProductIds.add(product.id);
+          // 构建更新参数
+          final updateParams = UpdatePersonalProductManualParams(
+            price: product.price,
+            quantity: product.stock,
+            condition: _mapStringToPersonalProductCondition(_selectedCondition),
+            images: product.images ?? [],
+            notes: product.notes,
+          );
           
+          // 调用单个更新API
+          await _personalProductService.updatePersonalProductForMobile(
+            product.id, 
+            updateParams
+          );
+          
+          updatedProductIds.add(product.id);
         } catch (e) {
           errors.add('商品 ${i + 1}: ${e.toString()}');
         }
       }
-
+      
       setState(() {
         _isLoading = false;
       });
@@ -1465,49 +1505,36 @@ class _BatchAddProductScreenState extends ConsumerState<BatchAddProductScreen> {
     });
 
     try {
-      List<String> createdProductIds = [];
-      List<String> errors = [];
-
-      // 为每个商品创建ProductInfo
+      // 构建批量创建参数列表
+      List<BatchCreatePersonalProductManualParams> paramsList = [];
+      
       for (int i = 0; i < _productList.length; i++) {
         final product = _productList[i];
         
-        try {
-          // 构建创建参数 - 使用createProductInfoWithAllFields接口
-          final createParams = CreateProductInfoWithAllFieldsParams(
-            name: I18NString(
-              chinese: product.name,
-              english: product.name,
-              japanese: product.name,
-            ),
-            code: product.code,
-            level: product.condition,
-            suggestedPrice: product.price,
-            cardLanguage: product.cardLanguage ?? CardLanguage.en,
-            type: product.type,
-            categories: product.categories ?? [],
-            images: product.images ?? (product.imageUrl.isNotEmpty ? [product.imageUrl] : []),
-          );
-
-          // 调用API创建商品信息
-          final productId = await _productInfoService.createProductInfoWithAllFields(createParams);
-          createdProductIds.add(productId);
-          
-        } catch (e) {
-          errors.add('商品 ${i + 1}: ${e.toString()}');
-        }
+        // 构建创建参数
+        final createParams = BatchCreatePersonalProductManualParams(
+          productInfoId: product.id, // 使用商品ID作为ProductInfo ID
+          owner: 'current_user', // TODO: 从当前用户获取owner信息
+          price: product.price,
+          quantity: product.stock,
+          condition: _mapStringToPersonalProductCondition(_selectedCondition),
+          type: _mapProductTypeToPersonalProductType(product.type),
+          images: product.images ?? (product.imageUrl.isNotEmpty ? [product.imageUrl] : []),
+          notes: product.notes,
+        );
+        
+        paramsList.add(createParams);
       }
 
+      // 调用批量创建API
+      final createdProductIds = await _personalProductService.batchCreatePersonalProductForMobile(paramsList);
+      
       setState(() {
         _isLoading = false;
       });
 
-      // 显示结果
-      if (createdProductIds.isNotEmpty) {
-        _showBatchCreateResult(createdProductIds, errors);
-      } else {
-        _showErrorSnackBar('所有商品创建失败');
-      }
+      // 显示成功结果
+      _showBatchCreateResult(createdProductIds, []);
 
     } catch (e) {
       setState(() {

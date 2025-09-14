@@ -43,6 +43,15 @@ class ProductDetailDemoScreen extends ConsumerWidget {
               rarity: 'Secret Rare',
               imageUrl: 'https://example.com/pikachu.jpg',
             ),
+            const SizedBox(height: 24),
+            // 编辑模式演示
+            _buildEditDemoCard(
+              context,
+              title: 'Charizard ex (编辑模式)',
+              code: 'PAL-054/197',
+              rarity: 'Double Rare',
+              imageUrl: 'https://example.com/charizard.jpg',
+            ),
             const Spacer(),
             const Text(
               '这是一个演示页面，展示了如何从SPU选择页面导航到商品详情新增页面。',
@@ -172,6 +181,89 @@ class ProductDetailDemoScreen extends ConsumerWidget {
         'spuCode': code,
         'spuImageUrl': imageUrl,
       },
+    );
+  }
+
+  /// 构建编辑模式演示卡片
+  Widget _buildEditDemoCard(
+    BuildContext context, {
+    required String title,
+    required String code,
+    required String rarity,
+    required String imageUrl,
+  }) {
+    return Card(
+      elevation: 2,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              title,
+              style: const TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              '$code • $rarity',
+              style: TextStyle(
+                fontSize: 14,
+                color: Colors.grey[600],
+              ),
+            ),
+            const SizedBox(height: 16),
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton.icon(
+                icon: const Icon(Icons.edit, size: 18),
+                label: const Text('编辑商品'),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.orange,
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(vertical: 12),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                ),
+                onPressed: () {
+                  // 模拟编辑模式的数据
+                  final existingData = {
+                    'type': 'Raw',
+                    'condition': 'Near Mint',
+                    'gradedBy': '',
+                    'grade': '',
+                    'serialNumber': '',
+                    'price': 455.0,
+                    'stock': 1,
+                    'notes': '卡片状态良好，无明显磨损',
+                    'setCoverPhoto': true,
+                    'listingStatus': true,
+                  };
+
+                  context.push(
+                    '/product-detail-create',
+                    extra: {
+                      'spuId': 'spu_charizard_001',
+                      'spuName': title,
+                      'spuCode': code,
+                      'spuImageUrl': imageUrl,
+                      'isEditMode': true,
+                      'personalProductId': 'personal_product_001',
+                      'existingData': existingData,
+                    },
+                  );
+                },
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }

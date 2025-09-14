@@ -100,17 +100,32 @@ final routerProvider = Provider<GoRouter>((ref) {
             path: 'product-detail-create',
             name: 'product-detail-create',
             builder: (context, state) {
-              // 从查询参数获取SPU信息
+              // 从查询参数获取基本信息
               final spuId = state.uri.queryParameters['spuId'] ?? '';
-              final spuName = state.uri.queryParameters['spuName'] ?? '';
+              final spuName = Uri.decodeComponent(state.uri.queryParameters['spuName'] ?? '');
               final spuCode = state.uri.queryParameters['spuCode'] ?? '';
-              final spuImageUrl = state.uri.queryParameters['spuImageUrl'] ?? '';
+              final spuImageUrl = Uri.decodeComponent(state.uri.queryParameters['spuImageUrl'] ?? '');
+              
+              // 从extra获取编辑模式参数
+              final extra = state.extra as Map<String, dynamic>?;
+              final isEditMode = extra?['isEditMode'] ?? false;
+              final personalProductId = extra?['personalProductId'];
+              final existingData = extra?['existingData'] as Map<String, dynamic>?;
+              
+              // 如果extra中有基本信息，优先使用extra中的数据
+              final finalSpuId = extra?['spuId'] ?? spuId;
+              final finalSpuName = extra?['spuName'] ?? spuName;
+              final finalSpuCode = extra?['spuCode'] ?? spuCode;
+              final finalSpuImageUrl = extra?['spuImageUrl'] ?? spuImageUrl;
 
               return ProductDetailCreateScreen(
-                spuId: spuId,
-                spuName: spuName,
-                spuCode: spuCode,
-                spuImageUrl: spuImageUrl,
+                spuId: finalSpuId,
+                spuName: finalSpuName,
+                spuCode: finalSpuCode,
+                spuImageUrl: finalSpuImageUrl,
+                isEditMode: isEditMode,
+                personalProductId: personalProductId,
+                existingData: existingData,
               );
             },
           ),
