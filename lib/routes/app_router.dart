@@ -122,7 +122,9 @@ final routerProvider = Provider<GoRouter>((ref) {
           GoRoute(
             path: 'batch-add-product',
             name: 'batch-add-product',
-            builder: (context, state) => const BatchAddProductScreen(),
+            builder: (context, state) => BatchAddProductScreen(
+              routeData: state.extra as Map<String, dynamic>?,
+            ),
           ),
           GoRoute(
             path: 'product-management',

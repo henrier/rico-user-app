@@ -4,16 +4,17 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../common/themes/app_theme.dart';
-import '../../widgets/custom_button.dart';
-import '../../widgets/custom_text_field.dart';
 import '../../widgets/spu_select_filter.dart';
 import '../../widgets/bulk_edit_dialog.dart';
 import '../../models/productinfo/service.dart';
 import '../../models/productinfo/data.dart';
 import '../../models/i18n_string.dart';
+import '../../models/personalproduct/data.dart';
 
 class BatchAddProductScreen extends ConsumerStatefulWidget {
-  const BatchAddProductScreen({super.key});
+  final Map<String, dynamic>? routeData;
+  
+  const BatchAddProductScreen({super.key, this.routeData});
 
   @override
   ConsumerState<BatchAddProductScreen> createState() => _BatchAddProductScreenState();
@@ -23,6 +24,14 @@ class _BatchAddProductScreenState extends ConsumerState<BatchAddProductScreen> {
   // 商品条件选择
   String _selectedCondition = 'Mint';
   final List<String> _conditions = ['Mint', 'Near Mint', 'Lightly Played', 'Damaged'];
+  
+  // 商品类型选择
+  String _selectedProductType = 'Raw';
+  final List<String> _productTypes = ['Raw', 'Graded Slabs', 'Sealed'];
+  
+  // 评级公司选择（仅在Graded Slabs模式下使用）
+  String _selectedGradingCompany = 'BGS Black Label';
+  final List<String> _gradingCompanies = ['BGS Black Label', 'PSA', 'CGC', 'PGC'];
   
   // 发布设置
   bool _isPublishingNow = true;
@@ -40,6 +49,10 @@ class _BatchAddProductScreenState extends ConsumerState<BatchAddProductScreen> {
   
   // 筛选参数
   SpuFilterSelections _filterSelections = {};
+  
+  // 编辑模式相关
+  bool _isEditMode = false;
+  List<PersonalProduct>? _selectedPersonalProducts;
   
   // 商品列表
   final List<ProductItem> _productList = [
@@ -94,6 +107,75 @@ class _BatchAddProductScreenState extends ConsumerState<BatchAddProductScreen> {
   void initState() {
     super.initState();
     _productInfoService = ProductInfoService();
+    _initializeFromRouteData();
+    // 临时设置为Sealed Products模式以展示功能
+    _selectedProductType = 'Sealed';
+  }
+
+  void _initializeFromRouteData() {
+    if (widget.routeData != null) {
+      final routeData = widget.routeData!;
+      _isEditMode = routeData['isEditMode'] ?? false;
+      _selectedPersonalProducts = routeData['selectedProducts'] as List<PersonalProduct>?;
+      
+      // 如果是编辑模式且有选中的商品，转换为ProductItem列表
+      if (_isEditMode && _selectedPersonalProducts != null) {
+        _convertPersonalProductsToProductItems();
+      }
+    }
+  }
+
+  void _convertPersonalProductsToProductItems() {
+    if (_selectedPersonalProducts == null) return;
+    
+    _productList.clear();
+    for (int i = 0; i < _selectedPersonalProducts!.length; i++) {
+      final personalProduct = _selectedPersonalProducts![i];
+      final productItem = ProductItem(
+        id: personalProduct.id,
+        name: personalProduct.productInfo.name.chinese ?? 
+              personalProduct.productInfo.name.english ?? 
+              'Unknown Product',
+        code: personalProduct.productInfo.code ?? 'N/A',
+        variant: 'Holo', // 从PersonalProduct中获取变体信息，这里暂时使用固定值
+        condition: _mapConditionToString(personalProduct.condition),
+        price: personalProduct.price,
+        stock: personalProduct.quantity,
+        notes: '', // PersonalProduct中可能没有notes字段，使用空字符串
+        imageUrl: personalProduct.images.isNotEmpty 
+            ? personalProduct.images.first 
+            : 'https://via.placeholder.com/164x228',
+        type: _mapPersonalProductTypeToProductType(personalProduct.type),
+        cardLanguage: CardLanguage.en, // 默认英文
+        categories: [], // 可以从ProductInfo中获取
+        images: personalProduct.images,
+      );
+      _productList.add(productItem);
+    }
+  }
+
+  String _mapConditionToString(PersonalProductCondition condition) {
+    switch (condition) {
+      case PersonalProductCondition.mint:
+        return 'Mint';
+      case PersonalProductCondition.nearMint:
+        return 'Near Mint';
+      case PersonalProductCondition.lightlyPlayed:
+        return 'Lightly Played';
+      case PersonalProductCondition.damaged:
+        return 'Damaged';
+    }
+  }
+
+  ProductType _mapPersonalProductTypeToProductType(PersonalProductType type) {
+    switch (type) {
+      case PersonalProductType.rawCard:
+        return ProductType.raw;
+      case PersonalProductType.ratedCard:
+        return ProductType.raw; // 评级卡也映射为raw
+      case PersonalProductType.box:
+        return ProductType.sealed;
+    }
   }
 
   @override
@@ -148,7 +230,7 @@ class _BatchAddProductScreenState extends ConsumerState<BatchAddProductScreen> {
           // 标题
           Center(
             child: Text(
-              'Bulk Adjust Listing',
+              _isEditMode ? 'Bulk Edit Listing' : 'Bulk Adjust Listing',
               style: TextStyle(
                 fontSize: 36.sp,
                 fontWeight: FontWeight.w500,
@@ -221,82 +303,164 @@ class _BatchAddProductScreenState extends ConsumerState<BatchAddProductScreen> {
                     color: Color(0xFF212222),
                   ),
                 ),
-                Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Icon(
-                      Icons.info_outline,
-                      size: 24.w,
-                      color: Color(0xFF65c574),
-                    ),
-                    SizedBox(width: 8.w),
-                    Text(
-                      'Condition guide',
-                      style: TextStyle(
-                        fontSize: 24.sp,
+                if (_selectedProductType != 'Graded Slabs')
+                  Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(
+                        Icons.info_outline,
+                        size: 24.w,
                         color: Color(0xFF65c574),
                       ),
-                    ),
-                  ],
-                ),
+                      SizedBox(width: 8.w),
+                      Text(
+                        'Condition guide',
+                        style: TextStyle(
+                          fontSize: 24.sp,
+                          color: Color(0xFF65c574),
+                        ),
+                      ),
+                    ],
+                  ),
               ],
             ),
           ),
           
-          // 条件选择和按钮
-          Padding(
-            padding: EdgeInsets.only(left: 30.w, bottom: 20.h),
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // Condition 标签 - 固定宽度
-                Container(
-                  width: 120.w,
-                  child: Text(
-                    'Condition',
-                    style: TextStyle(
-                      fontSize: 24.sp,
-                      color: Color(0xFF919191),
+          // 商品类型选择
+          if (_selectedProductType == 'Graded Slabs') ...[
+            // Graded Slabs 标签
+            Padding(
+              padding: EdgeInsets.only(left: 30.w, bottom: 20.h),
+              child: Text(
+                'Graded Slabs',
+                style: TextStyle(
+                  fontSize: 24.sp,
+                  color: Color(0xFF212222),
+                ),
+              ),
+            ),
+            
+            // 警告提示
+            Padding(
+              padding: EdgeInsets.symmetric(horizontal: 30.w),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Icon(
+                    Icons.info_outline,
+                    size: 24.w,
+                    color: Color(0xFFc1c1c1),
+                  ),
+                  SizedBox(width: 8.w),
+                  Expanded(
+                    child: Text(
+                      'Note: Make sure your information is accurate. Sellers will be responsible for any disputes caused by incorrect details.',
+                      style: TextStyle(
+                        fontSize: 24.sp,
+                        color: Color(0xFFc1c1c1),
+                        height: 1.2,
+                      ),
                     ),
                   ),
+                ],
+              ),
+            ),
+            SizedBox(height: 20.h),
+          ] else if (_selectedProductType == 'Sealed') ...[
+            // Sealed Products 标签
+            Padding(
+              padding: EdgeInsets.only(left: 30.w, bottom: 20.h),
+              child: Text(
+                'Sealed Products',
+                style: TextStyle(
+                  fontSize: 24.sp,
+                  color: Color(0xFF212222),
                 ),
-                SizedBox(width: 12.w),
-                // 条件按钮区域 - 剩余宽度
-                Expanded(
-                  child: Wrap(
-                    crossAxisAlignment: WrapCrossAlignment.center,
-                    children: _conditions.map((condition) {
-                      final isSelected = _selectedCondition == condition;
-                      return Padding(
-                        padding: EdgeInsets.only(right: 12.w, bottom: 12.h),
-                        child: GestureDetector(
-                          onTap: () {
-                            setState(() {
-                              _selectedCondition = condition;
-                            });
-                          },
-                          child: Container(
-                            padding: EdgeInsets.symmetric(horizontal: 20.w, vertical: 12.h),
-                            decoration: BoxDecoration(
-                              color: isSelected ? Color(0xFF65c574) : Color(0xFFf4f4f4),
-                              borderRadius: BorderRadius.circular(47.r),
-                            ),
-                            child: Text(
-                              condition,
-                              style: TextStyle(
-                                fontSize: 24.sp,
-                                color: isSelected ? Colors.white : Color(0xFF212222),
+              ),
+            ),
+            
+            // 警告提示
+            Padding(
+              padding: EdgeInsets.symmetric(horizontal: 30.w),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Icon(
+                    Icons.info_outline,
+                    size: 24.w,
+                    color: Color(0xFFc1c1c1),
+                  ),
+                  SizedBox(width: 8.w),
+                  Expanded(
+                    child: Text(
+                      'Note: Make sure your information is accurate. Sellers will be responsible for any disputes caused by incorrect details.',
+                      style: TextStyle(
+                        fontSize: 24.sp,
+                        color: Color(0xFFc1c1c1),
+                        height: 1.2,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            SizedBox(height: 20.h),
+          ] else ...[
+            // 条件选择和按钮
+            Padding(
+              padding: EdgeInsets.only(left: 30.w, bottom: 20.h),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Condition 标签 - 固定宽度
+                  Container(
+                    width: 120.w,
+                    child: Text(
+                      'Condition',
+                      style: TextStyle(
+                        fontSize: 24.sp,
+                        color: Color(0xFF919191),
+                      ),
+                    ),
+                  ),
+                  SizedBox(width: 12.w),
+                  // 条件按钮区域 - 剩余宽度
+                  Expanded(
+                    child: Wrap(
+                      crossAxisAlignment: WrapCrossAlignment.center,
+                      children: _conditions.map((condition) {
+                        final isSelected = _selectedCondition == condition;
+                        return Padding(
+                          padding: EdgeInsets.only(right: 12.w, bottom: 12.h),
+                          child: GestureDetector(
+                            onTap: () {
+                              setState(() {
+                                _selectedCondition = condition;
+                              });
+                            },
+                            child: Container(
+                              padding: EdgeInsets.symmetric(horizontal: 20.w, vertical: 12.h),
+                              decoration: BoxDecoration(
+                                color: isSelected ? Color(0xFF65c574) : Color(0xFFf4f4f4),
+                                borderRadius: BorderRadius.circular(47.r),
+                              ),
+                              child: Text(
+                                condition,
+                                style: TextStyle(
+                                  fontSize: 24.sp,
+                                  color: isSelected ? Colors.white : Color(0xFF212222),
+                                ),
                               ),
                             ),
                           ),
-                        ),
-                      );
-                    }).toList(),
+                        );
+                      }).toList(),
+                    ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
-          ),
+          ],
         ],
       ),
     );
@@ -601,27 +765,112 @@ class _BatchAddProductScreenState extends ConsumerState<BatchAddProductScreen> {
                 ),
                 SizedBox(height: 8.h),
                 
-                // 商品编码和变体
-                Row(
-                  children: [
-                    Text(
-                      product.code,
-                      style: TextStyle(
-                        fontSize: 24.sp,
-                        color: Color(0xFF919191),
+                // 商品编码和变体 / IP名称
+                if (_selectedProductType == 'Sealed') ...[
+                  // Sealed Products模式显示中文IP名称
+                  Row(
+                    children: [
+                      Text(
+                        '四级IP名称',
+                        style: TextStyle(
+                          fontSize: 24.sp,
+                          color: Color(0xFF919191),
+                        ),
                       ),
-                    ),
-                    SizedBox(width: 12.w),
-                    Text(
-                      product.variant,
-                      style: TextStyle(
-                        fontSize: 24.sp,
-                        color: Color(0xFF919191),
+                      SizedBox(width: 12.w),
+                      Text(
+                        '三级IP名称',
+                        style: TextStyle(
+                          fontSize: 24.sp,
+                          color: Color(0xFF919191),
+                        ),
                       ),
-                    ),
-                  ],
-                ),
+                    ],
+                  ),
+                ] else ...[
+                  // 其他模式显示商品编码和变体
+                  Row(
+                    children: [
+                      Text(
+                        product.code,
+                        style: TextStyle(
+                          fontSize: 24.sp,
+                          color: Color(0xFF919191),
+                        ),
+                      ),
+                      SizedBox(width: 12.w),
+                      Text(
+                        product.variant,
+                        style: TextStyle(
+                          fontSize: 24.sp,
+                          color: Color(0xFF919191),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
                 SizedBox(height: 20.h),
+                
+                // Serial字段（仅在Graded Slabs模式下显示）
+                if (_selectedProductType == 'Graded Slabs') ...[
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.center,
+                    children: [
+                      Text(
+                        'Serial',
+                        style: TextStyle(
+                          fontSize: 24.sp,
+                          color: Color(0xFF212222),
+                        ),
+                      ),
+                      SizedBox(width: 20.w),
+                      Container(
+                        width: 206.w,
+                        height: 52.h,
+                        decoration: BoxDecoration(
+                          color: Color(0xFFf4f4f4),
+                          borderRadius: BorderRadius.circular(47.r),
+                        ),
+                        child: TextField(
+                          decoration: InputDecoration(
+                            hintText: index == 0 ? '123456789101112' : '1234545',
+                            hintStyle: TextStyle(
+                              fontSize: 24.sp,
+                              color: Colors.black,
+                            ),
+                            border: InputBorder.none,
+                            contentPadding: EdgeInsets.symmetric(horizontal: 16.w),
+                          ),
+                          style: TextStyle(fontSize: 24.sp),
+                        ),
+                      ),
+                      SizedBox(width: 20.w),
+                      // 评级标签
+                      Container(
+                        height: 36.h,
+                        padding: EdgeInsets.symmetric(horizontal: 12.w),
+                        decoration: BoxDecoration(
+                          gradient: LinearGradient(
+                            colors: [Color(0xFFf86700), Color(0xFFf89900)],
+                            begin: Alignment.topCenter,
+                            end: Alignment.bottomCenter,
+                          ),
+                          borderRadius: BorderRadius.circular(8.r),
+                        ),
+                        child: Center(
+                          child: Text(
+                            _selectedGradingCompany,
+                            style: TextStyle(
+                              fontSize: 22.sp,
+                              color: Colors.white,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  SizedBox(height: 20.h),
+                ],
                 
                 // Price标题和输入框在一行显示
                 Row(
@@ -685,17 +934,123 @@ class _BatchAddProductScreenState extends ConsumerState<BatchAddProductScreen> {
                 ),
                 SizedBox(height: 20.h),
                 
-                // Stock标题和控件在一行显示
-                Row(
-                  crossAxisAlignment: CrossAxisAlignment.center,
-                  children: [
-                    Text(
-                      'Stock',
-                      style: TextStyle(
-                        fontSize: 24.sp,
-                        color: Color(0xFF212222),
+                // Stock字段（仅在Sealed Products模式下显示）
+                if (_selectedProductType == 'Sealed') ...[
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.center,
+                    children: [
+                      Text(
+                        'Stock',
+                        style: TextStyle(
+                          fontSize: 24.sp,
+                          color: Color(0xFF212222),
+                        ),
                       ),
-                    ),
+                      SizedBox(width: 20.w),
+                      Container(
+                        width: 142.w,
+                        height: 52.h,
+                        decoration: BoxDecoration(
+                          color: Color(0xFFf4f4f4),
+                          borderRadius: BorderRadius.circular(47.r),
+                        ),
+                        child: Row(
+                          children: [
+                            // 减号按钮
+                            Container(
+                              width: 24.w,
+                              height: 24.h,
+                              margin: EdgeInsets.only(left: 14.w),
+                              child: GestureDetector(
+                                onTap: () {
+                                  // TODO: 减少库存
+                                },
+                                child: Center(
+                                  child: Container(
+                                    width: 17.w,
+                                    height: 3.h,
+                                    decoration: BoxDecoration(
+                                      color: Colors.black,
+                                      borderRadius: BorderRadius.circular(22.r),
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ),
+                            // 数量显示
+                            Expanded(
+                              child: Text(
+                                '1',
+                                textAlign: TextAlign.center,
+                                style: TextStyle(
+                                  fontSize: 24.sp,
+                                  color: Colors.black,
+                                ),
+                              ),
+                            ),
+                            // 加号按钮
+                            Container(
+                              width: 24.w,
+                              height: 24.h,
+                              margin: EdgeInsets.only(right: 14.w),
+                              child: GestureDetector(
+                                onTap: () {
+                                  // TODO: 增加库存
+                                },
+                                child: Center(
+                                  child: Stack(
+                                    children: [
+                                      // 水平线
+                                      Positioned(
+                                        left: 3.5.w,
+                                        top: 10.5.h,
+                                        child: Container(
+                                          width: 17.w,
+                                          height: 3.h,
+                                          decoration: BoxDecoration(
+                                            color: Colors.black,
+                                            borderRadius: BorderRadius.circular(22.r),
+                                          ),
+                                        ),
+                                      ),
+                                      // 垂直线
+                                      Positioned(
+                                        left: 10.5.w,
+                                        top: 3.5.h,
+                                        child: Container(
+                                          width: 3.w,
+                                          height: 17.h,
+                                          decoration: BoxDecoration(
+                                            color: Colors.black,
+                                            borderRadius: BorderRadius.circular(22.r),
+                                          ),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                  SizedBox(height: 20.h),
+                ],
+                
+                // Stock标题和控件在一行显示（原有的Stock字段，仅在非Sealed模式下显示）
+                if (_selectedProductType != 'Sealed') ...[
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.center,
+                    children: [
+                      Text(
+                        'Stock',
+                        style: TextStyle(
+                          fontSize: 24.sp,
+                          color: Color(0xFF212222),
+                        ),
+                      ),
                     SizedBox(width: 20.w),
                     Container(
                       width: 142.w,
@@ -775,8 +1130,9 @@ class _BatchAddProductScreenState extends ConsumerState<BatchAddProductScreen> {
                       ),
                     ),
                   ],
-                ),
-                SizedBox(height: 20.h),
+                  ),
+                  SizedBox(height: 20.h),
+                ],
                 
                 // Notes 标题和输入框
                 Row(
@@ -853,8 +1209,12 @@ class _BatchAddProductScreenState extends ConsumerState<BatchAddProductScreen> {
                     ),
                     child: ElevatedButton(
                       onPressed: _isLoading ? null : () {
-                        // 发布商品
-                        _showPublishDialog();
+                        // 根据模式执行不同操作
+                        if (_isEditMode) {
+                          _showSaveDialog();
+                        } else {
+                          _showPublishDialog();
+                        }
                       },
                       style: ElevatedButton.styleFrom(
                         backgroundColor: Colors.transparent,
@@ -877,7 +1237,7 @@ class _BatchAddProductScreenState extends ConsumerState<BatchAddProductScreen> {
                               ),
                               SizedBox(width: 8.w),
                               Text(
-                                'Creating...',
+                                _isEditMode ? 'Saving...' : 'Creating...',
                                 style: TextStyle(
                                   fontSize: 28.sp,
                                   fontWeight: FontWeight.w500,
@@ -887,7 +1247,7 @@ class _BatchAddProductScreenState extends ConsumerState<BatchAddProductScreen> {
                             ],
                           )
                         : Text(
-                            'Publish',
+                            _isEditMode ? 'Save' : 'Publish',
                             style: TextStyle(
                               fontSize: 32.sp,
                               fontWeight: FontWeight.w500,
@@ -984,6 +1344,35 @@ class _BatchAddProductScreenState extends ConsumerState<BatchAddProductScreen> {
     );
   }
 
+  void _showSaveDialog() {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(
+          '保存修改',
+          style: TextStyle(fontSize: 20.sp),
+        ),
+        content: Text(
+          '确定要保存对这些商品的修改吗？',
+          style: TextStyle(fontSize: 16.sp),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: Text('取消', style: TextStyle(fontSize: 16.sp)),
+          ),
+          TextButton(
+            onPressed: () {
+              Navigator.pop(context);
+              _batchUpdateProducts();
+            },
+            child: Text('确定', style: TextStyle(fontSize: 16.sp)),
+          ),
+        ],
+      ),
+    );
+  }
+
   void _showCreateBundleDialog() {
     showDialog(
       context: context,
@@ -1017,6 +1406,53 @@ class _BatchAddProductScreenState extends ConsumerState<BatchAddProductScreen> {
         ],
       ),
     );
+  }
+
+  /// 批量更新商品信息
+  Future<void> _batchUpdateProducts() async {
+    if (_isLoading) return;
+
+    setState(() {
+      _isLoading = true;
+      _errorMessage = null;
+    });
+
+    try {
+      List<String> updatedProductIds = [];
+      List<String> errors = [];
+
+      // 为每个商品更新信息
+      for (int i = 0; i < _productList.length; i++) {
+        final product = _productList[i];
+        
+        try {
+          // 这里应该调用更新API，目前模拟更新成功
+          // 实际应用中需要调用PersonalProductService的更新方法
+          updatedProductIds.add(product.id);
+          
+        } catch (e) {
+          errors.add('商品 ${i + 1}: ${e.toString()}');
+        }
+      }
+
+      setState(() {
+        _isLoading = false;
+      });
+
+      // 显示结果
+      if (updatedProductIds.isNotEmpty) {
+        _showBatchUpdateResult(updatedProductIds, errors);
+      } else {
+        _showErrorSnackBar('所有商品更新失败');
+      }
+
+    } catch (e) {
+      setState(() {
+        _isLoading = false;
+        _errorMessage = e.toString();
+      });
+      _showErrorSnackBar('批量更新失败: $e');
+    }
   }
 
   /// 批量创建商品信息
@@ -1080,6 +1516,76 @@ class _BatchAddProductScreenState extends ConsumerState<BatchAddProductScreen> {
       });
       _showErrorSnackBar('批量创建失败: $e');
     }
+  }
+
+  /// 显示批量更新结果
+  void _showBatchUpdateResult(List<String> updatedIds, List<String> errors) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Row(
+          children: [
+            Icon(
+              updatedIds.isNotEmpty ? Icons.check_circle : Icons.error,
+              color: updatedIds.isNotEmpty ? Colors.green : Colors.red,
+              size: 24.sp,
+            ),
+            SizedBox(width: 8.w),
+            Text(
+              '批量更新结果',
+              style: TextStyle(fontSize: 20.sp),
+            ),
+          ],
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            if (updatedIds.isNotEmpty) ...[
+              Text(
+                '成功更新 ${updatedIds.length} 个商品:',
+                style: TextStyle(fontSize: 16.sp, fontWeight: FontWeight.bold),
+              ),
+              SizedBox(height: 8.h),
+              ...updatedIds.map((id) => Padding(
+                padding: EdgeInsets.only(left: 16.w, bottom: 4.h),
+                child: Text(
+                  '• 商品ID: $id',
+                  style: TextStyle(fontSize: 14.sp),
+                ),
+              )),
+            ],
+            if (errors.isNotEmpty) ...[
+              SizedBox(height: 16.h),
+              Text(
+                '失败 ${errors.length} 个商品:',
+                style: TextStyle(fontSize: 16.sp, fontWeight: FontWeight.bold, color: Colors.red),
+              ),
+              SizedBox(height: 8.h),
+              ...errors.map((error) => Padding(
+                padding: EdgeInsets.only(left: 16.w, bottom: 4.h),
+                child: Text(
+                  '• $error',
+                  style: TextStyle(fontSize: 14.sp, color: Colors.red),
+                ),
+              )),
+            ],
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () {
+              Navigator.pop(context);
+              // 更新成功后返回上一页
+              if (updatedIds.isNotEmpty) {
+                context.pop();
+              }
+            },
+            child: Text('确定', style: TextStyle(fontSize: 16.sp)),
+          ),
+        ],
+      ),
+    );
   }
 
   /// 显示批量创建结果

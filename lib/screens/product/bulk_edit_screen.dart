@@ -208,12 +208,29 @@ class _BulkEditScreenState extends State<BulkEditScreen> {
   }
 
   void _handleBulkEdit() {
-    // TODO: 实现批量编辑功能
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text('批量编辑 ${selectedProductIds.length} 个商品'),
-        backgroundColor: Colors.blue,
-      ),
+    // 校验是否有选中的商品
+    if (selectedProductIds.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('请先选择要编辑的商品'),
+          backgroundColor: Colors.orange,
+        ),
+      );
+      return;
+    }
+
+    // 获取选中的商品数据
+    final selectedProducts = products
+        .where((product) => selectedProductIds.contains(product.id))
+        .toList();
+
+    // 跳转到批量添加商品页面，携带选中的商品数据
+    context.pushNamed(
+      'batch-add-product',
+      extra: {
+        'selectedProducts': selectedProducts,
+        'isEditMode': true, // 标识为编辑模式
+      },
     );
   }
 
