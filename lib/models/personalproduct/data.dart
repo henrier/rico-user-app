@@ -981,3 +981,208 @@ class PersonalProductPageParams {
     };
   }
 }
+
+/// 个人商品手动查询参数（支持跨聚合查询）
+/// 对应 TypeScript: PersonalProductManualPageParams
+class PersonalProductManualPageParams {
+  /// 当前页
+  final int current;
+
+  /// 分页大小
+  final int pageSize;
+
+  /// 商品信息
+  final String? productInfo;
+
+  /// 价格最小值
+  final double? minPrice;
+
+  /// 价格最大值
+  final double? maxPrice;
+
+  /// 备注
+  final String? notes;
+
+  /// 图片
+  final List<String>? images;
+
+  /// 是否主图
+  final bool? isMainImage;
+
+  /// 主人
+  final String? owner;
+
+  /// 评级卡 - 卡牌评分（支持多个值）
+  final List<String>? ratedCardCardScore;
+
+  /// 评级卡 - 评级公司（支持多个值）
+  final List<String>? ratedCardRatingCompany;
+
+  /// 状态（支持多个值）
+  final List<String>? status;
+
+  /// 类型（支持多个值）
+  final List<String>? type;
+
+  /// 评级卡 - 评级卡编号
+  final String? ratedCardGradedCardNumber;
+
+  /// 评级卡 - 评级信息 - 名称
+  final String? ratedCardRatingInfosName;
+
+  /// 评级卡 - 评级信息 - 值
+  final String? ratedCardRatingInfosValue;
+
+  /// 数量最小值
+  final int? minQuantity;
+
+  /// 数量最大值
+  final int? maxQuantity;
+
+  /// 品相
+  final PersonalProductCondition? condition;
+
+  /// 限时价格最小值
+  final double? minLimitedTimePrice;
+
+  /// 限时价格最大值
+  final double? maxLimitedTimePrice;
+
+  /// 截止时间开始时间
+  final String? deadlineStart;
+
+  /// 截止时间结束时间
+  final String? deadlineEnd;
+
+  /// 打包商品
+  final String? bundleProduct;
+
+  /// 创建时间范围开始
+  final String? createdAtStart;
+
+  /// 创建时间范围结束
+  final String? createdAtEnd;
+
+  /// 更新时间范围开始
+  final String? updatedAtStart;
+
+  /// 更新时间范围结束
+  final String? updatedAtEnd;
+
+  /// 创建者（模糊查询）
+  final String? createdBy;
+
+  /// 更新者（模糊查询）
+  final String? updatedBy;
+
+  const PersonalProductManualPageParams({
+    this.current = 1,
+    this.pageSize = 20,
+    this.productInfo,
+    this.minPrice,
+    this.maxPrice,
+    this.notes,
+    this.images,
+    this.isMainImage,
+    this.owner,
+    this.ratedCardCardScore,
+    this.ratedCardRatingCompany,
+    this.status,
+    this.type,
+    this.ratedCardGradedCardNumber,
+    this.ratedCardRatingInfosName,
+    this.ratedCardRatingInfosValue,
+    this.minQuantity,
+    this.maxQuantity,
+    this.condition,
+    this.minLimitedTimePrice,
+    this.maxLimitedTimePrice,
+    this.deadlineStart,
+    this.deadlineEnd,
+    this.bundleProduct,
+    this.createdAtStart,
+    this.createdAtEnd,
+    this.updatedAtStart,
+    this.updatedAtEnd,
+    this.createdBy,
+    this.updatedBy,
+  });
+
+  Map<String, dynamic> toJson() {
+    return {
+      'current': current,
+      'pageSize': pageSize,
+      if (productInfo != null) 'productInfo': productInfo,
+      if (minPrice != null) 'minPrice': minPrice,
+      if (maxPrice != null) 'maxPrice': maxPrice,
+      if (notes != null) 'notes': notes,
+      if (images != null) 'images': images,
+      if (isMainImage != null) 'isMainImage': isMainImage,
+      if (owner != null) 'owner': owner,
+      if (ratedCardCardScore != null) 'ratedCardCardScore': ratedCardCardScore,
+      if (ratedCardRatingCompany != null) 'ratedCardRatingCompany': ratedCardRatingCompany,
+      if (status != null) 'status': status,
+      if (type != null) 'type': type,
+      if (ratedCardGradedCardNumber != null)
+        'ratedCardGradedCardNumber': ratedCardGradedCardNumber,
+      if (ratedCardRatingInfosName != null)
+        'ratedCardRatingInfosName': ratedCardRatingInfosName,
+      if (ratedCardRatingInfosValue != null)
+        'ratedCardRatingInfosValue': ratedCardRatingInfosValue,
+      if (minQuantity != null) 'minQuantity': minQuantity,
+      if (maxQuantity != null) 'maxQuantity': maxQuantity,
+      if (condition != null) 'condition': condition!.value,
+      if (minLimitedTimePrice != null)
+        'minLimitedTimePrice': minLimitedTimePrice,
+      if (maxLimitedTimePrice != null)
+        'maxLimitedTimePrice': maxLimitedTimePrice,
+      if (deadlineStart != null) 'deadlineStart': deadlineStart,
+      if (deadlineEnd != null) 'deadlineEnd': deadlineEnd,
+      if (bundleProduct != null) 'bundleProduct': bundleProduct,
+      if (createdAtStart != null) 'createdAtStart': createdAtStart,
+      if (createdAtEnd != null) 'createdAtEnd': createdAtEnd,
+      if (updatedAtStart != null) 'updatedAtStart': updatedAtStart,
+      if (updatedAtEnd != null) 'updatedAtEnd': updatedAtEnd,
+      if (createdBy != null) 'createdBy': createdBy,
+      if (updatedBy != null) 'updatedBy': updatedBy,
+    };
+  }
+}
+
+/// 分页查询个人商品参数（支持多字段排序和跨聚合查询）
+/// 对应 TypeScript: getPersonalProductsPageWithSort 的参数
+class PersonalProductPageWithSortParams {
+  /// 当前页
+  final int current;
+
+  /// 分页大小
+  final int pageSize;
+
+  /// 排序字段列表
+  final List<String>? sortFields;
+
+  /// 排序方向列表（asc/desc）
+  final List<String>? sortDirections;
+
+  /// 其他查询参数（继承自 PersonalProductManualPageParams）
+  final PersonalProductManualPageParams baseParams;
+
+  const PersonalProductPageWithSortParams({
+    this.current = 1,
+    this.pageSize = 20,
+    this.sortFields,
+    this.sortDirections,
+    required this.baseParams,
+  });
+
+  Map<String, dynamic> toJson() {
+    final json = baseParams.toJson();
+    json.addAll({
+      'current': current,
+      'pageSize': pageSize,
+      if (sortFields != null) 'sortFields': sortFields,
+      if (sortDirections != null) 'sortDirections': sortDirections,
+    });
+    return json;
+  }
+}

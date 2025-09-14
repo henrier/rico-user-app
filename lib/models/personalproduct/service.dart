@@ -10,6 +10,8 @@ import '../../common/constants/app_constants.dart';
 import '../../common/utils/logger.dart';
 import '../api_response.dart';
 import '../page_data.dart';
+import '../productcategory/data.dart';
+import '../ratingcompany/data.dart';
 import 'data.dart';
 
 /// 个人商品API服务
@@ -424,6 +426,260 @@ class PersonalProductService extends BaseApi {
       rethrow;
     } catch (e) {
       AppLogger.e('删除个人商品失败', e);
+      rethrow;
+    }
+  }
+
+  // ============================================================================
+  // 手动服务API方法（来自 manual-service.ts）
+  // ============================================================================
+
+  /// 根据查询条件统计数量（支持跨聚合查询）
+  /// 对应 TypeScript: countPersonalProductsByCondition
+  Future<int> countPersonalProductsByCondition(
+      PersonalProductManualPageParams params) async {
+    try {
+      AppLogger.i('正在根据查询条件统计个人商品数量');
+
+      final response = await _dio.get(
+        '$_apiPath/count',
+        queryParameters: params.toJson(),
+      );
+
+      final apiResponse = ApiResponse.fromJson(
+        response.data as Map<String, dynamic>,
+        (data) => data as int,
+      );
+
+      if (apiResponse.success && apiResponse.data != null) {
+        AppLogger.i('成功统计个人商品数量: ${apiResponse.data}');
+        return apiResponse.data!;
+      } else {
+        throw DioException(
+          requestOptions: response.requestOptions,
+          message: 'API返回错误: ${apiResponse.errorMessage ?? "未知错误"}',
+        );
+      }
+    } on DioException catch (e) {
+      AppLogger.e('网络请求失败', e);
+      rethrow;
+    } catch (e) {
+      AppLogger.e('统计个人商品数量失败', e);
+      rethrow;
+    }
+  }
+
+  /// 分页查询个人商品（支持多字段排序和跨聚合查询）
+  /// 对应 TypeScript: getPersonalProductsPageWithSort
+  Future<PageData<PersonalProduct>> getPersonalProductsPageWithSort(
+      PersonalProductPageWithSortParams params) async {
+    try {
+      AppLogger.i('正在分页查询个人商品（支持多字段排序）');
+
+      final response = await _dio.get(
+        '$_apiPath/page-with-sort',
+        queryParameters: params.toJson(),
+      );
+
+      AppLogger.d('响应状态码: ${response.statusCode}');
+      AppLogger.d('响应数据: ${response.data}');
+
+      final apiResponse = ApiResponse.fromJson(
+        response.data as Map<String, dynamic>,
+        (data) => PageData.fromJson(
+          data as Map<String, dynamic>,
+          (item) => PersonalProduct.fromJson(item as Map<String, dynamic>),
+        ),
+      );
+
+      if (apiResponse.success && apiResponse.data != null) {
+        final pageData = apiResponse.data!;
+        AppLogger.i('成功获取${pageData.list.length}个个人商品（支持排序）');
+        return pageData;
+      } else {
+        throw DioException(
+          requestOptions: response.requestOptions,
+          message: 'API返回错误: ${apiResponse.errorMessage ?? "未知错误"}',
+        );
+      }
+    } on DioException catch (e) {
+      AppLogger.e('网络请求失败', e);
+      rethrow;
+    } catch (e) {
+      AppLogger.e('分页查询个人商品（支持排序）失败', e);
+      rethrow;
+    }
+  }
+
+  /// 查询指定用户店铺的所有个人商品的 distinct 的 ratedCard.cardScore 值
+  /// 对应 TypeScript: getDistinctCardScoresByOwner
+  Future<List<String>> getDistinctCardScoresByOwner(String ownerId) async {
+    try {
+      AppLogger.i('正在查询指定店铺的distinct卡牌评分: $ownerId');
+
+      final response = await _dio.get(
+        '$_apiPath/card-scores/distinct',
+        queryParameters: {'ownerId': ownerId},
+      );
+
+      final apiResponse = ApiResponse.fromJson(
+        response.data as Map<String, dynamic>,
+        (data) => List<String>.from(data as List<dynamic>),
+      );
+
+      if (apiResponse.success && apiResponse.data != null) {
+        AppLogger.i('成功获取${apiResponse.data!.length}个不同的卡牌评分');
+        return apiResponse.data!;
+      } else {
+        throw DioException(
+          requestOptions: response.requestOptions,
+          message: 'API返回错误: ${apiResponse.errorMessage ?? "未知错误"}',
+        );
+      }
+    } on DioException catch (e) {
+      AppLogger.e('网络请求失败', e);
+      rethrow;
+    } catch (e) {
+      AppLogger.e('查询distinct卡牌评分失败', e);
+      rethrow;
+    }
+  }
+
+  /// 查询指定店铺的所有个人商品的 distinct 的 productInfo 值，并进一步查询这些 productInfo 的 distinct 的 level 值
+  /// 对应 TypeScript: getDistinctLevelsByOwner
+  Future<List<String>> getDistinctLevelsByOwner(String ownerId) async {
+    try {
+      AppLogger.i('正在查询指定店铺的distinct等级: $ownerId');
+
+      final response = await _dio.get(
+        '$_apiPath/levels/distinct',
+        queryParameters: {'ownerId': ownerId},
+      );
+
+      final apiResponse = ApiResponse.fromJson(
+        response.data as Map<String, dynamic>,
+        (data) => List<String>.from(data as List<dynamic>),
+      );
+
+      if (apiResponse.success && apiResponse.data != null) {
+        AppLogger.i('成功获取${apiResponse.data!.length}个不同的等级');
+        return apiResponse.data!;
+      } else {
+        throw DioException(
+          requestOptions: response.requestOptions,
+          message: 'API返回错误: ${apiResponse.errorMessage ?? "未知错误"}',
+        );
+      }
+    } on DioException catch (e) {
+      AppLogger.e('网络请求失败', e);
+      rethrow;
+    } catch (e) {
+      AppLogger.e('查询distinct等级失败', e);
+      rethrow;
+    }
+  }
+
+  /// 查询指定店铺的所有个人商品的 distinct 的 productInfo 值，并进一步查询这些 productInfo 的 distinct 的 categories 值
+  /// 对应 TypeScript: getDistinctCategoriesByOwner
+  Future<List<ProductCategory>> getDistinctCategoriesByOwner(String ownerId) async {
+    try {
+      AppLogger.i('正在查询指定店铺的distinct类目: $ownerId');
+
+      final response = await _dio.get(
+        '$_apiPath/categories/distinct',
+        queryParameters: {'ownerId': ownerId},
+      );
+
+      final apiResponse = ApiResponse.fromJson(
+        response.data as Map<String, dynamic>,
+        (data) => (data as List<dynamic>)
+            .map((item) => ProductCategory.fromJson(item as Map<String, dynamic>))
+            .toList(),
+      );
+
+      if (apiResponse.success && apiResponse.data != null) {
+        AppLogger.i('成功获取${apiResponse.data!.length}个不同的类目');
+        return apiResponse.data!;
+      } else {
+        throw DioException(
+          requestOptions: response.requestOptions,
+          message: 'API返回错误: ${apiResponse.errorMessage ?? "未知错误"}',
+        );
+      }
+    } on DioException catch (e) {
+      AppLogger.e('网络请求失败', e);
+      rethrow;
+    } catch (e) {
+      AppLogger.e('查询distinct类目失败', e);
+      rethrow;
+    }
+  }
+
+  /// 查询指定店铺的所有个人商品的 distinct 的 ratedCard.ratingCompany 值
+  /// 对应 TypeScript: getDistinctRatingCompaniesByOwner
+  Future<List<RatingCompany>> getDistinctRatingCompaniesByOwner(String ownerId) async {
+    try {
+      AppLogger.i('正在查询指定店铺的distinct评级公司: $ownerId');
+
+      final response = await _dio.get(
+        '$_apiPath/rating-companies/distinct',
+        queryParameters: {'ownerId': ownerId},
+      );
+
+      final apiResponse = ApiResponse.fromJson(
+        response.data as Map<String, dynamic>,
+        (data) => (data as List<dynamic>)
+            .map((item) => RatingCompany.fromJson(item as Map<String, dynamic>))
+            .toList(),
+      );
+
+      if (apiResponse.success && apiResponse.data != null) {
+        AppLogger.i('成功获取${apiResponse.data!.length}个不同的评级公司');
+        return apiResponse.data!;
+      } else {
+        throw DioException(
+          requestOptions: response.requestOptions,
+          message: 'API返回错误: ${apiResponse.errorMessage ?? "未知错误"}',
+        );
+      }
+    } on DioException catch (e) {
+      AppLogger.e('网络请求失败', e);
+      rethrow;
+    } catch (e) {
+      AppLogger.e('查询distinct评级公司失败', e);
+      rethrow;
+    }
+  }
+
+  /// 批量删除个人商品
+  /// 对应 TypeScript: batchDeletePersonalProduct
+  Future<void> batchDeletePersonalProduct(List<String> ids) async {
+    try {
+      AppLogger.i('正在批量删除个人商品: ${ids.length}个');
+
+      final response = await _dio.delete(
+        '$_apiPath/batch-delete',
+        data: ids,
+      );
+
+      final apiResponse = ApiResponse.fromJson(
+        response.data as Map<String, dynamic>,
+        (data) => null,
+      );
+
+      if (apiResponse.success) {
+        AppLogger.i('成功批量删除个人商品');
+      } else {
+        throw DioException(
+          requestOptions: response.requestOptions,
+          message: 'API返回错误: ${apiResponse.errorMessage ?? "未知错误"}',
+        );
+      }
+    } on DioException catch (e) {
+      AppLogger.e('网络请求失败', e);
+      rethrow;
+    } catch (e) {
+      AppLogger.e('批量删除个人商品失败', e);
       rethrow;
     }
   }
