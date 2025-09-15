@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
 
 import '../../common/constants/app_constants.dart';
 import '../../models/productinfo/data.dart';
@@ -71,74 +72,25 @@ class _SpuSearchScreenState extends ConsumerState<SpuSearchScreen> {
 
     return Scaffold(
       backgroundColor: Colors.white,
-      appBar: _buildAppBar(),
-      body: Column(
-        children: [
-          // 搜索框区域
-          _buildSearchArea(),
-          // 筛选栏（仅在有查询时显示）
-          if (!state.isEmpty) _buildFilterBar(),
-          // 分隔线
-          Container(
-            height: 1,
-            color: Colors.grey[300],
-          ),
-          // 内容区域
-          Expanded(
-            child: _buildContent(state),
-          ),
-        ],
-      ),
-    );
-  }
-
-  /// 构建应用栏
-  PreferredSizeWidget _buildAppBar() {
-    return AppBar(
-      backgroundColor: Colors.white,
-      elevation: 0,
-      leading: IconButton(
-        icon: const Icon(Icons.arrow_back, color: Colors.black),
-        onPressed: () => Navigator.of(context).pop(),
-      ),
-      title: const Text(
-        'Search Products',
-        style: TextStyle(
-          color: Colors.black,
-          fontSize: 18,
-          fontWeight: FontWeight.bold,
-        ),
-      ),
-      centerTitle: true,
-    );
-  }
-
-  /// 构建筛选栏（右侧Filter图标+文字）
-  Widget _buildFilterBar() {
-    return Container(
-      color: Colors.white,
-      height: 44,
-      padding: const EdgeInsets.symmetric(
-        horizontal: AppConstants.defaultPadding,
-      ),
-      alignment: Alignment.centerRight,
-      child: GestureDetector(
-        onTap: () => _showFilterDialog(),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: const [
-            Icon(
-              Icons.filter_alt_outlined,
-              size: 18,
-              color: Colors.black,
+      body: SafeArea(
+        child: Column(
+          children: [
+            // 顶部导航栏
+            _buildTopNavigationBar(),
+            // 搜索框区域
+            _buildSearchArea(),
+            // 筛选栏（仅在有查询时显示）
+            if (!state.isEmpty) _buildFilterBar(),
+            // 分隔线
+            Container(
+              height: 20.h,
+              color: const Color(0xFFF1F1F3),
             ),
-            SizedBox(width: 6),
-            Text(
-              'Filter',
-              style: TextStyle(
-                fontSize: 14,
-                color: Colors.black,
-                fontWeight: FontWeight.normal,
+            // 内容区域
+            Expanded(
+              child: Container(
+                color: const Color(0xFFF4F4F6),
+                child: _buildContent(state),
               ),
             ),
           ],
@@ -147,30 +99,102 @@ class _SpuSearchScreenState extends ConsumerState<SpuSearchScreen> {
     );
   }
 
-  /// 构建搜索区域
+  /// 构建顶部导航栏 - 根据Figma设计
+  Widget _buildTopNavigationBar() {
+    return Container(
+      height: 88.h,
+      color: Colors.white,
+      child: Stack(
+        children: [
+          // 返回按钮
+          Positioned(
+            left: 26.w,
+            top: 24.h,
+            child: GestureDetector(
+              onTap: () => Navigator.of(context).pop(),
+              child: Container(
+                width: 56.w,
+                height: 56.h,
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(28.r),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.1),
+                      blurRadius: 8,
+                      offset: const Offset(0, 2),
+                    ),
+                  ],
+                ),
+                child: const Icon(
+                  Icons.arrow_back_ios_new,
+                  color: Color(0xFF212222),
+                  size: 20,
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// 构建筛选栏 - 根据Figma设计
+  Widget _buildFilterBar() {
+    return Container(
+      color: Colors.white,
+      height: 88.h,
+      padding: EdgeInsets.symmetric(horizontal: 30.w, vertical: 20.h),
+      alignment: Alignment.centerRight,
+      child: GestureDetector(
+        onTap: () => _showFilterDialog(),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              Icons.tune,
+              size: 30.w,
+              color: const Color(0xFF212222),
+            ),
+            SizedBox(width: 8.w),
+            Text(
+              'Filter',
+              style: TextStyle(
+                fontSize: 24.sp,
+                color: const Color(0xFF212222),
+                fontWeight: FontWeight.w400,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  /// 构建搜索区域 - 根据Figma设计
   Widget _buildSearchArea() {
     return Container(
-      padding: const EdgeInsets.all(AppConstants.defaultPadding),
+      padding: EdgeInsets.symmetric(horizontal: 30.w, vertical: 20.h),
       child: Row(
         children: [
           // 搜索框
           Expanded(
             child: Container(
-              height: 48,
+              height: 72.h,
               decoration: BoxDecoration(
-                color: Colors.grey[100],
-                borderRadius: BorderRadius.circular(24),
-                border: Border.all(color: Colors.grey[300]!),
+                color: const Color(0xFFF3F3F5),
+                borderRadius: BorderRadius.circular(59.r),
               ),
               child: Row(
+                crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
                   // 搜索图标
-                  const Padding(
-                    padding: EdgeInsets.only(left: 16, right: 8),
+                  Padding(
+                    padding: EdgeInsets.only(left: 24.w, right: 12.w),
                     child: Icon(
                       Icons.search,
-                      color: Colors.grey,
-                      size: 20,
+                      color: const Color(0xFF212222),
+                      size: 30.w,
                     ),
                   ),
                   // 输入框
@@ -178,58 +202,53 @@ class _SpuSearchScreenState extends ConsumerState<SpuSearchScreen> {
                     child: TextField(
                       controller: _searchController,
                       focusNode: _searchFocusNode,
-                      decoration: const InputDecoration(
+                      textAlignVertical: TextAlignVertical.center,
+                      decoration: InputDecoration(
                         hintText: 'Search for products...',
                         hintStyle: TextStyle(
-                          color: Colors.grey,
-                          fontSize: 16,
+                          color: const Color(0xFF212222),
+                          fontSize: 28.sp,
+                          fontFamily: 'Roboto',
+                          fontWeight: FontWeight.w400,
                         ),
                         border: InputBorder.none,
-                        contentPadding: EdgeInsets.symmetric(vertical: 12),
+                        enabledBorder: InputBorder.none,
+                        focusedBorder: InputBorder.none,
+                        contentPadding: EdgeInsets.symmetric(vertical: 20.h),
+                        isDense: true,
                       ),
-                      style: const TextStyle(
-                        fontSize: 16,
-                        color: Colors.black,
+                      style: TextStyle(
+                        fontSize: 28.sp,
+                        color: const Color(0xFF212222),
+                        fontFamily: 'Roboto',
+                        fontWeight: FontWeight.w400,
                       ),
                       onSubmitted: (_) => _performSearch(),
                       textInputAction: TextInputAction.search,
                     ),
                   ),
-                  // 清空按钮
-                  if (_searchController.text.isNotEmpty)
-                    GestureDetector(
-                      onTap: _clearSearch,
-                      child: const Padding(
-                        padding: EdgeInsets.only(right: 16, left: 8),
-                        child: Icon(
-                          Icons.clear,
-                          color: Colors.grey,
-                          size: 20,
-                        ),
-                      ),
-                    ),
                 ],
               ),
             ),
           ),
-          const SizedBox(width: 12),
-          // 搜索按钮
+          SizedBox(width: 16.w),
+          // Search按钮
           GestureDetector(
             onTap: _performSearch,
             child: Container(
-              height: 48,
-              padding: const EdgeInsets.symmetric(horizontal: 20),
+              height: 72.h,
+              width: 142.w,
               decoration: BoxDecoration(
-                color: Colors.blue,
-                borderRadius: BorderRadius.circular(24),
+                color: const Color(0xFFF3F3F5),
+                borderRadius: BorderRadius.circular(59.r),
               ),
-              child: const Center(
+              child: Center(
                 child: Text(
                   'Search',
                   style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 16,
-                    fontWeight: FontWeight.w500,
+                    color: const Color(0xFF212222),
+                    fontSize: 28.sp,
+                    fontWeight: FontWeight.w400,
                   ),
                 ),
               ),
@@ -346,105 +365,105 @@ class _SpuSearchScreenState extends ConsumerState<SpuSearchScreen> {
     );
   }
 
-  /// 构建无结果状态
+  /// 构建无结果状态 - 根据Figma设计
   Widget _buildNoResultsState() {
     return Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          // 空盒子图标 - 模拟Figma设计中的图标
+          // 空盒子图标 - 根据Figma设计
           Container(
-            width: 120,
-            height: 120,
+            width: 220.w,
+            height: 220.w,
             decoration: BoxDecoration(
               color: Colors.transparent,
-              borderRadius: BorderRadius.circular(8),
+              borderRadius: BorderRadius.circular(8.r),
             ),
             child: Stack(
               alignment: Alignment.center,
               children: [
                 // 盒子主体
                 Container(
-                  width: 80,
-                  height: 60,
+                  width: 140.w,
+                  height: 100.h,
                   decoration: BoxDecoration(
                     color: Colors.transparent,
                     border: Border.all(
-                      color: const Color(0xFFB8B8B8),
+                      color: const Color(0xFF919191),
                       width: 3,
                     ),
-                    borderRadius: BorderRadius.circular(8),
+                    borderRadius: BorderRadius.circular(8.r),
                   ),
                 ),
                 // 盒子盖子
                 Positioned(
-                  top: 25,
+                  top: 40.h,
                   child: Container(
-                    width: 86,
-                    height: 20,
+                    width: 150.w,
+                    height: 30.h,
                     decoration: BoxDecoration(
                       color: Colors.transparent,
                       border: Border.all(
-                        color: const Color(0xFFB8B8B8),
+                        color: const Color(0xFF919191),
                         width: 3,
                       ),
-                      borderRadius: const BorderRadius.only(
-                        topLeft: Radius.circular(12),
-                        topRight: Radius.circular(12),
+                      borderRadius: BorderRadius.only(
+                        topLeft: Radius.circular(12.r),
+                        topRight: Radius.circular(12.r),
                       ),
                     ),
                   ),
                 ),
                 // 盒子把手
                 Positioned(
-                  top: 15,
+                  top: 25.h,
                   child: Container(
-                    width: 20,
-                    height: 10,
+                    width: 30.w,
+                    height: 15.h,
                     decoration: BoxDecoration(
                       color: Colors.transparent,
                       border: Border.all(
-                        color: const Color(0xFFB8B8B8),
+                        color: const Color(0xFF919191),
                         width: 3,
                       ),
-                      borderRadius: BorderRadius.circular(5),
+                      borderRadius: BorderRadius.circular(8.r),
                     ),
                   ),
                 ),
                 // 装饰星星
                 Positioned(
-                  top: 10,
-                  right: 10,
+                  top: 15.h,
+                  right: 15.w,
                   child: Text(
                     '✦',
                     style: TextStyle(
-                      color: const Color(0xFFB8B8B8),
-                      fontSize: 16,
+                      color: const Color(0xFF919191),
+                      fontSize: 24.sp,
                     ),
                   ),
                 ),
                 Positioned(
-                  bottom: 15,
-                  left: 5,
+                  bottom: 20.h,
+                  left: 10.w,
                   child: Text(
                     '✦',
                     style: TextStyle(
-                      color: const Color(0xFFB8B8B8),
-                      fontSize: 12,
+                      color: const Color(0xFF919191),
+                      fontSize: 18.sp,
                     ),
                   ),
                 ),
               ],
             ),
           ),
-          const SizedBox(height: 24),
+          SizedBox(height: 40.h),
           // "No matching items" 文本
-          const Text(
+          Text(
             'No matching items',
             style: TextStyle(
-              fontSize: 18,
-              color: Color(0xFF919191),
-              fontWeight: FontWeight.normal,
+              fontSize: 28.sp,
+              color: const Color(0xFF919191),
+              fontWeight: FontWeight.w400,
             ),
           ),
         ],
@@ -452,36 +471,228 @@ class _SpuSearchScreenState extends ConsumerState<SpuSearchScreen> {
     );
   }
 
-  /// 构建搜索结果列表
+  /// 构建搜索结果列表 - 根据Figma设计，保持与现有功能兼容
   Widget _buildSearchResults(SpuSearchState state) {
     return RefreshIndicator(
       onRefresh: () async {
         final viewModel = ref.read(spuSearchViewModelProvider.notifier);
         await viewModel.refresh();
       },
-      child: ListView.builder(
+      color: const Color(0xFF00D86F),
+      child: ListView.separated(
         controller: _scrollController,
         padding: EdgeInsets.zero,
         itemCount: state.productList.length + (state.hasMore ? 1 : 0),
+        separatorBuilder: (context, index) {
+          // 确保分隔线不会在加载更多指示器前显示
+          if (index >= state.productList.length - 1) {
+            return const SizedBox.shrink();
+          }
+          return Container(
+            height: 0.5.h,
+            color: const Color(0xFFF1F1F3),
+          );
+        },
         itemBuilder: (context, index) {
           // 加载更多指示器
           if (index == state.productList.length) {
-            return const Padding(
-              padding: EdgeInsets.all(16),
+            return Container(
+              padding: EdgeInsets.all(16.h),
               child: Center(
-                child: CircularProgressIndicator(),
+                child: CircularProgressIndicator(
+                  color: const Color(0xFF00D86F),
+                ),
               ),
             );
           }
 
           final product = state.productList[index];
-          return ProductInfoItem(
-            productInfo: product,
-            showDivider: index < state.productList.length - 1,
-            onTap: () => _onProductTap(product),
-          );
+          return _buildProductCard(product);
         },
       ),
+    );
+  }
+
+  /// 构建商品卡片 - 根据Figma设计
+  Widget _buildProductCard(ProductInfo product) {
+    return GestureDetector(
+      onTap: () => _onProductTap(product),
+      child: Container(
+        height: 274.h,
+        color: Colors.white,
+        padding: EdgeInsets.symmetric(horizontal: 30.w, vertical: 30.h),
+        child: Row(
+          children: [
+            // 商品图片
+            _buildProductImage(product),
+            SizedBox(width: 24.w),
+            // 商品信息
+            Expanded(
+              child: _buildProductInfo(product),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  /// 构建商品图片
+  Widget _buildProductImage(ProductInfo product) {
+    return Container(
+      width: 154.w,
+      height: 214.h,
+      decoration: BoxDecoration(
+        color: const Color(0xFFF4F4F6),
+        borderRadius: BorderRadius.circular(8.r),
+      ),
+      child: product.hasImages
+          ? ClipRRect(
+              borderRadius: BorderRadius.circular(8.r),
+              child: Image.network(
+                product.images.first,
+                fit: BoxFit.cover,
+                errorBuilder: (context, error, stackTrace) {
+                  return _buildPlaceholderImage();
+                },
+                loadingBuilder: (context, child, loadingProgress) {
+                  if (loadingProgress == null) return child;
+                  return _buildPlaceholderImage();
+                },
+              ),
+            )
+          : _buildPlaceholderImage(),
+    );
+  }
+
+  /// 构建占位图片
+  Widget _buildPlaceholderImage() {
+    return Container(
+      decoration: BoxDecoration(
+        color: const Color(0xFFF4F4F6),
+        borderRadius: BorderRadius.circular(8.r),
+      ),
+      child: Center(
+        child: Icon(
+          Icons.image_outlined,
+          color: Colors.grey[400],
+          size: 60.w,
+        ),
+      ),
+    );
+  }
+
+  /// 构建商品信息
+  Widget _buildProductInfo(ProductInfo product) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // 商品名称
+        Text(
+          product.displayName,
+          style: TextStyle(
+            fontSize: 32.sp,
+            fontWeight: FontWeight.w700,
+            color: const Color(0xFF212222),
+          ),
+          maxLines: 2,
+          overflow: TextOverflow.ellipsis,
+        ),
+        
+        SizedBox(height: 8.h),
+        
+        // 商品编码和类型信息
+        Row(
+          children: [
+            Text(
+              product.code,
+              style: TextStyle(
+                fontSize: 24.sp,
+                color: const Color(0xFF919191),
+              ),
+            ),
+            if (product.level.isNotEmpty || product.cardLanguage.value.isNotEmpty) ...[
+              Container(
+                width: 2.w,
+                height: 19.h,
+                margin: EdgeInsets.symmetric(horizontal: 10.w),
+                color: const Color(0xFF919191),
+              ),
+              if (product.level.isNotEmpty)
+                Text(
+                  product.level,
+                  style: TextStyle(
+                    fontSize: 24.sp,
+                    color: const Color(0xFF919191),
+                  ),
+                )
+              else if (product.cardLanguage.value.isNotEmpty)
+                Text(
+                  product.cardLanguage.value,
+                  style: TextStyle(
+                    fontSize: 24.sp,
+                    color: const Color(0xFF919191),
+                  ),
+                ),
+            ],
+          ],
+        ),
+        
+        const Spacer(),
+        
+        // 底部标签区域
+        _buildProductTags(product),
+      ],
+    );
+  }
+
+  /// 构建商品标签
+  Widget _buildProductTags(ProductInfo product) {
+    return Row(
+      children: [
+        // 类目标签 - 显示第一个类目名称，如果没有则显示默认值
+        if (product.categories.isNotEmpty || true) // 总是显示至少一个标签
+          Container(
+            height: 36.h,
+            padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 0.h),
+            decoration: BoxDecoration(
+              border: Border.all(color: const Color(0xFFD3D3D3)),
+              borderRadius: BorderRadius.circular(8.r),
+            ),
+            child: Center(
+              child: Text(
+                product.categories.isNotEmpty 
+                  ? (product.categories.first.displayName ?? product.categories.first.name.toString())
+                  : 'Pokémon', // 默认值
+                style: TextStyle(
+                  fontSize: 22.sp,
+                  color: const Color(0xFF919191),
+                ),
+              ),
+            ),
+          ),
+        
+        // 语言标签 - 仅在有卡片语言时显示
+        if (product.cardLanguage.value.isNotEmpty) ...[
+          SizedBox(width: 12.w),
+          Container(
+            height: 36.h,
+            width: 44.w,
+            decoration: BoxDecoration(
+              border: Border.all(color: const Color(0xFFD3D3D3)),
+              borderRadius: BorderRadius.circular(8.r),
+            ),
+            child: Center(
+              child: Text(
+                product.cardLanguage.value,
+                style: TextStyle(
+                  fontSize: 22.sp,
+                  color: const Color(0xFF919191),
+                ),
+              ),
+            ),
+          ),
+        ],
+      ],
     );
   }
 

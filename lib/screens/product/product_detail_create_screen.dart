@@ -414,6 +414,16 @@ class _ProductDetailCreateScreenState
     return '';
   }
   
+  /// 获取SPU卡片语言信息
+  String _getSpuCardLanguage() {
+    // 从SPU扩展数据获取卡片语言，默认返回空字符串
+    if (_spuData != null && _spuData!['cardLanguage'] != null) {
+      final cardLanguage = _spuData!['cardLanguage'] as String;
+      if (cardLanguage.isNotEmpty) return cardLanguage;
+    }
+    return ''; // 默认为空
+  }
+  
   /// 获取SPU类别信息
   List<String> _getSpuCategories() {
     if (_spuData != null && _spuData!['categories'] != null) {
@@ -421,6 +431,37 @@ class _ProductDetailCreateScreenState
       return categories.map((cat) => cat['displayName'] as String).toList();
     }
     return ['Pokémon']; // 默认类别
+  }
+  
+  /// 获取SPU类型信息
+  String _getSpuType() {
+    if (_spuData != null && _spuData!['type'] != null) {
+      final type = _spuData!['type'] as String;
+      return type;
+    }
+    return 'RAW'; // 默认类型
+  }
+  
+  /// 判断是否应该显示Card Info按钮
+  bool _shouldShowCardInfoButton() {
+    // 仅在Sealed（原盒）类型时显示
+    return _getSpuType().toUpperCase() == 'SEALED';
+  }
+  
+  /// 获取建议零售价
+  String _getSuggestedPrice() {
+    // 从SPU扩展数据获取建议价格，如果没有则返回"0"
+    if (_spuData != null && _spuData!['suggestedPrice'] != null) {
+      final suggestedPrice = _spuData!['suggestedPrice'];
+      if (suggestedPrice is num && suggestedPrice > 0) {
+        // 格式化价格显示，添加千位分隔符
+        return suggestedPrice.toStringAsFixed(0).replaceAllMapped(
+          RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), 
+          (Match m) => '${m[1]},'
+        );
+      }
+    }
+    return '0'; // 默认显示0
   }
 
   /// 构建SliverAppBar
@@ -576,11 +617,16 @@ class _ProductDetailCreateScreenState
                         ),
                       ),
                     ],
-                    // 默认显示稀有度（如果没有其他信息）
-                    if (_getSpuLevel().isEmpty) ...[
-                      SizedBox(width: 24.w),
+                    // 显示分隔符和卡片语言（如果没有等级信息且有卡片语言）
+                    if (_getSpuLevel().isEmpty && _getSpuCardLanguage().isNotEmpty) ...[
+                      Container(
+                        width: 2.w,
+                        height: 19.h,
+                        margin: EdgeInsets.symmetric(horizontal: 10.w),
+                        color: const Color(0xFF919191),
+                      ),
                       Text(
-                        'Rainbow',
+                        _getSpuCardLanguage(),
                         style: TextStyle(
                           fontSize: 24.sp,
                           color: const Color(0xFF919191),
@@ -591,28 +637,35 @@ class _ProductDetailCreateScreenState
                   ],
                 ),
                 SizedBox(height: 32.h), // 增加间距
-                // 标签区域 - 动态显示SPU类别信息
+                // 标签和按钮区域 - Card Info 和类目名称卡片语言一行显示，两边居中对齐
                 Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  crossAxisAlignment: CrossAxisAlignment.center,
                   children: [
-                    // 显示第一个类别（如果有的话）
-                    if (_getSpuCategories().isNotEmpty)
-                      _buildInfoTag(_getSpuCategories().first),
-                    if (_getSpuCategories().isNotEmpty)
-                      SizedBox(width: 12.w),
-                    // 语言标签
-                    _buildInfoTag('EN'),
-                    // 如果有多个类别，显示更多标签
-                    if (_getSpuCategories().length > 1) ...[
-                      SizedBox(width: 12.w),
-                      _buildInfoTag(_getSpuCategories()[1]),
-                    ],
+                    // 左侧标签区域
+                    Expanded(
+                      child: Row(
+                        children: [
+                          // 显示第一个类别（如果有的话）
+                          if (_getSpuCategories().isNotEmpty)
+                            _buildInfoTag(_getSpuCategories().first),
+                          if (_getSpuCategories().isNotEmpty && _getSpuCardLanguage().isNotEmpty)
+                            SizedBox(width: 12.w),
+                          // 语言标签 - 使用实际的卡片语言（仅在不为空时显示）
+                          if (_getSpuCardLanguage().isNotEmpty)
+                            _buildInfoTag(_getSpuCardLanguage()),
+                          // 如果有多个类别，显示更多标签
+                          if (_getSpuCategories().length > 1) ...[
+                            SizedBox(width: 12.w),
+                            _buildInfoTag(_getSpuCategories()[1]),
+                          ],
+                        ],
+                      ),
+                    ),
+                    // 右侧Card Info按钮 - 仅在Sealed类型时显示
+                    if (_shouldShowCardInfoButton())
+                      _buildCardInfoButton(),
                   ],
-                ),
-                SizedBox(height: 24.h),
-                // Card Info 按钮
-                Align(
-                  alignment: Alignment.centerRight,
-                  child: _buildCardInfoButton(),
                 ),
               ],
             ),
@@ -1155,6 +1208,7 @@ class _ProductDetailCreateScreenState
                 Expanded(
                   child: TextField(
                     controller: _serialNumberController,
+                    textAlignVertical: TextAlignVertical.center,
                     onChanged: (value) {
                       setState(() {
                         _serialNumber = value;
@@ -1165,16 +1219,21 @@ class _ProductDetailCreateScreenState
                       hintStyle: TextStyle(
                         fontSize: 24.sp,
                         color: const Color(0xFF919191),
+                        fontFamily: 'Roboto',
                       ),
                       border: InputBorder.none,
+                      enabledBorder: InputBorder.none,
+                      focusedBorder: InputBorder.none,
                       contentPadding: EdgeInsets.symmetric(
                         horizontal: 30.w,
                         vertical: 20.h,
                       ),
+                      isDense: true,
                     ),
                     style: TextStyle(
                       fontSize: 24.sp,
                       color: Colors.black,
+                      fontFamily: 'Roboto',
                     ),
                   ),
                 ),
@@ -1426,15 +1485,19 @@ class _ProductDetailCreateScreenState
                     child: TextField(
                       controller: _priceController,
                       textAlign: TextAlign.center,
+                      textAlignVertical: TextAlignVertical.center,
                       keyboardType: TextInputType.number,
                       style: TextStyle(
                         fontSize: 24.sp,
                         color: Colors.black,
                         fontFamily: 'Roboto',
                       ),
-                      decoration: const InputDecoration(
+                      decoration: InputDecoration(
                         border: InputBorder.none,
+                        enabledBorder: InputBorder.none,
+                        focusedBorder: InputBorder.none,
                         contentPadding: EdgeInsets.zero,
+                        isDense: true,
                       ),
                     ),
                   ),
@@ -1443,19 +1506,19 @@ class _ProductDetailCreateScreenState
             ),
           ],
         ),
-        SizedBox(height: 57.h), // 按设计图调整间距
-        // 建议价格 - 精确定位
+        SizedBox(height: 18.h), // 按设计图调整间距
+        // 建议价格 - 精确定位，动态显示
         Padding(
           padding: EdgeInsets.only(left: 222.w), // 按设计图定位
           child: RichText(
             text: TextSpan(
               style: TextStyle(fontSize: 22.sp, fontFamily: 'Roboto'),
-              children: const [
+              children: [
                 TextSpan(
-                  text: 'RM 12,123',
-                  style: TextStyle(color: designOrange),
+                  text: 'RM ${_getSuggestedPrice()}',
+                  style: const TextStyle(color: designOrange),
                 ),
-                TextSpan(
+                const TextSpan(
                   text: ' Suggested by PriceCharting',
                   style: TextStyle(color: Color(0xFFC1C1C1)),
                 ),
@@ -1535,15 +1598,20 @@ class _ProductDetailCreateScreenState
                       child: TextField(
                         controller: _priceController,
                         textAlign: TextAlign.center,
+                        textAlignVertical: TextAlignVertical.center,
                         keyboardType: TextInputType.number,
                         decoration: InputDecoration(
                           border: InputBorder.none,
+                          enabledBorder: InputBorder.none,
+                          focusedBorder: InputBorder.none,
                           hintText: '0',
                           hintStyle: TextStyle(
                             fontSize: 24.sp,
                             color: const Color(0xFF919191),
                             fontFamily: 'Roboto',
                           ),
+                          contentPadding: EdgeInsets.zero,
+                          isDense: true,
                         ),
                         style: TextStyle(
                           fontSize: 24.sp,
@@ -1623,15 +1691,19 @@ class _ProductDetailCreateScreenState
                 child: TextField(
                   controller: _stockController,
                   textAlign: TextAlign.center,
+                  textAlignVertical: TextAlignVertical.center,
                   keyboardType: TextInputType.number,
                   style: TextStyle(
                     fontSize: 24.sp,
                     color: Colors.black,
                     fontFamily: 'Roboto',
                   ),
-                  decoration: const InputDecoration(
+                  decoration: InputDecoration(
                     border: InputBorder.none,
+                    enabledBorder: InputBorder.none,
+                    focusedBorder: InputBorder.none,
                     contentPadding: EdgeInsets.zero,
+                    isDense: true,
                   ),
                 ),
               ),
@@ -1696,19 +1768,25 @@ class _ProductDetailCreateScreenState
               maxLines: null,
               expands: true,
               maxLength: 50,
+              textAlignVertical: TextAlignVertical.top,
               style: TextStyle(
                 fontSize: 24.sp,
                 color: Colors.black,
+                fontFamily: 'Roboto',
               ),
               decoration: InputDecoration(
                 hintText: 'Up to 50 characters',
                 hintStyle: TextStyle(
                   fontSize: 24.sp,
                   color: const Color(0xFF919191),
+                  fontFamily: 'Roboto',
                 ),
                 border: InputBorder.none,
+                enabledBorder: InputBorder.none,
+                focusedBorder: InputBorder.none,
                 contentPadding: EdgeInsets.all(20.w),
                 counterText: '', // 隐藏默认计数器
+                isDense: true,
               ),
             ),
           ),

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../models/productinfo/data.dart';
@@ -54,26 +55,28 @@ class _SpuSelectionScreenState extends ConsumerState<SpuSelectionScreen> {
     final state = ref.watch(spuSelectionViewModelProvider(widget.categoryId));
 
     return Scaffold(
-      backgroundColor: Colors.grey[50],
-      appBar: _buildAppBar(context),
-      body: Container(
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-            colors: [
-              Colors.white,
-              Colors.grey[50]!,
-            ],
-          ),
-        ),
+      backgroundColor: Colors.white,
+      body: SafeArea(
         child: Column(
           children: [
+            // 顶部导航栏
+            _buildTopNavigationBar(),
+            
             // 分类筛选区域
             _buildCategoryTabs(),
+            
+            // 分割线
+            Container(
+              height: 20.h,
+              color: const Color(0xFFF1F1F3),
+            ),
+            
             // SPU列表
             Expanded(
-              child: _buildSpuList(state),
+              child: Container(
+                color: const Color(0xFFF4F4F6),
+                child: _buildSpuList(state),
+              ),
             ),
           ],
         ),
@@ -81,90 +84,125 @@ class _SpuSelectionScreenState extends ConsumerState<SpuSelectionScreen> {
     );
   }
 
-  /// 构建应用栏
-  PreferredSizeWidget _buildAppBar(BuildContext context) {
-    return AppBar(
-      backgroundColor: Colors.white,
-      elevation: 0,
-      shadowColor: Colors.black.withOpacity(0.1),
-      surfaceTintColor: Colors.transparent,
-      leading: Container(
-        margin: const EdgeInsets.all(8),
-        decoration: BoxDecoration(
-          color: Colors.grey[50],
-          borderRadius: BorderRadius.circular(12),
-          border: Border.all(color: Colors.grey[200]!),
-        ),
-        child: IconButton(
-          icon: Icon(
-            Icons.arrow_back_ios,
-            color: Colors.grey[700],
-            size: 20,
-          ),
-          onPressed: () => Navigator.of(context).pop(),
-          padding: EdgeInsets.zero,
-        ),
-      ),
-      title: Text(
-        'SPU选择',
-        style: TextStyle(
-          color: Colors.grey[900],
-          fontSize: 20,
-          fontWeight: FontWeight.w600,
-          letterSpacing: -0.5,
-        ),
-      ),
-      centerTitle: true,
-      actions: [
-        // 相机图标
-        Container(
-          margin: const EdgeInsets.only(right: 8),
-          decoration: BoxDecoration(
-            color: Colors.grey[50],
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: Colors.grey[200]!),
-          ),
-          child: IconButton(
-            icon: Icon(
-              Icons.camera_alt_outlined,
-              color: Colors.grey[600],
-              size: 22,
+  /// 构建顶部导航栏 - 根据Figma设计
+  Widget _buildTopNavigationBar() {
+    return Container(
+      height: 88.h,
+      color: Colors.white,
+      child: Stack(
+        children: [
+          // 返回按钮
+          Positioned(
+            left: 26.w,
+            top: 24.h,
+            child: GestureDetector(
+              onTap: () => Navigator.of(context).pop(),
+              child: Container(
+                width: 56.w,
+                height: 56.h,
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(28.r),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.1),
+                      blurRadius: 8,
+                      offset: const Offset(0, 2),
+                    ),
+                  ],
+                ),
+                child: const Icon(
+                  Icons.arrow_back_ios_new,
+                  color: Color(0xFF212222),
+                  size: 20,
+                ),
+              ),
             ),
-            onPressed: () {
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
-                  content: const Text('相机功能开发中'),
-                  backgroundColor: Colors.grey[800],
-                  behavior: SnackBarBehavior.floating,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(10),
+          ),
+          
+          // 标题
+          Center(
+            child: Text(
+              'Item List',
+              style: TextStyle(
+                fontSize: 36.sp,
+                fontWeight: FontWeight.w600,
+                color: const Color(0xFF212222),
+              ),
+            ),
+          ),
+          
+          // 右侧按钮组
+          Positioned(
+            right: 26.w,
+            top: 24.h,
+            child: Row(
+              children: [
+                // 相机按钮
+                GestureDetector(
+                  onTap: () {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: const Text('相机功能开发中'),
+                        backgroundColor: Colors.grey[800],
+                        behavior: SnackBarBehavior.floating,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(10.r),
+                        ),
+                      ),
+                    );
+                  },
+                  child: Container(
+                    width: 56.w,
+                    height: 56.h,
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(28.r),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withOpacity(0.1),
+                          blurRadius: 8,
+                          offset: const Offset(0, 2),
+                        ),
+                      ],
+                    ),
+                    child: const Icon(
+                      Icons.camera_alt_outlined,
+                      color: Color(0xFF212222),
+                      size: 24,
+                    ),
                   ),
                 ),
-              );
-            },
-            padding: EdgeInsets.zero,
-          ),
-        ),
-        // 搜索图标
-        Container(
-          margin: const EdgeInsets.only(right: 16),
-          decoration: BoxDecoration(
-            color: Theme.of(context).primaryColor.withOpacity(0.1),
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(
-                color: Theme.of(context).primaryColor.withOpacity(0.2)),
-          ),
-          child: IconButton(
-            icon: Icon(
-              Icons.search,
-              color: Theme.of(context).primaryColor,
-              size: 22,
+                SizedBox(width: 16.w),
+                // 搜索按钮
+                GestureDetector(
+                  onTap: () => context.pushNamed('spu-search'),
+                  child: Container(
+                    width: 56.w,
+                    height: 56.h,
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(28.r),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withOpacity(0.1),
+                          blurRadius: 8,
+                          offset: const Offset(0, 2),
+                        ),
+                      ],
+                    ),
+                    child: const Icon(
+                      Icons.search,
+                      color: Color(0xFF212222),
+                      size: 24,
+                    ),
+                  ),
+                ),
+              ],
             ),
-            onPressed: () => context.pushNamed('spu-search'),
-            padding: EdgeInsets.zero,
           ),
-        ),
-      ],
+        ],
+      ),
     );
   }
 
@@ -177,23 +215,23 @@ class _SpuSelectionScreenState extends ConsumerState<SpuSelectionScreen> {
     return option['label'] ?? type.value;
   }
 
-  /// 构建分类标签区域
+  /// 构建分类标签区域 - 根据Figma设计
   Widget _buildCategoryTabs() {
     final state = ref.watch(spuSelectionViewModelProvider(widget.categoryId));
 
     return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 16),
-      padding: const EdgeInsets.symmetric(vertical: 16),
+      color: Colors.white,
+      padding: EdgeInsets.symmetric(horizontal: 30.w, vertical: 20.h),
       child: Row(
         children: [
-          // 单卡标签 - 使用枚举的label
+          // Cards标签 - 使用原来的逻辑
           _buildCategoryTab(
             ProductType.raw,
             state.selectedType == ProductType.raw,
             _getProductTypeLabel(ProductType.raw),
           ),
-          const SizedBox(width: 12),
-          // 原盒标签 - 使用枚举的label
+          SizedBox(width: 20.w),
+          // Sealed Products标签 - 使用原来的逻辑
           _buildCategoryTab(
             ProductType.sealed,
             state.selectedType == ProductType.sealed,
@@ -207,10 +245,10 @@ class _SpuSelectionScreenState extends ConsumerState<SpuSelectionScreen> {
     );
   }
 
-  /// 构建单个分类标签 - 按照设计图样式
+  /// 构建单个分类标签 - 根据Figma设计
   Widget _buildCategoryTab(ProductType type, bool isSelected, String displayText) {
-    // 定义设计图中的绿色
     const Color designGreen = Color(0xFF00D86F);
+    const Color unselectedBorderColor = Color(0xFFEBEBEB);
 
     return GestureDetector(
       onTap: () {
@@ -218,26 +256,27 @@ class _SpuSelectionScreenState extends ConsumerState<SpuSelectionScreen> {
             ref.read(spuSelectionViewModelProvider(widget.categoryId).notifier);
         viewModel.selectProductType(type);
       },
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 200),
-        height: 50,
-        padding: const EdgeInsets.symmetric(horizontal: 24),
+      child: Container(
+        height: 50.h,
+        padding: EdgeInsets.symmetric(
+          horizontal: displayText == 'Cards' ? 30.w : 40.w,
+        ),
         decoration: BoxDecoration(
-          color: isSelected ? designGreen.withOpacity(0.1) : Colors.transparent,
-          borderRadius: BorderRadius.circular(25), // 完全圆角
+          color: Colors.transparent,
+          borderRadius: BorderRadius.circular(25.r),
           border: Border.all(
-            color: isSelected ? designGreen : Colors.grey[300]!,
-            width: isSelected ? 2 : 1,
+            color: isSelected ? designGreen : unselectedBorderColor,
+            width: 2,
           ),
         ),
         child: Center(
           child: Text(
             displayText,
             style: TextStyle(
-              fontSize: 16, // 稍大的字体
-              color: isSelected ? designGreen : Colors.grey[600],
-              fontWeight: isSelected ? FontWeight.w600 : FontWeight.w400,
-              fontFamily: 'Roboto', // 使用设计图中的字体
+              fontSize: 24.sp,
+              color: isSelected ? designGreen : const Color(0xFF212222),
+              fontWeight: FontWeight.w400,
+              fontFamily: 'Roboto',
             ),
           ),
         ),
@@ -245,70 +284,33 @@ class _SpuSelectionScreenState extends ConsumerState<SpuSelectionScreen> {
     );
   }
 
-  /// 构建筛选按钮
+  /// 构建筛选按钮 - 根据Figma设计
   Widget _buildFilterButton(bool hasActiveFilters) {
     return GestureDetector(
       onTap: () => _showFilterDialog(),
-      child: Container(
-        height: 44,
-        padding: const EdgeInsets.symmetric(horizontal: 16),
-        decoration: BoxDecoration(
-          color: hasActiveFilters
-              ? Theme.of(context).primaryColor.withOpacity(0.1)
-              : Colors.white,
-          borderRadius: BorderRadius.circular(22),
-          border: Border.all(
-            color: hasActiveFilters
-                ? Theme.of(context).primaryColor.withOpacity(0.3)
-                : Colors.grey[300]!,
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(
+            Icons.tune,
+            size: 30.w,
+            color: const Color(0xFF212222),
           ),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withOpacity(0.05),
-              blurRadius: 4,
-              offset: const Offset(0, 2),
+          SizedBox(width: 8.w),
+          Text(
+            'Filter',
+            style: TextStyle(
+              fontSize: 24.sp,
+              fontWeight: FontWeight.w400,
+              color: const Color(0xFF212222),
             ),
-          ],
-        ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(
-              Icons.tune,
-              size: 18,
-              color: hasActiveFilters
-                  ? Theme.of(context).primaryColor
-                  : Colors.grey[600],
-            ),
-            const SizedBox(width: 6),
-            Text(
-              'Filter',
-              style: TextStyle(
-                fontSize: 14,
-                fontWeight: FontWeight.w500,
-                color: hasActiveFilters
-                    ? Theme.of(context).primaryColor
-                    : Colors.grey[700],
-              ),
-            ),
-            if (hasActiveFilters) ...[
-              const SizedBox(width: 4),
-              Container(
-                width: 6,
-                height: 6,
-                decoration: BoxDecoration(
-                  color: Theme.of(context).primaryColor,
-                  shape: BoxShape.circle,
-                ),
-              ),
-            ],
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
 
-  /// 构建SPU列表
+  /// 构建SPU列表 - 根据Figma设计
   Widget _buildSpuList(SpuSelectionViewModelState state) {
     if (state.spuList.isEmpty) {
       return _buildEmptyState();
@@ -320,11 +322,15 @@ class _SpuSelectionScreenState extends ConsumerState<SpuSelectionScreen> {
             ref.read(spuSelectionViewModelProvider(widget.categoryId).notifier);
         await viewModel.refresh();
       },
-      color: Theme.of(context).primaryColor,
-      child: ListView.builder(
+      color: const Color(0xFF00D86F),
+      child: ListView.separated(
         controller: _scrollController,
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        padding: EdgeInsets.zero,
         itemCount: state.spuList.length + (state.hasMore ? 1 : 0),
+        separatorBuilder: (context, index) => Container(
+          height: 2.h,
+          color: const Color(0xFFF1F1F3),
+        ),
         itemBuilder: (context, index) {
           // 加载更多指示器
           if (index == state.spuList.length) {
@@ -338,60 +344,41 @@ class _SpuSelectionScreenState extends ConsumerState<SpuSelectionScreen> {
     );
   }
 
-  /// 构建SPU卡片
+  /// 构建SPU卡片 - 根据Figma设计
   Widget _buildSpuCard(ProductInfo spu, int index) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 12),
-      decoration: BoxDecoration(
+    return GestureDetector(
+      onTap: () => _onSpuTap(spu),
+      child: Container(
+        height: 274.h,
         color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.06),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
-          ),
-        ],
-        border: Border.all(color: Colors.grey[100]!),
-      ),
-      child: Material(
-        color: Colors.transparent,
-        child: InkWell(
-          onTap: () => _onSpuTap(spu),
-          borderRadius: BorderRadius.circular(16),
-          child: Padding(
-            padding: const EdgeInsets.all(16),
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // SPU图片
-                _buildSpuImage(spu),
-                const SizedBox(width: 16),
-                // SPU信息
-                Expanded(
-                  child: _buildSpuInfo(spu),
-                ),
-              ],
+        padding: EdgeInsets.symmetric(horizontal: 30.w, vertical: 30.h),
+        child: Row(
+          children: [
+            // SPU图片
+            _buildSpuImage(spu),
+            SizedBox(width: 24.w),
+            // SPU信息
+            Expanded(
+              child: _buildSpuInfo(spu),
             ),
-          ),
+          ],
         ),
       ),
     );
   }
 
-  /// 构建SPU图片
+  /// 构建SPU图片 - 根据Figma设计
   Widget _buildSpuImage(ProductInfo spu) {
     return Container(
-      width: 80,
-      height: 100,
+      width: 154.w,
+      height: 214.h,
       decoration: BoxDecoration(
-        color: Colors.grey[50],
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.grey[200]!),
+        color: const Color(0xFFF4F4F6),
+        borderRadius: BorderRadius.circular(8.r),
       ),
       child: spu.hasImages
           ? ClipRRect(
-              borderRadius: BorderRadius.circular(12),
+              borderRadius: BorderRadius.circular(8.r),
               child: Image.network(
                 spu.images.first,
                 fit: BoxFit.cover,
@@ -408,31 +395,24 @@ class _SpuSelectionScreenState extends ConsumerState<SpuSelectionScreen> {
     );
   }
 
-  /// 构建占位图片
+  /// 构建占位图片 - 根据Figma设计
   Widget _buildPlaceholderImage() {
     return Container(
       decoration: BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [
-            Colors.grey[100]!,
-            Colors.grey[200]!,
-          ],
-        ),
-        borderRadius: BorderRadius.circular(12),
+        color: const Color(0xFFF4F4F6),
+        borderRadius: BorderRadius.circular(8.r),
       ),
       child: Center(
         child: Icon(
           Icons.image_outlined,
           color: Colors.grey[400],
-          size: 32,
+          size: 60.w,
         ),
       ),
     );
   }
 
-  /// 构建SPU信息
+  /// 构建SPU信息 - 根据Figma设计
   Widget _buildSpuInfo(ProductInfo spu) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -441,100 +421,195 @@ class _SpuSelectionScreenState extends ConsumerState<SpuSelectionScreen> {
         Text(
           spu.displayName,
           style: TextStyle(
-            fontSize: 16,
-            fontWeight: FontWeight.w600,
-            color: Colors.grey[900],
-            height: 1.3,
+            fontSize: 32.sp,
+            fontWeight: FontWeight.w500,
+            color: const Color(0xFF212222),
           ),
           maxLines: 2,
           overflow: TextOverflow.ellipsis,
         ),
-        const SizedBox(height: 8),
-        // SPU编码和等级
+        
+        SizedBox(height: 8.h),
+        
+        // SPU编码和类型信息 - 根据商品类型显示不同内容
+        _buildProductDetails(spu),
+        
+        const Spacer(),
+        
+        // 底部标签区域
         Row(
           children: [
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-              decoration: BoxDecoration(
-                color: Colors.grey[100],
-                borderRadius: BorderRadius.circular(6),
-              ),
-              child: Text(
-                spu.code,
-                style: TextStyle(
-                  fontSize: 12,
-                  fontWeight: FontWeight.w500,
-                  color: Colors.grey[700],
-                ),
-              ),
+            Expanded(
+              child: _buildSpuTags(spu),
             ),
-            if (spu.level.isNotEmpty) ...[
-              const SizedBox(width: 8),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                decoration: BoxDecoration(
-                  color: Theme.of(context).primaryColor.withOpacity(0.1),
-                  borderRadius: BorderRadius.circular(6),
-                ),
-                child: Text(
-                  spu.level,
-                  style: TextStyle(
-                    fontSize: 12,
-                    fontWeight: FontWeight.w500,
-                    color: Theme.of(context).primaryColor,
-                  ),
-                ),
-              ),
-            ],
+            // Info按钮 - 根据商品类型显示
+            if (_shouldShowInfoButton(spu)) _buildInfoButton(),
           ],
         ),
-        const SizedBox(height: 12),
-        // 标签区域
-        _buildSpuTags(spu),
       ],
     );
   }
 
-  /// 构建SPU标签
+  /// 构建商品详情信息 - 根据商品类型显示不同内容
+  Widget _buildProductDetails(ProductInfo spu) {
+    // 根据商品类型显示不同的信息
+    if (spu.type == ProductType.sealed) {
+      // Sealed Products 类型显示多行信息
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            spu.code,
+            style: TextStyle(
+              fontSize: 24.sp,
+              color: const Color(0xFF919191),
+            ),
+          ),
+          if (spu.level.isNotEmpty) ...[
+            SizedBox(height: 4.h),
+            Text(
+              spu.level, // 显示实际的等级信息
+              style: TextStyle(
+                fontSize: 24.sp,
+                color: const Color(0xFF919191),
+              ),
+            ),
+          ],
+          if (spu.categories.isNotEmpty) ...[
+            SizedBox(height: 4.h),
+            Text(
+              spu.categories.first.displayName ?? spu.categories.first.name.toString(), // 显示类目名称
+              style: TextStyle(
+                fontSize: 24.sp,
+                color: const Color(0xFF919191),
+              ),
+            ),
+          ],
+        ],
+      );
+    } else {
+      // Cards 类型显示单行信息
+      return Row(
+        children: [
+          Text(
+            spu.code,
+            style: TextStyle(
+              fontSize: 24.sp,
+              color: const Color(0xFF919191),
+            ),
+          ),
+          if (spu.level.isNotEmpty || spu.cardLanguage.value.isNotEmpty) ...[
+            Container(
+              width: 2.w,
+              height: 19.h,
+              margin: EdgeInsets.symmetric(horizontal: 10.w),
+              color: const Color(0xFF919191),
+            ),
+            if (spu.level.isNotEmpty)
+              Text(
+                spu.level,
+                style: TextStyle(
+                  fontSize: 24.sp,
+                  color: const Color(0xFF919191),
+                ),
+              )
+            else if (spu.cardLanguage.value.isNotEmpty)
+              Text(
+                spu.cardLanguage.value,
+                style: TextStyle(
+                  fontSize: 24.sp,
+                  color: const Color(0xFF919191),
+                ),
+              ),
+          ],
+        ],
+      );
+    }
+  }
+
+  /// 判断是否显示Info按钮
+  bool _shouldShowInfoButton(ProductInfo spu) {
+    // 根据商品类型决定是否显示Info按钮
+    return spu.type == ProductType.sealed;
+  }
+
+  /// 构建Info按钮
+  Widget _buildInfoButton() {
+    return Container(
+      height: 44.h,
+      width: 110.w,
+      decoration: BoxDecoration(
+        color: const Color(0xFFF4F4F6),
+        borderRadius: BorderRadius.circular(22.r),
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Text(
+            'Info',
+            style: TextStyle(
+              fontSize: 24.sp,
+              color: const Color(0xFF212222),
+            ),
+          ),
+          SizedBox(width: 4.w),
+          Icon(
+            Icons.keyboard_arrow_down,
+            size: 16.w,
+            color: const Color(0xFF212222),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// 构建SPU标签 - 根据Figma设计
   Widget _buildSpuTags(ProductInfo spu) {
     return Row(
       children: [
-        // 类目标签
-        if (spu.categories.isNotEmpty)
+        // 类目标签 - 显示第一个类目名称，如果没有则显示默认值
+        if (spu.categories.isNotEmpty || true) // 总是显示至少一个标签
           Container(
-            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+            height: 36.h,
+            padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 0.h),
             decoration: BoxDecoration(
-              color: Colors.blue[50],
-              borderRadius: BorderRadius.circular(6),
-              border: Border.all(color: Colors.blue[200]!),
+              border: Border.all(color: const Color(0xFFD3D3D3)),
+              borderRadius: BorderRadius.circular(8.r),
             ),
-            child: Text(
-              spu.categories.first.displayName,
-              style: TextStyle(
-                fontSize: 11,
-                fontWeight: FontWeight.w500,
-                color: Colors.blue[700],
+            child: Center(
+              child: Text(
+                spu.categories.isNotEmpty 
+                  ? (spu.categories.first.displayName ?? spu.categories.first.name.toString())
+                  : 'Pokémon', // 默认值
+                style: TextStyle(
+                  fontSize: 22.sp,
+                  color: const Color(0xFF919191),
+                ),
               ),
             ),
           ),
-        const SizedBox(width: 8),
-        // 语言标签
-        Container(
-          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-          decoration: BoxDecoration(
-            color: Colors.green[50],
-            borderRadius: BorderRadius.circular(6),
-            border: Border.all(color: Colors.green[200]!),
-          ),
-          child: Text(
-            'EN',
-            style: TextStyle(
-              fontSize: 11,
-              fontWeight: FontWeight.w500,
-              color: Colors.green[700],
+        
+        // 语言标签 - 仅在有卡片语言时显示
+        if (spu.cardLanguage.value.isNotEmpty) ...[
+          SizedBox(width: 12.w),
+          Container(
+            height: 36.h,
+            width: 44.w,
+            decoration: BoxDecoration(
+              border: Border.all(color: const Color(0xFFD3D3D3)),
+              borderRadius: BorderRadius.circular(8.r),
+            ),
+            child: Center(
+              child: Text(
+                spu.cardLanguage.value,
+                style: TextStyle(
+                  fontSize: 22.sp,
+                  color: const Color(0xFF919191),
+                ),
+              ),
             ),
           ),
-        ),
+        ],
       ],
     );
   }
@@ -655,12 +730,14 @@ class _SpuSelectionScreenState extends ConsumerState<SpuSelectionScreen> {
           'displayName': spu.displayName,
           'code': spu.code,
           'level': spu.level,
+          'cardLanguage': spu.cardLanguage.value, // 添加卡片语言信息
           'categories': spu.categories.map((cat) => {
             'id': cat.id,
             'displayName': cat.displayName,
           }).toList(),
           'images': spu.images,
           'type': spu.type?.value,
+          'suggestedPrice': spu.suggestedPrice, // 从SPU数据获取建议价格
         },
       },
     );

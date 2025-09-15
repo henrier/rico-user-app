@@ -77,6 +77,7 @@ class _BatchAddProductScreenState extends ConsumerState<BatchAddProductScreen> {
       stock: 1,
       notes: '',
       imageUrl: 'https://via.placeholder.com/164x228',
+      suggestedPrice: 230.50, // 添加建议价格
       type: ProductType.raw,
       cardLanguage: CardLanguage.en,
       categories: [],
@@ -92,6 +93,7 @@ class _BatchAddProductScreenState extends ConsumerState<BatchAddProductScreen> {
       stock: 1,
       notes: '',
       imageUrl: 'https://via.placeholder.com/164x228',
+      suggestedPrice: 230.50, // 添加建议价格
       type: ProductType.raw,
       cardLanguage: CardLanguage.en,
       categories: [],
@@ -107,6 +109,7 @@ class _BatchAddProductScreenState extends ConsumerState<BatchAddProductScreen> {
       stock: 1,
       notes: '',
       imageUrl: 'https://via.placeholder.com/164x228',
+      suggestedPrice: 230.50, // 添加建议价格
       type: ProductType.raw,
       cardLanguage: CardLanguage.en,
       categories: [],
@@ -165,6 +168,7 @@ class _BatchAddProductScreenState extends ConsumerState<BatchAddProductScreen> {
         imageUrl: personalProduct.images.isNotEmpty 
             ? personalProduct.images.first 
             : 'https://via.placeholder.com/164x228',
+        suggestedPrice: personalProduct.productInfo.suggestedPrice, // 从ProductInfo获取建议价格
         type: _mapPersonalProductTypeToProductType(personalProduct.type),
         cardLanguage: CardLanguage.en, // 默认英文
         categories: [], // 可以从ProductInfo中获取
@@ -984,16 +988,24 @@ class _BatchAddProductScreenState extends ConsumerState<BatchAddProductScreen> {
                           borderRadius: BorderRadius.circular(47.r),
                         ),
                         child: TextField(
+                          textAlignVertical: TextAlignVertical.center,
                           decoration: InputDecoration(
                             hintText: index == 0 ? '123456789101112' : '1234545',
                             hintStyle: TextStyle(
                               fontSize: 24.sp,
                               color: Colors.black,
+                              fontFamily: 'Roboto',
                             ),
                             border: InputBorder.none,
+                            enabledBorder: InputBorder.none,
+                            focusedBorder: InputBorder.none,
                             contentPadding: EdgeInsets.symmetric(horizontal: 16.w),
+                            isDense: true,
                           ),
-                          style: TextStyle(fontSize: 24.sp),
+                          style: TextStyle(
+                            fontSize: 24.sp,
+                            fontFamily: 'Roboto',
+                          ),
                         ),
                       ),
                       SizedBox(width: 20.w),
@@ -1046,16 +1058,24 @@ class _BatchAddProductScreenState extends ConsumerState<BatchAddProductScreen> {
                       child: TextField(
                         controller: index < _priceControllers.length ? _priceControllers[index] : null,
                         keyboardType: TextInputType.numberWithOptions(decimal: true),
+                        textAlignVertical: TextAlignVertical.center,
                         decoration: InputDecoration(
                           hintText: 'RM ${product.price}',
                           hintStyle: TextStyle(
                             fontSize: 20.sp,
                             color: Color(0xFFc1c1c1),
+                            fontFamily: 'Roboto',
                           ),
                           border: InputBorder.none,
+                          enabledBorder: InputBorder.none,
+                          focusedBorder: InputBorder.none,
                           contentPadding: EdgeInsets.symmetric(horizontal: 16.w),
+                          isDense: true,
                         ),
-                        style: TextStyle(fontSize: 20.sp),
+                        style: TextStyle(
+                          fontSize: 20.sp,
+                          fontFamily: 'Roboto',
+                        ),
                         onChanged: (value) {
                           // 更新ProductItem中的price值
                           if (index < _productList.length) {
@@ -1070,6 +1090,7 @@ class _BatchAddProductScreenState extends ConsumerState<BatchAddProductScreen> {
                               stock: _productList[index].stock,
                               notes: _productList[index].notes,
                               imageUrl: _productList[index].imageUrl,
+                              suggestedPrice: _productList[index].suggestedPrice, // 保持建议价格
                               type: _productList[index].type,
                               cardLanguage: _productList[index].cardLanguage,
                               categories: _productList[index].categories,
@@ -1094,10 +1115,10 @@ class _BatchAddProductScreenState extends ConsumerState<BatchAddProductScreen> {
                               ),
                             ),
                             TextSpan(
-                              text: 'RM ${product.price}',
+                              text: 'RM ${_getSuggestedPrice(product).toStringAsFixed(2)}',
                               style: TextStyle(
                                 fontSize: 20.sp,
-                                color: index == 0 ? Color(0xFFd83333) : Color(0xFFf86700),
+                                color: Color(0xFFf86700), // 统一使用橙色
                                 fontFamily: 'Roboto',
                               ),
                             ),
@@ -1158,17 +1179,23 @@ class _BatchAddProductScreenState extends ConsumerState<BatchAddProductScreen> {
                                 controller: index < _stockControllers.length ? _stockControllers[index] : null,
                                 keyboardType: TextInputType.number,
                                 textAlign: TextAlign.center,
+                                textAlignVertical: TextAlignVertical.center,
                                 style: TextStyle(
                                   fontSize: 24.sp,
                                   color: Colors.black,
+                                  fontFamily: 'Roboto',
                                 ),
                                 decoration: InputDecoration(
                                   border: InputBorder.none,
+                                  enabledBorder: InputBorder.none,
+                                  focusedBorder: InputBorder.none,
                                   hintText: '1',
                                   hintStyle: TextStyle(
                                     fontSize: 24.sp,
                                     color: Colors.black,
+                                    fontFamily: 'Roboto',
                                   ),
+                                  isDense: true,
                                 ),
                                 onChanged: (value) {
                                   // 更新ProductItem中的stock值
@@ -1184,6 +1211,7 @@ class _BatchAddProductScreenState extends ConsumerState<BatchAddProductScreen> {
                                       stock: stock, // 更新stock值
                                       notes: _productList[index].notes,
                                       imageUrl: _productList[index].imageUrl,
+                                      suggestedPrice: _productList[index].suggestedPrice, // 保持建议价格
                                       type: _productList[index].type,
                                       cardLanguage: _productList[index].cardLanguage,
                                       categories: _productList[index].categories,
@@ -1288,17 +1316,23 @@ class _BatchAddProductScreenState extends ConsumerState<BatchAddProductScreen> {
                               controller: index < _stockControllers.length ? _stockControllers[index] : null,
                               keyboardType: TextInputType.number,
                               textAlign: TextAlign.center,
+                              textAlignVertical: TextAlignVertical.center,
                               style: TextStyle(
                                 fontSize: 24.sp,
                                 color: Colors.black,
+                                fontFamily: 'Roboto',
                               ),
                               decoration: InputDecoration(
                                 border: InputBorder.none,
+                                enabledBorder: InputBorder.none,
+                                focusedBorder: InputBorder.none,
                                 hintText: '${product.stock}',
                                 hintStyle: TextStyle(
                                   fontSize: 24.sp,
                                   color: Colors.black,
+                                  fontFamily: 'Roboto',
                                 ),
+                                isDense: true,
                               ),
                               onChanged: (value) {
                                 // 更新ProductItem中的stock值
@@ -1314,6 +1348,7 @@ class _BatchAddProductScreenState extends ConsumerState<BatchAddProductScreen> {
                                     stock: stock, // 更新stock值
                                     notes: _productList[index].notes,
                                     imageUrl: _productList[index].imageUrl,
+                                    suggestedPrice: _productList[index].suggestedPrice, // 保持建议价格
                                     type: _productList[index].type,
                                     cardLanguage: _productList[index].cardLanguage,
                                     categories: _productList[index].categories,
@@ -1391,16 +1426,24 @@ class _BatchAddProductScreenState extends ConsumerState<BatchAddProductScreen> {
                         ),
                         child: TextField(
                           controller: index < _notesControllers.length ? _notesControllers[index] : null,
+                          textAlignVertical: TextAlignVertical.center,
                           decoration: InputDecoration(
                             hintText: 'Up to 50 characters',
                             hintStyle: TextStyle(
                               fontSize: 22.sp,
                               color: Color(0xFF919191),
+                              fontFamily: 'Roboto',
                             ),
                             border: InputBorder.none,
+                            enabledBorder: InputBorder.none,
+                            focusedBorder: InputBorder.none,
                             contentPadding: EdgeInsets.symmetric(horizontal: 16.w),
+                            isDense: true,
                           ),
-                          style: TextStyle(fontSize: 22.sp),
+                          style: TextStyle(
+                            fontSize: 22.sp,
+                            fontFamily: 'Roboto',
+                          ),
                           onChanged: (value) {
                             // 更新ProductItem中的notes值
                             if (index < _productList.length) {
@@ -1414,6 +1457,7 @@ class _BatchAddProductScreenState extends ConsumerState<BatchAddProductScreen> {
                                 stock: _productList[index].stock,
                                 notes: value, // 更新notes值
                                 imageUrl: _productList[index].imageUrl,
+                                suggestedPrice: _productList[index].suggestedPrice, // 保持建议价格
                                 type: _productList[index].type,
                                 cardLanguage: _productList[index].cardLanguage,
                                 categories: _productList[index].categories,
@@ -2028,7 +2072,7 @@ class _BatchAddProductScreenState extends ConsumerState<BatchAddProductScreen> {
   /// 显示批量价格编辑弹窗
   void _showBulkPriceEditDialog() {
     String selectedPriceType = 'Same Price'; // 默认选择Same Price
-    String customPrice = '455'; // 默认价格
+    String customPrice = ''; // 默认价格为空
     
     showBulkEditDialog(
       context: context,
@@ -2036,135 +2080,334 @@ class _BatchAddProductScreenState extends ConsumerState<BatchAddProductScreen> {
       content: StatefulBuilder(
         builder: (context, setState) => Column(
           mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start, // 左对齐
           children: [
-            // Edit all in 标签和选项
-            Row(
-              children: [
-                Text(
-                  'Edit all in',
-                  style: TextStyle(
-                    fontSize: 24.sp,
-                    color: Color(0xFF919191),
-                  ),
-                ),
-                SizedBox(width: 40.w),
-                // Same Price 按钮
-                GestureDetector(
-                  onTap: () {
-                    setState(() {
-                      selectedPriceType = 'Same Price';
-                    });
-                  },
-                  child: Container(
-                    width: 186.w,
-                    height: 64.h,
-                    decoration: BoxDecoration(
-                      color: selectedPriceType == 'Same Price' 
-                          ? Color(0xFF0dee80) 
-                          : Color(0xFFf4f4f4),
-                      borderRadius: BorderRadius.circular(47.r),
-                    ),
-                    child: Center(
-                      child: Text(
-                        'Same Price',
-                        style: TextStyle(
-                          fontSize: 24.sp,
-                          color: Color(0xFF212222),
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
-              ],
+            // Edit all in 标签
+            Text(
+              'Edit all in',
+              style: TextStyle(
+                fontSize: 24.sp,
+                color: Color(0xFF919191),
+                fontFamily: 'Roboto',
+              ),
             ),
             
             SizedBox(height: 20.h),
             
-            // Suggested Price 按钮
-            Align(
-              alignment: Alignment.centerLeft,
-              child: Padding(
-                padding: EdgeInsets.only(left: 220.w),
-                child: GestureDetector(
-                  onTap: () {
-                    setState(() {
-                      selectedPriceType = 'Suggested Price';
-                    });
-                  },
-                  child: Container(
-                    width: 236.w,
-                    height: 64.h,
-                    decoration: BoxDecoration(
-                      color: selectedPriceType == 'Suggested Price' 
-                          ? Color(0xFF0dee80) 
-                          : Color(0xFFf4f4f4),
-                      borderRadius: BorderRadius.circular(47.r),
-                    ),
-                    child: Center(
-                      child: Text(
-                        'Suggested Price',
-                        style: TextStyle(
-                          fontSize: 24.sp,
-                          color: Color(0xFF212222),
-                        ),
-                      ),
+            // Same Price 按钮
+            GestureDetector(
+              onTap: () {
+                setState(() {
+                  selectedPriceType = 'Same Price';
+                });
+              },
+              child: Container(
+                width: 186.w,
+                height: 64.h,
+                decoration: BoxDecoration(
+                  color: selectedPriceType == 'Same Price' 
+                      ? Color(0xFF0dee80) 
+                      : Color(0xFFf4f4f4),
+                  borderRadius: BorderRadius.circular(47.r),
+                ),
+                child: Center(
+                  child: Text(
+                    'Same Price',
+                    style: TextStyle(
+                      fontSize: 24.sp,
+                      color: Color(0xFF212222),
+                      fontFamily: 'Roboto',
                     ),
                   ),
                 ),
               ),
             ),
             
-            SizedBox(height: 40.h),
+            SizedBox(height: 20.h),
             
-            // Set Price 区域
-            Row(
-              children: [
-                Text(
-                  'Set Price',
-                  style: TextStyle(
-                    fontSize: 24.sp,
-                    color: Color(0xFF919191),
-                  ),
+            // Suggested Price 按钮
+            GestureDetector(
+              onTap: () {
+                setState(() {
+                  selectedPriceType = 'Suggested Price';
+                });
+              },
+              child: Container(
+                width: 236.w,
+                height: 64.h,
+                decoration: BoxDecoration(
+                  color: selectedPriceType == 'Suggested Price' 
+                      ? Color(0xFF0dee80) 
+                      : Color(0xFFf4f4f4),
+                  borderRadius: BorderRadius.circular(47.r),
                 ),
-                SizedBox(width: 40.w),
-                Text(
-                  'RM',
-                  style: TextStyle(
-                    fontSize: 24.sp,
-                    color: Colors.black,
-                  ),
-                ),
-                SizedBox(width: 20.w),
-                Container(
-                  width: 115.w,
-                  height: 64.h,
-                  decoration: BoxDecoration(
-                    color: Color(0xFFf4f4f4),
-                    borderRadius: BorderRadius.circular(47.r),
-                  ),
-                  child: Center(
-                    child: TextField(
-                      textAlign: TextAlign.center,
-                      style: TextStyle(
-                        fontSize: 28.sp,
-                        color: Colors.black,
-                      ),
-                      decoration: InputDecoration(
-                        border: InputBorder.none,
-                        hintText: customPrice,
-                        hintStyle: TextStyle(
-                          fontSize: 28.sp,
-                          color: Colors.black,
-                        ),
-                      ),
-                      onChanged: (value) {
-                        customPrice = value;
-                      },
+                child: Center(
+                  child: Text(
+                    'Suggested Price',
+                    style: TextStyle(
+                      fontSize: 24.sp,
+                      color: Color(0xFF212222),
+                      fontFamily: 'Roboto',
                     ),
                   ),
                 ),
-              ],
+              ),
             ),
+            
+            // 根据选择显示不同内容
+            if (selectedPriceType == 'Same Price') ...[
+              SizedBox(height: 40.h),
+              
+              // Set Price 区域
+              Row(
+                children: [
+                  Text(
+                    'Set Price',
+                    style: TextStyle(
+                      fontSize: 24.sp,
+                      color: Color(0xFF919191),
+                      fontFamily: 'Roboto',
+                    ),
+                  ),
+                  SizedBox(width: 40.w),
+                  Text(
+                    'RM',
+                    style: TextStyle(
+                      fontSize: 24.sp,
+                      color: Colors.black,
+                      fontFamily: 'Roboto',
+                    ),
+                  ),
+                  SizedBox(width: 20.w),
+                  Container(
+                    width: 115.w,
+                    height: 64.h,
+                    decoration: BoxDecoration(
+                      color: Color(0xFFf4f4f4),
+                      borderRadius: BorderRadius.circular(47.r),
+                    ),
+                    child: Center(
+                      child: TextField(
+                        textAlign: TextAlign.center,
+                        textAlignVertical: TextAlignVertical.center,
+                        style: TextStyle(
+                          fontSize: 28.sp,
+                          color: Colors.black,
+                          fontFamily: 'Roboto',
+                        ),
+                        decoration: InputDecoration(
+                          border: InputBorder.none,
+                          enabledBorder: InputBorder.none,
+                          focusedBorder: InputBorder.none,
+                          hintText: '', // 默认为空
+                          hintStyle: TextStyle(
+                            fontSize: 28.sp,
+                            color: Color(0xFF919191),
+                            fontFamily: 'Roboto',
+                          ),
+                          isDense: true,
+                        ),
+                        onChanged: (value) {
+                          customPrice = value;
+                        },
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ] else if (selectedPriceType == 'Suggested Price') ...[
+              SizedBox(height: 40.h),
+              
+              // Want to adjust based on suggested? 文本
+              Text(
+                'Want to adjust based on suggested?',
+                style: TextStyle(
+                  fontSize: 24.sp,
+                  color: Color(0xFF212222),
+                  fontFamily: 'Roboto',
+                ),
+              ),
+              
+              SizedBox(height: 30.h),
+              
+              // By Amount 选项
+              Row(
+                children: [
+                  Text(
+                    'By',
+                    style: TextStyle(
+                      fontSize: 24.sp,
+                      color: Color(0xFF919191),
+                      fontFamily: 'Roboto',
+                    ),
+                  ),
+                  SizedBox(width: 40.w),
+                  Container(
+                    width: 216.w,
+                    height: 64.h,
+                    decoration: BoxDecoration(
+                      color: Color(0xFFf4f4f4),
+                      borderRadius: BorderRadius.circular(47.r),
+                    ),
+                    child: Center(
+                      child: Text(
+                        'Amount',
+                        style: TextStyle(
+                          fontSize: 24.sp,
+                          color: Color(0xFF212222),
+                          fontFamily: 'Roboto',
+                        ),
+                      ),
+                    ),
+                  ),
+                  SizedBox(width: 20.w),
+                  Container(
+                    width: 142.w,
+                    height: 64.h,
+                    decoration: BoxDecoration(
+                      color: Color(0xFFf4f4f4),
+                      borderRadius: BorderRadius.circular(47.r),
+                    ),
+                    child: Row(
+                      children: [
+                        // 减号按钮
+                        Container(
+                          width: 24.w,
+                          height: 24.h,
+                          margin: EdgeInsets.only(left: 14.w),
+                          child: Center(
+                            child: Container(
+                              width: 17.w,
+                              height: 3.h,
+                              decoration: BoxDecoration(
+                                color: Colors.black,
+                                borderRadius: BorderRadius.circular(22.r),
+                              ),
+                            ),
+                          ),
+                        ),
+                        // 数量显示
+                        Expanded(
+                          child: Text(
+                            '1',
+                            textAlign: TextAlign.center,
+                            style: TextStyle(
+                              fontSize: 24.sp,
+                              color: Colors.black,
+                              fontFamily: 'Roboto',
+                            ),
+                          ),
+                        ),
+                        // 加号按钮
+                        Container(
+                          width: 24.w,
+                          height: 24.h,
+                          margin: EdgeInsets.only(right: 14.w),
+                          child: Center(
+                            child: Stack(
+                              children: [
+                                // 水平线
+                                Positioned(
+                                  left: 3.5.w,
+                                  top: 10.5.h,
+                                  child: Container(
+                                    width: 17.w,
+                                    height: 3.h,
+                                    decoration: BoxDecoration(
+                                      color: Colors.black,
+                                      borderRadius: BorderRadius.circular(22.r),
+                                    ),
+                                  ),
+                                ),
+                                // 垂直线
+                                Positioned(
+                                  left: 10.5.w,
+                                  top: 3.5.h,
+                                  child: Container(
+                                    width: 3.w,
+                                    height: 17.h,
+                                    decoration: BoxDecoration(
+                                      color: Colors.black,
+                                      borderRadius: BorderRadius.circular(22.r),
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+              
+              SizedBox(height: 20.h),
+              
+              // By Percentage 选项
+              Row(
+                children: [
+                  Text(
+                    'By',
+                    style: TextStyle(
+                      fontSize: 24.sp,
+                      color: Color(0xFF919191),
+                      fontFamily: 'Roboto',
+                    ),
+                  ),
+                  SizedBox(width: 40.w),
+                  Container(
+                    width: 216.w,
+                    height: 64.h,
+                    decoration: BoxDecoration(
+                      color: Color(0xFFf4f4f4),
+                      borderRadius: BorderRadius.circular(47.r),
+                    ),
+                    child: Center(
+                      child: Text(
+                        'Percentage',
+                        style: TextStyle(
+                          fontSize: 24.sp,
+                          color: Color(0xFF212222),
+                          fontFamily: 'Roboto',
+                        ),
+                      ),
+                    ),
+                  ),
+                  SizedBox(width: 20.w),
+                  Container(
+                    width: 145.w,
+                    height: 64.h,
+                    decoration: BoxDecoration(
+                      color: Color(0xFFf4f4f4),
+                      borderRadius: BorderRadius.circular(47.r),
+                    ),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Text(
+                          '100',
+                          style: TextStyle(
+                            fontSize: 24.sp,
+                            color: Colors.black,
+                            fontFamily: 'Roboto',
+                          ),
+                        ),
+                        SizedBox(width: 8.w),
+                        Text(
+                          '%',
+                          style: TextStyle(
+                            fontSize: 24.sp,
+                            color: Colors.black,
+                            fontFamily: 'Roboto',
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ],
           ],
         ),
       ),
@@ -2333,19 +2576,25 @@ class _BatchAddProductScreenState extends ConsumerState<BatchAddProductScreen> {
                             maxLines: null,
                             expands: true,
                             maxLength: maxLength,
+                            textAlignVertical: TextAlignVertical.top,
                             style: TextStyle(
                               fontSize: 24.sp,
                               color: Colors.black,
+                              fontFamily: 'Roboto',
                             ),
                             decoration: InputDecoration(
                               hintText: 'up to 50 characters',
                               hintStyle: TextStyle(
                                 fontSize: 24.sp,
                                 color: Color(0xFF919191),
+                                fontFamily: 'Roboto',
                               ),
                               border: InputBorder.none,
+                              enabledBorder: InputBorder.none,
+                              focusedBorder: InputBorder.none,
                               contentPadding: EdgeInsets.all(20.w),
                               counterText: '', // 隐藏默认计数器
+                              isDense: true,
                             ),
                             onChanged: (value) {
                               setState(() {
@@ -2408,6 +2657,7 @@ class _BatchAddProductScreenState extends ConsumerState<BatchAddProductScreen> {
             stock: _productList[i].stock,
             notes: _productList[i].notes,
             imageUrl: _productList[i].imageUrl,
+            suggestedPrice: _productList[i].suggestedPrice, // 保持建议价格
             type: _productList[i].type,
             cardLanguage: _productList[i].cardLanguage,
             categories: _productList[i].categories,
@@ -2436,6 +2686,7 @@ class _BatchAddProductScreenState extends ConsumerState<BatchAddProductScreen> {
             stock: _productList[i].stock,
             notes: _productList[i].notes,
             imageUrl: _productList[i].imageUrl,
+            suggestedPrice: _productList[i].suggestedPrice, // 保持建议价格
             type: _productList[i].type,
             cardLanguage: _productList[i].cardLanguage,
             categories: _productList[i].categories,
@@ -2481,6 +2732,7 @@ class _BatchAddProductScreenState extends ConsumerState<BatchAddProductScreen> {
           stock: stockValue, // 更新stock值
           notes: _productList[i].notes,
           imageUrl: _productList[i].imageUrl,
+          suggestedPrice: _productList[i].suggestedPrice, // 保持建议价格
           type: _productList[i].type,
           cardLanguage: _productList[i].cardLanguage,
           categories: _productList[i].categories,
@@ -2512,6 +2764,15 @@ class _BatchAddProductScreenState extends ConsumerState<BatchAddProductScreen> {
     );
   }
   
+  /// 获取建议零售价格
+  double _getSuggestedPrice(ProductItem product) {
+    // 从商品数据获取建议价格，如果没有则返回0
+    if (product.suggestedPrice != null && product.suggestedPrice! > 0) {
+      return product.suggestedPrice!;
+    }
+    return 0.0; // 默认显示0
+  }
+
   /// 应用批量备注编辑
   void _applyBulkNotesEdit(String notesText) {
     setState(() {
@@ -2527,6 +2788,7 @@ class _BatchAddProductScreenState extends ConsumerState<BatchAddProductScreen> {
           stock: _productList[i].stock,
           notes: notesText, // 更新notes值
           imageUrl: _productList[i].imageUrl,
+          suggestedPrice: _productList[i].suggestedPrice, // 保持建议价格
           type: _productList[i].type,
           cardLanguage: _productList[i].cardLanguage,
           categories: _productList[i].categories,
@@ -2571,6 +2833,7 @@ class ProductItem {
   final int stock;
   final String notes;
   final String imageUrl;
+  final double? suggestedPrice; // 添加建议价格字段
   
   // API调用需要的字段
   final ProductType type;
@@ -2588,6 +2851,7 @@ class ProductItem {
     required this.stock,
     required this.notes,
     required this.imageUrl,
+    this.suggestedPrice, // 添加建议价格参数
     this.type = ProductType.raw,
     this.cardLanguage,
     this.categories,
