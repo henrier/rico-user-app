@@ -9,7 +9,6 @@ import '../screens/home/home_screen.dart';
 import '../screens/product/spu_search_screen.dart';
 import '../screens/product/spu_selection_screen.dart';
 import '../screens/product/product_detail_create_screen.dart';
-import '../screens/product/product_detail_demo_screen.dart';
 import '../screens/product/batch_add_product_screen.dart';
 import '../screens/product/product_management_screen.dart';
 import '../screens/product/bulk_edit_screen.dart';
@@ -186,11 +185,6 @@ final routerProvider = Provider<GoRouter>((ref) {
                 spuData: extra?['spuData'] as Map<String, dynamic>?, // 传递SPU扩展数据
               );
             },
-          ),
-          GoRoute(
-            path: 'product-detail-demo',
-            name: 'product-detail-demo',
-            builder: (context, state) => const ProductDetailDemoScreen(),
           ),
           GoRoute(
             path: 'batch-add-product',

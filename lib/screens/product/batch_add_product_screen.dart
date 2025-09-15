@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+import 'package:image_picker/image_picker.dart';
+import 'dart:io';
 
 import '../../common/themes/app_theme.dart';
 import '../../widgets/spu_select_filter.dart';
@@ -11,6 +13,8 @@ import '../../models/productinfo/data.dart';
 import '../../models/i18n_string.dart';
 import '../../models/personalproduct/data.dart';
 import '../../models/personalproduct/service.dart';
+import '../../api/oss_api.dart';
+import '../../common/utils/logger.dart';
 
 class BatchAddProductScreen extends ConsumerStatefulWidget {
   final Map<String, dynamic>? routeData;
@@ -64,6 +68,15 @@ class _BatchAddProductScreenState extends ConsumerState<BatchAddProductScreen> {
   
   // Stock输入框控制器列表
   List<TextEditingController> _stockControllers = [];
+  
+  // 图片选择器
+  final ImagePicker _imagePicker = ImagePicker();
+  
+  // 每个商品的图片列表（最多2张）
+  List<List<File>> _productImages = [];
+  
+  // 每个商品当前显示的图片索引
+  List<int> _currentImageIndexes = [];
   
   // 商品列表
   final List<ProductItem> _productList = [
@@ -133,6 +146,7 @@ class _BatchAddProductScreenState extends ConsumerState<BatchAddProductScreen> {
     _initializeNotesControllers();
     _initializePriceControllers();
     _initializeStockControllers();
+    _initializeProductImages();
   }
 
   void _initializeFromRouteData() {
@@ -188,6 +202,7 @@ class _BatchAddProductScreenState extends ConsumerState<BatchAddProductScreen> {
     _initializeNotesControllers();
     _initializePriceControllers();
     _initializeStockControllers();
+    _initializeProductImages();
   }
 
   String _mapConditionToString(PersonalProductCondition condition) {
@@ -318,6 +333,18 @@ class _BatchAddProductScreenState extends ConsumerState<BatchAddProductScreen> {
     for (int i = 0; i < _productList.length; i++) {
       final controller = TextEditingController(text: _productList[i].stock.toString());
       _stockControllers.add(controller);
+    }
+  }
+
+  /// 初始化商品图片列表
+  void _initializeProductImages() {
+    _productImages.clear();
+    _currentImageIndexes.clear();
+    
+    // 为每个商品创建空的图片列表和索引
+    for (int i = 0; i < _productList.length; i++) {
+      _productImages.add(<File>[]);
+      _currentImageIndexes.add(0);
     }
   }
 
@@ -820,81 +847,40 @@ class _BatchAddProductScreenState extends ConsumerState<BatchAddProductScreen> {
                 Container(
                   width: 164.w,
                   height: 228.h, // 图片高度164w*228h
-                  decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(8.r),
-                    color: isPlaceholder ? Color(0xFFf4f4f6) : Color(0xFFf4f4f4),
-                    border: isPlaceholder ? Border.all(
-                      color: Color(0xFFb84846),
-                      width: 2.w,
-                    ) : null,
-                  ),
-                  child: isPlaceholder 
-                    ? Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Icon(
-                            Icons.add,
-                            size: 32.w,
-                            color: Color(0xFFb5b5b7),
-                          ),
-                          SizedBox(height: 8.h),
-                          Text(
-                            '(0/2)',
-                            style: TextStyle(
-                              fontSize: 24.sp,
-                              fontWeight: FontWeight.w500,
-                              color: Color(0xFFb5b5b7),
-                            ),
-                          ),
-                        ],
-                      )
-                    : ClipRRect(
-                        borderRadius: BorderRadius.circular(8.r),
-                        child: Image.network(
-                          product.imageUrl,
-                          fit: BoxFit.cover,
-                          errorBuilder: (context, error, stackTrace) {
-                            return Container(
-                              color: Color(0xFFf4f4f4),
-                              child: Icon(
-                                Icons.image,
-                                size: 48.w,
-                                color: Colors.grey[400],
-                              ),
-                            );
-                          },
-                        ),
-                      ),
+                  child: _buildImageDisplayArea(index),
                 ),
                 
                 SizedBox(height: 12.h), // 与上边的距离
                 
                 // Photo按钮 (始终显示)
-                Container(
-                  width: 164.w,
-                  height: 52.h,
-                  decoration: BoxDecoration(
-                    color: Color(0xFFf4f4f4),
-                    borderRadius: BorderRadius.circular(47.r),
-                  ),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(
-                        Icons.camera_alt,
-                        size: 20.w,
-                        color: Color(0xFF212222),
-                      ),
-                      SizedBox(width: 8.w),
-                      Text(
-                        'Photo',
-                        style: TextStyle(
-                          fontSize: 24.sp,
-                          fontWeight: FontWeight.w500,
+                GestureDetector(
+                  onTap: () => _pickImageForProduct(index),
+                  child: Container(
+                    width: 164.w,
+                    height: 52.h,
+                    decoration: BoxDecoration(
+                      color: Color(0xFFf4f4f4),
+                      borderRadius: BorderRadius.circular(47.r),
+                    ),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(
+                          Icons.camera_alt,
+                          size: 20.w,
                           color: Color(0xFF212222),
                         ),
-                      ),
-                    ],
+                        SizedBox(width: 8.w),
+                        Text(
+                          'Photo',
+                          style: TextStyle(
+                            fontSize: 24.sp,
+                            fontWeight: FontWeight.w500,
+                            color: Color(0xFF212222),
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
                 ),
               ],
@@ -2073,6 +2059,9 @@ class _BatchAddProductScreenState extends ConsumerState<BatchAddProductScreen> {
   void _showBulkPriceEditDialog() {
     String selectedPriceType = 'Same Price'; // 默认选择Same Price
     String customPrice = ''; // 默认价格为空
+    String selectedAdjustType = 'Amount'; // 默认选择Amount
+    int amountValue = 1; // Amount值
+    String percentageValue = '100'; // Percentage值（改为字符串）
     
     showBulkEditDialog(
       context: context,
@@ -2242,20 +2231,29 @@ class _BatchAddProductScreenState extends ConsumerState<BatchAddProductScreen> {
                     ),
                   ),
                   SizedBox(width: 40.w),
-                  Container(
-                    width: 216.w,
-                    height: 64.h,
-                    decoration: BoxDecoration(
-                      color: Color(0xFFf4f4f4),
-                      borderRadius: BorderRadius.circular(47.r),
-                    ),
-                    child: Center(
-                      child: Text(
-                        'Amount',
-                        style: TextStyle(
-                          fontSize: 24.sp,
-                          color: Color(0xFF212222),
-                          fontFamily: 'Roboto',
+                  GestureDetector(
+                    onTap: () {
+                      setState(() {
+                        selectedAdjustType = 'Amount';
+                      });
+                    },
+                    child: Container(
+                      width: 216.w,
+                      height: 64.h,
+                      decoration: BoxDecoration(
+                        color: selectedAdjustType == 'Amount' 
+                            ? Color(0xFF0dee80) 
+                            : Color(0xFFf4f4f4),
+                        borderRadius: BorderRadius.circular(47.r),
+                      ),
+                      child: Center(
+                        child: Text(
+                          'Amount',
+                          style: TextStyle(
+                            fontSize: 24.sp,
+                            color: Color(0xFF212222),
+                            fontFamily: 'Roboto',
+                          ),
                         ),
                       ),
                     ),
@@ -2271,17 +2269,26 @@ class _BatchAddProductScreenState extends ConsumerState<BatchAddProductScreen> {
                     child: Row(
                       children: [
                         // 减号按钮
-                        Container(
-                          width: 24.w,
-                          height: 24.h,
-                          margin: EdgeInsets.only(left: 14.w),
-                          child: Center(
-                            child: Container(
-                              width: 17.w,
-                              height: 3.h,
-                              decoration: BoxDecoration(
-                                color: Colors.black,
-                                borderRadius: BorderRadius.circular(22.r),
+                        GestureDetector(
+                          onTap: () {
+                            setState(() {
+                              if (amountValue > 1) {
+                                amountValue--;
+                              }
+                            });
+                          },
+                          child: Container(
+                            width: 24.w,
+                            height: 24.h,
+                            margin: EdgeInsets.only(left: 14.w),
+                            child: Center(
+                              child: Container(
+                                width: 17.w,
+                                height: 3.h,
+                                decoration: BoxDecoration(
+                                  color: Colors.black,
+                                  borderRadius: BorderRadius.circular(22.r),
+                                ),
                               ),
                             ),
                           ),
@@ -2289,7 +2296,7 @@ class _BatchAddProductScreenState extends ConsumerState<BatchAddProductScreen> {
                         // 数量显示
                         Expanded(
                           child: Text(
-                            '1',
+                            '$amountValue',
                             textAlign: TextAlign.center,
                             style: TextStyle(
                               fontSize: 24.sp,
@@ -2299,40 +2306,47 @@ class _BatchAddProductScreenState extends ConsumerState<BatchAddProductScreen> {
                           ),
                         ),
                         // 加号按钮
-                        Container(
-                          width: 24.w,
-                          height: 24.h,
-                          margin: EdgeInsets.only(right: 14.w),
-                          child: Center(
-                            child: Stack(
-                              children: [
-                                // 水平线
-                                Positioned(
-                                  left: 3.5.w,
-                                  top: 10.5.h,
-                                  child: Container(
-                                    width: 17.w,
-                                    height: 3.h,
-                                    decoration: BoxDecoration(
-                                      color: Colors.black,
-                                      borderRadius: BorderRadius.circular(22.r),
+                        GestureDetector(
+                          onTap: () {
+                            setState(() {
+                              amountValue++;
+                            });
+                          },
+                          child: Container(
+                            width: 24.w,
+                            height: 24.h,
+                            margin: EdgeInsets.only(right: 14.w),
+                            child: Center(
+                              child: Stack(
+                                children: [
+                                  // 水平线
+                                  Positioned(
+                                    left: 3.5.w,
+                                    top: 10.5.h,
+                                    child: Container(
+                                      width: 17.w,
+                                      height: 3.h,
+                                      decoration: BoxDecoration(
+                                        color: Colors.black,
+                                        borderRadius: BorderRadius.circular(22.r),
+                                      ),
                                     ),
                                   ),
-                                ),
-                                // 垂直线
-                                Positioned(
-                                  left: 10.5.w,
-                                  top: 3.5.h,
-                                  child: Container(
-                                    width: 3.w,
-                                    height: 17.h,
-                                    decoration: BoxDecoration(
-                                      color: Colors.black,
-                                      borderRadius: BorderRadius.circular(22.r),
+                                  // 垂直线
+                                  Positioned(
+                                    left: 10.5.w,
+                                    top: 3.5.h,
+                                    child: Container(
+                                      width: 3.w,
+                                      height: 17.h,
+                                      decoration: BoxDecoration(
+                                        color: Colors.black,
+                                        borderRadius: BorderRadius.circular(22.r),
+                                      ),
                                     ),
                                   ),
-                                ),
-                              ],
+                                ],
+                              ),
                             ),
                           ),
                         ),
@@ -2356,20 +2370,29 @@ class _BatchAddProductScreenState extends ConsumerState<BatchAddProductScreen> {
                     ),
                   ),
                   SizedBox(width: 40.w),
-                  Container(
-                    width: 216.w,
-                    height: 64.h,
-                    decoration: BoxDecoration(
-                      color: Color(0xFFf4f4f4),
-                      borderRadius: BorderRadius.circular(47.r),
-                    ),
-                    child: Center(
-                      child: Text(
-                        'Percentage',
-                        style: TextStyle(
-                          fontSize: 24.sp,
-                          color: Color(0xFF212222),
-                          fontFamily: 'Roboto',
+                  GestureDetector(
+                    onTap: () {
+                      setState(() {
+                        selectedAdjustType = 'Percentage';
+                      });
+                    },
+                    child: Container(
+                      width: 216.w,
+                      height: 64.h,
+                      decoration: BoxDecoration(
+                        color: selectedAdjustType == 'Percentage' 
+                            ? Color(0xFF0dee80) 
+                            : Color(0xFFf4f4f4),
+                        borderRadius: BorderRadius.circular(47.r),
+                      ),
+                      child: Center(
+                        child: Text(
+                          'Percentage',
+                          style: TextStyle(
+                            fontSize: 24.sp,
+                            color: Color(0xFF212222),
+                            fontFamily: 'Roboto',
+                          ),
                         ),
                       ),
                     ),
@@ -2383,23 +2406,45 @@ class _BatchAddProductScreenState extends ConsumerState<BatchAddProductScreen> {
                       borderRadius: BorderRadius.circular(47.r),
                     ),
                     child: Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
                       children: [
-                        Text(
-                          '100',
-                          style: TextStyle(
-                            fontSize: 24.sp,
-                            color: Colors.black,
-                            fontFamily: 'Roboto',
+                        // 百分比输入框
+                        Expanded(
+                          child: TextField(
+                            textAlign: TextAlign.center,
+                            textAlignVertical: TextAlignVertical.center,
+                            keyboardType: TextInputType.number,
+                            style: TextStyle(
+                              fontSize: 24.sp,
+                              color: Colors.black,
+                              fontFamily: 'Roboto',
+                            ),
+                            decoration: InputDecoration(
+                              border: InputBorder.none,
+                              enabledBorder: InputBorder.none,
+                              focusedBorder: InputBorder.none,
+                              hintText: '100',
+                              hintStyle: TextStyle(
+                                fontSize: 24.sp,
+                                color: Color(0xFF919191),
+                                fontFamily: 'Roboto',
+                              ),
+                              isDense: true,
+                            ),
+                            onChanged: (value) {
+                              percentageValue = value;
+                            },
                           ),
                         ),
-                        SizedBox(width: 8.w),
-                        Text(
-                          '%',
-                          style: TextStyle(
-                            fontSize: 24.sp,
-                            color: Colors.black,
-                            fontFamily: 'Roboto',
+                        // 百分号
+                        Padding(
+                          padding: EdgeInsets.only(right: 16.w),
+                          child: Text(
+                            '%',
+                            style: TextStyle(
+                              fontSize: 24.sp,
+                              color: Colors.black,
+                              fontFamily: 'Roboto',
+                            ),
                           ),
                         ),
                       ],
@@ -2411,7 +2456,13 @@ class _BatchAddProductScreenState extends ConsumerState<BatchAddProductScreen> {
           ],
         ),
       ),
-      onConfirm: () => _applyBulkPriceEdit(selectedPriceType, customPrice),
+      onConfirm: () => _applyBulkPriceEdit(
+        selectedPriceType, 
+        customPrice, 
+        selectedAdjustType, 
+        amountValue, 
+        percentageValue
+      ),
     );
   }
   
@@ -2636,7 +2687,13 @@ class _BatchAddProductScreenState extends ConsumerState<BatchAddProductScreen> {
   }
   
   /// 应用批量价格编辑
-  void _applyBulkPriceEdit(String priceType, String customPrice) {
+  void _applyBulkPriceEdit(
+    String priceType, 
+    String customPrice, 
+    String selectedAdjustType, 
+    int amountValue, 
+    String percentageValue
+  ) {
     setState(() {
       String message = '';
       
@@ -2670,11 +2727,21 @@ class _BatchAddProductScreenState extends ConsumerState<BatchAddProductScreen> {
           }
         }
       } else if (priceType == 'Suggested Price') {
-        message = '已将所有商品价格设置为建议价格';
-        
-        // 使用各自的建议价格（这里使用当前价格作为建议价格）
+        // 根据调整类型计算价格
         for (int i = 0; i < _productList.length; i++) {
-          final suggestedPrice = _productList[i].price; // 这里可以替换为实际的建议价格逻辑
+          final suggestedPrice = _getSuggestedPrice(_productList[i]);
+          double newPrice = suggestedPrice;
+          
+          if (selectedAdjustType == 'Amount') {
+            // Amount模式：建议价格 + Amount值
+            newPrice = suggestedPrice + amountValue;
+            message = '已将所有商品价格设置为建议价格 + RM $amountValue';
+          } else if (selectedAdjustType == 'Percentage') {
+            // Percentage模式：建议价格 * 百分比
+            final percentage = double.tryParse(percentageValue) ?? 100.0;
+            newPrice = suggestedPrice * (percentage / 100.0);
+            message = '已将所有商品价格设置为建议价格的 $percentageValue%';
+          }
           
           _productList[i] = ProductItem(
             id: _productList[i].id,
@@ -2682,7 +2749,7 @@ class _BatchAddProductScreenState extends ConsumerState<BatchAddProductScreen> {
             code: _productList[i].code,
             variant: _productList[i].variant,
             condition: _productList[i].condition,
-            price: suggestedPrice, // 使用建议价格
+            price: newPrice, // 使用计算后的价格
             stock: _productList[i].stock,
             notes: _productList[i].notes,
             imageUrl: _productList[i].imageUrl,
@@ -2695,7 +2762,7 @@ class _BatchAddProductScreenState extends ConsumerState<BatchAddProductScreen> {
           
           // 更新对应的控制器文本
           if (i < _priceControllers.length) {
-            _priceControllers[i].text = suggestedPrice.toString();
+            _priceControllers[i].text = newPrice.toStringAsFixed(2);
           }
         }
       }
@@ -2820,6 +2887,371 @@ class _BatchAddProductScreenState extends ConsumerState<BatchAddProductScreen> {
         ),
       ),
     );
+  }
+
+  /// 构建图片显示区域
+  Widget _buildImageDisplayArea(int productIndex) {
+    final images = productIndex < _productImages.length ? _productImages[productIndex] : <File>[];
+    
+    if (images.isEmpty) {
+      // 没有图片时显示加号和提示
+      return GestureDetector(
+        onTap: () => _pickImageForProduct(productIndex),
+        child: Container(
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(8.r),
+            color: Color(0xFFf4f4f6),
+            border: Border.all(
+              color: Color(0xFFb84846),
+              width: 2.w,
+            ),
+          ),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(
+                Icons.add,
+                size: 32.w,
+                color: Color(0xFFb5b5b7),
+              ),
+              SizedBox(height: 8.h),
+              Text(
+                '(0/2)',
+                style: TextStyle(
+                  fontSize: 24.sp,
+                  fontWeight: FontWeight.w500,
+                  color: Color(0xFFb5b5b7),
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+    } else {
+      // 有图片时显示单张图片和切换控件
+      final currentIndex = productIndex < _currentImageIndexes.length ? _currentImageIndexes[productIndex] : 0;
+      final currentImage = images[currentIndex.clamp(0, images.length - 1)];
+      
+      return Stack(
+        children: [
+          // 当前显示的图片
+          Container(
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(8.r),
+              border: Border.all(color: Colors.grey[300]!),
+            ),
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(8.r),
+              child: Image.file(
+                currentImage,
+                width: double.infinity,
+                height: 228.h,
+                fit: BoxFit.cover,
+              ),
+            ),
+          ),
+          
+          // 删除按钮
+          Positioned(
+            top: 4.h,
+            right: 4.w,
+            child: GestureDetector(
+              onTap: () => _removeImageFromProduct(productIndex, currentIndex),
+              child: Container(
+                width: 20.w,
+                height: 20.h,
+                decoration: BoxDecoration(
+                  color: Colors.red,
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(
+                  Icons.close,
+                  color: Colors.white,
+                  size: 14.sp,
+                ),
+              ),
+            ),
+          ),
+          
+          // 图片数量指示器
+          if (images.length > 1)
+            Positioned(
+              top: 8.h,
+              left: 8.w,
+              child: Container(
+                padding: EdgeInsets.symmetric(horizontal: 8.w, vertical: 2.h),
+                decoration: BoxDecoration(
+                  color: Colors.black.withOpacity(0.8),
+                  borderRadius: BorderRadius.circular(50.r),
+                ),
+                child: Text(
+                  '${currentIndex + 1}/${images.length}',
+                  style: TextStyle(
+                    fontSize: 22.sp,
+                    color: Colors.white,
+                    fontFamily: 'Roboto',
+                  ),
+                ),
+              ),
+            ),
+          
+          // 左切换按钮
+          if (images.length > 1 && currentIndex > 0)
+            Positioned(
+              left: 8.w,
+              top: 0,
+              bottom: 0,
+              child: Center(
+                child: GestureDetector(
+                  onTap: () => _switchImage(productIndex, -1),
+                  child: Container(
+                    width: 33.w,
+                    height: 33.h,
+                    decoration: BoxDecoration(
+                      color: Colors.white.withOpacity(0.9),
+                      shape: BoxShape.circle,
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withOpacity(0.2),
+                          blurRadius: 4.r,
+                          offset: Offset(0, 2.h),
+                        ),
+                      ],
+                    ),
+                    child: Icon(
+                      Icons.chevron_left,
+                      size: 20.sp,
+                      color: Colors.black,
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          
+          // 右切换按钮
+          if (images.length > 1 && currentIndex < images.length - 1)
+            Positioned(
+              right: 8.w,
+              top: 0,
+              bottom: 0,
+              child: Center(
+                child: GestureDetector(
+                  onTap: () => _switchImage(productIndex, 1),
+                  child: Container(
+                    width: 33.w,
+                    height: 33.h,
+                    decoration: BoxDecoration(
+                      color: Colors.white.withOpacity(0.9),
+                      shape: BoxShape.circle,
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withOpacity(0.2),
+                          blurRadius: 4.r,
+                          offset: Offset(0, 2.h),
+                        ),
+                      ],
+                    ),
+                    child: Icon(
+                      Icons.chevron_right,
+                      size: 20.sp,
+                      color: Colors.black,
+                    ),
+                  ),
+                ),
+              ),
+            ),
+        ],
+      );
+    }
+  }
+
+  /// 切换图片
+  void _switchImage(int productIndex, int direction) {
+    if (productIndex >= _currentImageIndexes.length) return;
+    if (productIndex >= _productImages.length) return;
+    
+    final images = _productImages[productIndex];
+    if (images.length <= 1) return;
+    
+    setState(() {
+      final currentIndex = _currentImageIndexes[productIndex];
+      final newIndex = (currentIndex + direction).clamp(0, images.length - 1);
+      _currentImageIndexes[productIndex] = newIndex;
+    });
+  }
+
+  /// 为指定商品选择图片
+  Future<void> _pickImageForProduct(int productIndex) async {
+    if (productIndex >= _productImages.length) return;
+    
+    final images = _productImages[productIndex];
+    if (images.length >= 2) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('每个商品最多只能选择2张图片'),
+          backgroundColor: Colors.orange,
+        ),
+      );
+      return;
+    }
+
+    try {
+      // 显示选择对话框
+      final source = await _showImageSourceDialog();
+      if (source == null) return;
+
+      final XFile? image = await _imagePicker.pickImage(
+        source: source,
+        maxWidth: 1024,
+        maxHeight: 1024,
+        imageQuality: 85,
+      );
+
+      if (image != null) {
+        setState(() {
+          _productImages[productIndex].add(File(image.path));
+        });
+
+        // 上传图片到OSS
+        _uploadImageToOss(File(image.path), productIndex);
+      }
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('选择图片失败: $e'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
+  }
+
+  /// 显示图片来源选择对话框
+  Future<ImageSource?> _showImageSourceDialog() async {
+    return showDialog<ImageSource>(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: Text('选择图片来源', style: TextStyle(fontSize: 18.sp)),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16.r),
+          ),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              ListTile(
+                leading: const Icon(Icons.camera_alt),
+                title: const Text('相机'),
+                onTap: () => Navigator.of(context).pop(ImageSource.camera),
+              ),
+              ListTile(
+                leading: const Icon(Icons.photo_library),
+                title: const Text('相册'),
+                onTap: () => Navigator.of(context).pop(ImageSource.gallery),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  /// 从指定商品中移除图片
+  void _removeImageFromProduct(int productIndex, int imageIndex) {
+    if (productIndex >= _productImages.length) return;
+    if (imageIndex >= _productImages[productIndex].length) return;
+
+    setState(() {
+      _productImages[productIndex].removeAt(imageIndex);
+      
+      // 调整当前图片索引
+      if (productIndex < _currentImageIndexes.length) {
+        final currentIndex = _currentImageIndexes[productIndex];
+        if (currentIndex >= _productImages[productIndex].length) {
+          // 如果当前索引超出范围，调整到最后一张图片
+          _currentImageIndexes[productIndex] = (_productImages[productIndex].length - 1).clamp(0, 1);
+        }
+      }
+    });
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('图片已删除'),
+        backgroundColor: Colors.grey[600],
+      ),
+    );
+  }
+
+  /// 上传图片到OSS
+  Future<void> _uploadImageToOss(File imageFile, int productIndex) async {
+    try {
+      final ossApi = OssApi();
+      
+      // 验证文件类型
+      if (!ossApi.validateFileType(imageFile, OssApi.supportedImageTypes)) {
+        AppLogger.warning('不支持的图片格式: ${imageFile.path}');
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('不支持的图片格式'),
+            backgroundColor: Colors.red,
+          ),
+        );
+        return;
+      }
+
+      // 压缩图片
+      final compressedFile = await ossApi.compressImage(
+        imageFile,
+        quality: 85,
+        maxWidth: 1024,
+        maxHeight: 1024,
+      );
+
+      // 上传到OSS
+      final String uploadedUrl = await ossApi.uploadFile(
+        compressedFile,
+        folder: 'images/products/',
+      );
+
+      // 更新商品的图片URL列表
+      if (productIndex < _productList.length) {
+        final currentImages = List<String>.from(_productList[productIndex].images ?? []);
+        currentImages.add(uploadedUrl);
+        
+        _productList[productIndex] = ProductItem(
+          id: _productList[productIndex].id,
+          name: _productList[productIndex].name,
+          code: _productList[productIndex].code,
+          variant: _productList[productIndex].variant,
+          condition: _productList[productIndex].condition,
+          price: _productList[productIndex].price,
+          stock: _productList[productIndex].stock,
+          notes: _productList[productIndex].notes,
+          imageUrl: _productList[productIndex].imageUrl,
+          suggestedPrice: _productList[productIndex].suggestedPrice,
+          type: _productList[productIndex].type,
+          cardLanguage: _productList[productIndex].cardLanguage,
+          categories: _productList[productIndex].categories,
+          images: currentImages, // 更新图片列表
+        );
+      }
+
+      AppLogger.info('图片上传成功: $uploadedUrl');
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('图片上传成功'),
+          backgroundColor: Colors.green[600],
+        ),
+      );
+
+    } catch (e) {
+      AppLogger.error('图片上传失败: $e');
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('图片上传失败: $e'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
   }
 }
 

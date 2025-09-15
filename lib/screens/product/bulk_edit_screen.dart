@@ -432,24 +432,67 @@ class _BulkEditScreenState extends State<BulkEditScreen> {
     );
   }
   
-  void _performBulkDelete() {
-    // 记录删除的数量
-    final deletedCount = selectedProductIds.length;
-    
-    // 从列表中移除选中的商品
-    setState(() {
-      products.removeWhere((product) => selectedProductIds.contains(product.id));
-      selectedProductIds.clear();
-      selectAll = false;
-    });
-    
-    // 显示成功消息
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text('成功删除 $deletedCount 个商品'),
-        backgroundColor: Colors.green,
-      ),
-    );
+  Future<void> _performBulkDelete() async {
+    try {
+      // 记录删除的数量
+      final deletedCount = selectedProductIds.length;
+      final idsToDelete = selectedProductIds.toList();
+      
+      AppLogger.i('开始批量删除商品，数量: $deletedCount');
+      AppLogger.i('删除的商品ID: $idsToDelete');
+      
+      // 显示加载状态
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('正在删除商品...'),
+            backgroundColor: Colors.orange,
+            duration: Duration(seconds: 1),
+          ),
+        );
+      }
+      
+      // 调用API批量删除商品
+      await _personalProductService.batchDeletePersonalProduct(idsToDelete);
+      
+      AppLogger.i('API调用成功，批量删除完成');
+      
+      // 清空选中状态
+      setState(() {
+        selectedProductIds.clear();
+        selectAll = false;
+      });
+      
+      // 重新获取列表信息
+      AppLogger.i('开始重新获取商品列表');
+      await _loadProducts(isRefresh: true);
+      
+      // 显示成功消息
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('成功删除 $deletedCount 个商品'),
+            backgroundColor: Colors.green,
+          ),
+        );
+      }
+      
+      AppLogger.i('批量删除操作完成，列表已刷新');
+      
+    } catch (e) {
+      AppLogger.e('批量删除商品失败', e);
+      
+      // 显示错误消息
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('删除失败: ${e.toString()}'),
+            backgroundColor: Colors.red,
+            duration: const Duration(seconds: 3),
+          ),
+        );
+      }
+    }
   }
 
   void _handleBulkEdit() {

@@ -148,13 +148,6 @@ class HomeScreen extends ConsumerWidget {
                   ),
                   _buildActionCard(
                     context,
-                    icon: Icons.add_box,
-                    title: 'Product Detail Demo',
-                    subtitle: 'Create product listing',
-                    onTap: () => context.pushNamed('product-detail-demo'),
-                  ),
-                  _buildActionCard(
-                    context,
                     icon: Icons.add_business,
                     title: '批量添加商品',
                     subtitle: '批量调整商品列表',
