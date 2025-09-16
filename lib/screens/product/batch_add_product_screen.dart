@@ -11,10 +11,13 @@ import '../../widgets/bulk_edit_dialog.dart';
 import '../../models/productinfo/service.dart';
 import '../../models/productinfo/data.dart';
 import '../../models/i18n_string.dart';
+import '../../models/ratingcompany/data.dart';
+import '../../models/ratingcompany/service.dart';
 import '../../models/personalproduct/data.dart';
 import '../../models/personalproduct/service.dart';
 import '../../api/oss_api.dart';
 import '../../common/utils/logger.dart';
+import '../../widgets/platform_image.dart';
 
 class BatchAddProductScreen extends ConsumerStatefulWidget {
   final Map<String, dynamic>? routeData;
@@ -35,8 +38,9 @@ class _BatchAddProductScreenState extends ConsumerState<BatchAddProductScreen> {
   final List<String> _productTypes = ['Raw', 'Graded Slabs', 'Sealed'];
   
   // 评级公司选择（仅在Graded Slabs模式下使用）
-  String _selectedGradingCompany = 'BGS Black Label';
-  final List<String> _gradingCompanies = ['BGS Black Label', 'PSA', 'CGC', 'PGC'];
+  String _selectedGradingCompany = '';
+  List<RatingCompany> _ratingCompanies = [];
+  bool _isLoadingRatingCompanies = false;
   
   // 发布设置
   bool _isPublishingNow = true;
@@ -48,6 +52,7 @@ class _BatchAddProductScreenState extends ConsumerState<BatchAddProductScreen> {
   // API服务
   late final ProductInfoService _productInfoService;
   late final PersonalProductService _personalProductService;
+  late final RatingCompanyService _ratingCompanyService;
   
   // 加载状态
   bool _isLoading = false;
@@ -135,6 +140,7 @@ class _BatchAddProductScreenState extends ConsumerState<BatchAddProductScreen> {
     super.initState();
     _productInfoService = ProductInfoService();
     _personalProductService = PersonalProductService();
+    _ratingCompanyService = RatingCompanyService();
     _initializeFromRouteData();
     
     // 如果不是编辑模式，默认设置为Raw模式
@@ -147,6 +153,11 @@ class _BatchAddProductScreenState extends ConsumerState<BatchAddProductScreen> {
     _initializePriceControllers();
     _initializeStockControllers();
     _initializeProductImages();
+    
+    // 如果商品类型是Graded Slabs，自动加载评级公司数据
+    if (_selectedProductType == 'Graded Slabs') {
+      _loadRatingCompanies();
+    }
   }
 
   void _initializeFromRouteData() {
@@ -352,6 +363,7 @@ class _BatchAddProductScreenState extends ConsumerState<BatchAddProductScreen> {
   void dispose() {
     _productInfoService.dispose();
     _personalProductService.dispose();
+    _ratingCompanyService.dispose();
     // 释放Notes控制器
     for (var controller in _notesControllers) {
       controller.dispose();
@@ -523,6 +535,79 @@ class _BatchAddProductScreenState extends ConsumerState<BatchAddProductScreen> {
               ),
             ),
             
+            // 评级公司选择区域
+            Padding(
+              padding: EdgeInsets.symmetric(horizontal: 30.w),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Graded by 标签 - 固定宽度
+                  SizedBox(
+                    width: 120.w,
+                    child: Row(
+                      children: [
+                        Flexible(
+                          child: Text(
+                            'Graded by',
+                            style: TextStyle(
+                              fontSize: 24.sp,
+                              color: const Color(0xFF919191),
+                            ),
+                          ),
+                        ),
+                        SizedBox(width: 10.w),
+                        if (_isLoadingRatingCompanies)
+                          SizedBox(
+                            width: 20.w,
+                            height: 20.h,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2,
+                              valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF65c574)),
+                            ),
+                          ),
+                      ],
+                    ),
+                  ),
+                  SizedBox(width: 20.w),
+                  // 评级公司按钮区域 - 自适应宽度
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        if (_ratingCompanies.isEmpty && !_isLoadingRatingCompanies)
+                          GestureDetector(
+                            onTap: _loadRatingCompanies,
+                            child: Container(
+                              padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 0.h),
+                              decoration: BoxDecoration(
+                                border: Border.all(color: Color(0xFF65c574)),
+                                borderRadius: BorderRadius.circular(8.r),
+                              ),
+                              child: Text(
+                                '点击加载评级公司',
+                                style: TextStyle(
+                                  fontSize: 16.sp,
+                                  color: Color(0xFF65c574),
+                                ),
+                              ),
+                            ),
+                          )
+                        else
+                          Wrap(
+                            spacing: 20.w,
+                            runSpacing: 12.h,
+                            children: _ratingCompanies
+                                .map((company) => _buildGradingCompanyChip(company.name))
+                                .toList(),
+                          ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            SizedBox(height: 20.h),
+            
             // 警告提示
             Padding(
               padding: EdgeInsets.symmetric(horizontal: 30.w),
@@ -622,7 +707,7 @@ class _BatchAddProductScreenState extends ConsumerState<BatchAddProductScreen> {
                               });
                             },
                             child: Container(
-                              padding: EdgeInsets.symmetric(horizontal: 20.w, vertical: 12.h),
+                              padding: EdgeInsets.symmetric(horizontal: 20.w, vertical: 0.h),
                               decoration: BoxDecoration(
                                 color: isSelected ? Color(0xFF65c574) : Color(0xFFf4f4f4),
                                 borderRadius: BorderRadius.circular(47.r),
@@ -734,8 +819,11 @@ class _BatchAddProductScreenState extends ConsumerState<BatchAddProductScreen> {
                   children: [
                     _buildBulkEditButton('Price'),
                     SizedBox(width: 12.w),
-                    _buildBulkEditButton('Stock'),
-                    SizedBox(width: 12.w),
+                    // 只在Raw状态下显示Stock按钮
+                    if (_selectedProductType == 'Raw') ...[
+                      _buildBulkEditButton('Stock'),
+                      SizedBox(width: 12.w),
+                    ],
                     _buildBulkEditButton('Notes'),
                   ],
                 ),
@@ -996,27 +1084,28 @@ class _BatchAddProductScreenState extends ConsumerState<BatchAddProductScreen> {
                       ),
                       SizedBox(width: 20.w),
                       // 评级标签
-                      Container(
-                        height: 36.h,
-                        padding: EdgeInsets.symmetric(horizontal: 12.w),
-                        decoration: BoxDecoration(
-                          gradient: LinearGradient(
-                            colors: [Color(0xFFf86700), Color(0xFFf89900)],
-                            begin: Alignment.topCenter,
-                            end: Alignment.bottomCenter,
+                      if (_selectedGradingCompany.isNotEmpty)
+                        Container(
+                          height: 36.h,
+                          padding: EdgeInsets.symmetric(horizontal: 12.w),
+                          decoration: BoxDecoration(
+                            gradient: LinearGradient(
+                              colors: [Color(0xFFf86700), Color(0xFFf89900)],
+                              begin: Alignment.topCenter,
+                              end: Alignment.bottomCenter,
+                            ),
+                            borderRadius: BorderRadius.circular(8.r),
                           ),
-                          borderRadius: BorderRadius.circular(8.r),
-                        ),
-                        child: Center(
-                          child: Text(
-                            _selectedGradingCompany,
-                            style: TextStyle(
-                              fontSize: 22.sp,
-                              color: Colors.white,
+                          child: Center(
+                            child: Text(
+                              _selectedGradingCompany,
+                              style: TextStyle(
+                                fontSize: 22.sp,
+                                color: Colors.white,
+                              ),
                             ),
                           ),
                         ),
-                      ),
                     ],
                   ),
                   SizedBox(height: 20.h),
@@ -2840,6 +2929,88 @@ class _BatchAddProductScreenState extends ConsumerState<BatchAddProductScreen> {
     return 0.0; // 默认显示0
   }
 
+  /// 加载评级公司列表
+  Future<void> _loadRatingCompanies() async {
+    if (_isLoadingRatingCompanies) return;
+    
+    setState(() {
+      _isLoadingRatingCompanies = true;
+    });
+    
+    try {
+      AppLogger.i('正在获取评级公司列表');
+      
+      final params = RatingCompanyPageParams(
+        current: 1,
+        pageSize: 100, // 获取前100个评级公司
+      );
+      
+      final pageData = await _ratingCompanyService.getRatingCompanyPage(params);
+      
+      setState(() {
+        _ratingCompanies = pageData.list;
+        _isLoadingRatingCompanies = false;
+        
+        // 如果有评级公司数据，默认选择第一个
+        if (_ratingCompanies.isNotEmpty && _selectedGradingCompany.isEmpty) {
+          _selectedGradingCompany = _ratingCompanies.first.name;
+        }
+      });
+      
+      AppLogger.i('成功获取${_ratingCompanies.length}个评级公司');
+    } catch (e) {
+      setState(() {
+        _isLoadingRatingCompanies = false;
+      });
+      AppLogger.e('获取评级公司列表失败', e);
+      
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('获取评级公司列表失败: $e'),
+            backgroundColor: Colors.red,
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(10.r),
+            ),
+          ),
+        );
+      }
+    }
+  }
+
+  /// 构建评级公司选择芯片
+  Widget _buildGradingCompanyChip(String companyName) {
+    final isSelected = _selectedGradingCompany == companyName;
+    
+    return GestureDetector(
+      onTap: () {
+        setState(() {
+          _selectedGradingCompany = isSelected ? '' : companyName;
+        });
+      },
+      child: Container(
+        height: 54.h,
+        padding: EdgeInsets.symmetric(horizontal: 20.w),
+        decoration: BoxDecoration(
+          color: isSelected ? Color(0xFF65c574) : Color(0xFFf4f4f4),
+          borderRadius: BorderRadius.circular(47.r),
+        ),
+        child: Center(
+          child: Text(
+            companyName,
+            style: TextStyle(
+              fontSize: 24.sp,
+              fontWeight: isSelected ? FontWeight.w500 : FontWeight.normal,
+              color: isSelected ? Colors.white : Color(0xFF212222),
+              fontFamily: 'Roboto',
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
   /// 应用批量备注编辑
   void _applyBulkNotesEdit(String notesText) {
     setState(() {
@@ -2892,8 +3063,10 @@ class _BatchAddProductScreenState extends ConsumerState<BatchAddProductScreen> {
   /// 构建图片显示区域
   Widget _buildImageDisplayArea(int productIndex) {
     final images = productIndex < _productImages.length ? _productImages[productIndex] : <File>[];
+    final product = productIndex < _productList.length ? _productList[productIndex] : null;
+    final hasExistingImages = product?.images?.isNotEmpty ?? false;
     
-    if (images.isEmpty) {
+    if (images.isEmpty && !hasExistingImages) {
       // 没有图片时显示加号和提示
       return GestureDetector(
         onTap: () => _pickImageForProduct(productIndex),
@@ -2927,7 +3100,7 @@ class _BatchAddProductScreenState extends ConsumerState<BatchAddProductScreen> {
           ),
         ),
       );
-    } else {
+    } else if (images.isNotEmpty) {
       // 有图片时显示单张图片和切换控件
       final currentIndex = productIndex < _currentImageIndexes.length ? _currentImageIndexes[productIndex] : 0;
       final currentImage = images[currentIndex.clamp(0, images.length - 1)];
@@ -2942,12 +3115,12 @@ class _BatchAddProductScreenState extends ConsumerState<BatchAddProductScreen> {
             ),
             child: ClipRRect(
               borderRadius: BorderRadius.circular(8.r),
-              child: Image.file(
-                currentImage,
-                width: double.infinity,
-                height: 228.h,
-                fit: BoxFit.cover,
-              ),
+            child: PlatformImage(
+              file: currentImage,
+              width: double.infinity,
+              height: 228.h,
+              fit: BoxFit.cover,
+            ),
             ),
           ),
           
@@ -3062,7 +3235,141 @@ class _BatchAddProductScreenState extends ConsumerState<BatchAddProductScreen> {
             ),
         ],
       );
+    } else if (hasExistingImages) {
+      // 有现有图片URL时显示第一张图片
+      final firstImageUrl = product!.images!.first;
+      final totalImages = product.images!.length;
+      
+      return Stack(
+        children: [
+          // 当前显示的图片
+          Container(
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(8.r),
+              border: Border.all(color: Colors.grey[300]!),
+            ),
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(8.r),
+              child: Image.network(
+                firstImageUrl,
+                width: double.infinity,
+                height: 228.h,
+                fit: BoxFit.cover,
+                loadingBuilder: (context, child, loadingProgress) {
+                  if (loadingProgress == null) return child;
+                  return Container(
+                    width: double.infinity,
+                    height: 228.h,
+                    decoration: BoxDecoration(
+                      color: Color(0xFFf4f4f6),
+                      borderRadius: BorderRadius.circular(8.r),
+                    ),
+                    child: Center(
+                      child: CircularProgressIndicator(
+                        value: loadingProgress.expectedTotalBytes != null
+                            ? loadingProgress.cumulativeBytesLoaded / loadingProgress.expectedTotalBytes!
+                            : null,
+                        strokeWidth: 2.w,
+                        valueColor: AlwaysStoppedAnimation<Color>(Color(0xFF65c574)),
+                      ),
+                    ),
+                  );
+                },
+                errorBuilder: (context, error, stackTrace) {
+                  return Container(
+                    width: double.infinity,
+                    height: 228.h,
+                    decoration: BoxDecoration(
+                      color: Color(0xFFf4f4f6),
+                      borderRadius: BorderRadius.circular(8.r),
+                    ),
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(
+                          Icons.broken_image,
+                          color: Colors.grey[400],
+                          size: 40.w,
+                        ),
+                        SizedBox(height: 4.h),
+                        Text(
+                          '图片加载失败',
+                          style: TextStyle(
+                            fontSize: 12.sp,
+                            color: Colors.grey[500],
+                          ),
+                        ),
+                      ],
+                    ),
+                  );
+                },
+              ),
+            ),
+          ),
+          
+          // 图片数量指示器
+          if (totalImages > 1)
+            Positioned(
+              top: 8.h,
+              left: 8.w,
+              child: Container(
+                padding: EdgeInsets.symmetric(horizontal: 8.w, vertical: 2.h),
+                decoration: BoxDecoration(
+                  color: Colors.black.withOpacity(0.8),
+                  borderRadius: BorderRadius.circular(50.r),
+                ),
+                child: Text(
+                  '1/$totalImages',
+                  style: TextStyle(
+                    fontSize: 22.sp,
+                    color: Colors.white,
+                    fontFamily: 'Roboto',
+                  ),
+                ),
+              ),
+            ),
+          
+          // 添加新图片按钮
+          Positioned(
+            bottom: 8.h,
+            right: 8.w,
+            child: GestureDetector(
+              onTap: () => _pickImageForProduct(productIndex),
+              child: Container(
+                width: 32.w,
+                height: 32.h,
+                decoration: BoxDecoration(
+                  color: Color(0xFF65c574),
+                  shape: BoxShape.circle,
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.2),
+                      blurRadius: 4.r,
+                      offset: Offset(0, 2.h),
+                    ),
+                  ],
+                ),
+                child: Icon(
+                  Icons.add,
+                  color: Colors.white,
+                  size: 20.sp,
+                ),
+              ),
+            ),
+          ),
+        ],
+      );
     }
+    
+    // 默认返回空容器（理论上不应该到达这里）
+    return Container(
+      width: 164.w,
+      height: 228.h,
+      decoration: BoxDecoration(
+        color: Color(0xFFf4f4f6),
+        borderRadius: BorderRadius.circular(8.r),
+      ),
+    );
   }
 
   /// 切换图片
@@ -3233,6 +3540,21 @@ class _BatchAddProductScreenState extends ConsumerState<BatchAddProductScreen> {
           categories: _productList[productIndex].categories,
           images: currentImages, // 更新图片列表
         );
+        
+        // 同时更新_productImages列表以保持UI同步
+        setState(() {
+          // 确保_productImages列表有足够的长度
+          while (_productImages.length <= productIndex) {
+            _productImages.add([]);
+          }
+          // 添加新上传的图片文件到显示列表
+          _productImages[productIndex].add(imageFile);
+          
+          // 确保_currentImageIndexes列表有足够的长度
+          while (_currentImageIndexes.length <= productIndex) {
+            _currentImageIndexes.add(0);
+          }
+        });
       }
 
       AppLogger.info('图片上传成功: $uploadedUrl');

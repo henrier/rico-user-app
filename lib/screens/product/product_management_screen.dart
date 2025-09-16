@@ -7,19 +7,24 @@ import '../../widgets/bottom_action_buttons.dart';
 import '../../models/personalproduct/service.dart';
 import '../../models/personalproduct/data.dart';
 import '../../models/page_data.dart';
+import '../../models/productcategory/data.dart';
+import '../../models/ratingcompany/data.dart';
+import '../../models/audit_metadata.dart';
 import '../../common/utils/logger.dart';
+import '../../providers/auth_provider.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 // 筛选选择类型定义
 typedef SpuFilterSelections = Map<String, Set<String>>; // sectionTitle -> set of option ids
 
-class ProductManagementScreen extends StatefulWidget {
+class ProductManagementScreen extends ConsumerStatefulWidget {
   const ProductManagementScreen({super.key});
 
   @override
-  State<ProductManagementScreen> createState() => _ProductManagementScreenState();
+  ConsumerState<ProductManagementScreen> createState() => _ProductManagementScreenState();
 }
 
-class _ProductManagementScreenState extends State<ProductManagementScreen> {
+class _ProductManagementScreenState extends ConsumerState<ProductManagementScreen> {
   String selectedLanguage = 'Pokemon EN';
   String selectedTab = 'Published';
   String selectedSortOption = 'Latest Listing';
@@ -50,6 +55,13 @@ class _ProductManagementScreenState extends State<ProductManagementScreen> {
   int _pendingCount = 0;
   int _soldOutCount = 0;
   bool _isLoadingCounts = true;
+  
+  // 筛选数据状态
+  List<RatingCompany> _ratingCompanies = [];
+  List<String> _cardScores = [];
+  List<ProductCategory> _categories = [];
+  List<String> _levels = [];
+  bool _isLoadingFilterData = false;
 
   @override
   void initState() {
@@ -57,6 +69,7 @@ class _ProductManagementScreenState extends State<ProductManagementScreen> {
     _personalProductService = PersonalProductService();
     _loadTabCounts();
     _loadProducts();
+    _loadFilterData();
   }
   
   @override
@@ -116,6 +129,54 @@ class _ProductManagementScreenState extends State<ProductManagementScreen> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('加载统计数据失败: ${e.toString()}'),
+            backgroundColor: Colors.orange,
+          ),
+        );
+      }
+    }
+  }
+  
+  /// 加载筛选数据
+  Future<void> _loadFilterData() async {
+    try {
+      setState(() {
+        _isLoadingFilterData = true;
+      });
+      
+      AppLogger.i('正在加载筛选数据');
+      
+      // 获取当前用户ID
+      final authState = ref.read(authProvider);
+      final ownerId = authState.user?.id ?? 'default_user_id';
+      
+      // 并行获取各种筛选数据
+      final futures = await Future.wait([
+        _personalProductService.getDistinctRatingCompaniesByOwner(ownerId),
+        _personalProductService.getDistinctCardScoresByOwner(ownerId),
+        _personalProductService.getDistinctCategoriesByOwner(ownerId),
+        _personalProductService.getDistinctLevelsByOwner(ownerId),
+      ]);
+      
+      setState(() {
+        _ratingCompanies = futures[0] as List<RatingCompany>;
+        _cardScores = futures[1] as List<String>;
+        _categories = futures[2] as List<ProductCategory>;
+        _levels = futures[3] as List<String>;
+        _isLoadingFilterData = false;
+      });
+      
+      AppLogger.i('筛选数据加载完成: 评级公司=${_ratingCompanies.length}, 卡牌评分=${_cardScores.length}, 类目=${_categories.length}, 等级=${_levels.length}');
+      
+    } catch (e) {
+      AppLogger.e('加载筛选数据失败', e);
+      setState(() {
+        _isLoadingFilterData = false;
+      });
+      
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('加载筛选数据失败: ${e.toString()}'),
             backgroundColor: Colors.orange,
           ),
         );
@@ -228,23 +289,23 @@ class _ProductManagementScreenState extends State<ProductManagementScreen> {
       return null;
     }
     
-    // 将筛选选项ID映射为评级公司名称
+    // 将筛选选项ID映射为评级公司名称（使用动态数据）
     final companies = <String>[];
     for (final selection in gradedSlabsSelections) {
-      switch (selection) {
-        case 'psa':
-          companies.add('PSA');
-          break;
-        case 'bgs':
-          companies.add('BGS');
-          break;
-        case 'cgc':
-          companies.add('CGC');
-          break;
-        case 'pgc':
-          companies.add('PGC');
-          break;
-      }
+      // 从动态数据中查找匹配的评级公司
+      final company = _ratingCompanies.firstWhere(
+        (company) => company.name.toLowerCase() == selection,
+        orElse: () => RatingCompany(
+          id: '',
+          name: selection.toUpperCase(),
+          score: [],
+          auditMetadata: AuditMetadata(
+            createdAt: DateTime.now(),
+            updatedAt: DateTime.now(),
+          ),
+        ),
+      );
+      companies.add(company.name);
     }
     
     return companies.isNotEmpty ? companies : null;
@@ -257,24 +318,15 @@ class _ProductManagementScreenState extends State<ProductManagementScreen> {
       return null;
     }
     
-    // 将稀有度映射为卡牌评分（这里是示例映射，实际应根据业务逻辑调整）
+    // 将筛选选项ID映射为卡牌评分（使用动态数据）
     final scores = <String>[];
     for (final selection in raritySelections) {
-      switch (selection) {
-        case 'amazing':
-          scores.add('10');
-          break;
-        case 'rainbow':
-          scores.add('9.5');
-          break;
-        case 'radiant_1':
-        case 'radiant_2':
-          scores.add('9');
-          break;
-        case 'holo':
-          scores.add('8.5');
-          break;
-      }
+      // 从动态数据中查找匹配的卡牌评分
+      final score = _cardScores.firstWhere(
+        (score) => score.toLowerCase().replaceAll(' ', '_') == selection,
+        orElse: () => selection.replaceAll('_', ' ').toUpperCase(),
+      );
+      scores.add(score);
     }
     
     return scores.isNotEmpty ? scores : null;
@@ -356,6 +408,11 @@ class _ProductManagementScreenState extends State<ProductManagementScreen> {
           child: _CustomFilterDrawer(
             initialSelections: _filterSelections,
             onResult: (result) => Navigator.of(context).pop(result),
+            ratingCompanies: _ratingCompanies,
+            cardScores: _cardScores,
+            categories: _categories,
+            levels: _levels,
+            isLoadingFilterData: _isLoadingFilterData,
           ),
         );
       },
@@ -425,7 +482,6 @@ class _ProductManagementScreenState extends State<ProductManagementScreen> {
                 
                 // Bundle Sales 部分
                 _buildBundleSalesSection(),
-                
                 // 商品列表
                 Expanded(
                   child: _buildProductList(),
@@ -528,7 +584,7 @@ class _ProductManagementScreenState extends State<ProductManagementScreen> {
             top: 24.h,
             child: Container(
               height: 48.h,
-              padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 12.h),
+              padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 0.h),
               decoration: BoxDecoration(
                 border: Border.all(color: const Color(0xFF000000).withOpacity(0.2)),
                 borderRadius: BorderRadius.circular(33.r),
@@ -582,7 +638,7 @@ class _ProductManagementScreenState extends State<ProductManagementScreen> {
             },
             child: Container(
               height: 44.h,
-              padding: EdgeInsets.symmetric(horizontal: 24.w, vertical: 10.h),
+              padding: EdgeInsets.symmetric(horizontal: 24.w, vertical: 0.h),
               decoration: BoxDecoration(
                 color: const Color(0xFFF4F4F6),
                 borderRadius: BorderRadius.circular(22.r),
@@ -747,11 +803,7 @@ class _ProductManagementScreenState extends State<ProductManagementScreen> {
           ),
         ),
         
-        // 下分割线
-        Container(
-          height: 0.5.h,
-          color: const Color(0xFFF1F1F3),
-        ),
+    
       ],
     );
   }
@@ -1017,6 +1069,10 @@ class _ProductManagementScreenState extends State<ProductManagementScreen> {
   
   Widget _buildProductItem(PersonalProduct product) {
     AppLogger.d('构建商品项: id=${product.id}, name=${product.displayName}');
+    AppLogger.d('商品图片信息: hasImages=${product.hasImages}, images.length=${product.images.length}');
+    if (product.hasImages) {
+      AppLogger.d('第一张图片URL: ${product.images.first}');
+    }
     
     return GestureDetector(
       onTap: () => _navigateToProductEdit(product),
@@ -1040,19 +1096,82 @@ class _ProductManagementScreenState extends State<ProductManagementScreen> {
                       child: Image.network(
                         product.images.first,
                         fit: BoxFit.cover,
+                        loadingBuilder: (context, child, loadingProgress) {
+                          if (loadingProgress == null) return child;
+                          return Container(
+                            width: 154.w,
+                            height: 214.h,
+                            decoration: BoxDecoration(
+                              color: const Color(0xFFF4F4F6),
+                              borderRadius: BorderRadius.circular(8.r),
+                            ),
+                            child: Center(
+                              child: CircularProgressIndicator(
+                                value: loadingProgress.expectedTotalBytes != null
+                                    ? loadingProgress.cumulativeBytesLoaded / loadingProgress.expectedTotalBytes!
+                                    : null,
+                                strokeWidth: 2.w,
+                                valueColor: AlwaysStoppedAnimation<Color>(const Color(0xFF0DEE80)),
+                              ),
+                            ),
+                          );
+                        },
                         errorBuilder: (context, error, stackTrace) {
-                          return Icon(
-                            Icons.image,
-                            color: Colors.grey[400],
-                            size: 60.w,
+                          AppLogger.warning('商品图片加载失败: ${product.id}, 图片URL: ${product.images.first}, 错误: $error');
+                          return Container(
+                            width: 154.w,
+                            height: 214.h,
+                            decoration: BoxDecoration(
+                              color: const Color(0xFFF4F4F6),
+                              borderRadius: BorderRadius.circular(8.r),
+                            ),
+                            child: Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Icon(
+                                  Icons.broken_image,
+                                  color: Colors.grey[400],
+                                  size: 40.w,
+                                ),
+                                SizedBox(height: 4.h),
+                                Text(
+                                  '图片加载失败',
+                                  style: TextStyle(
+                                    fontSize: 12.sp,
+                                    color: Colors.grey[500],
+                                  ),
+                                ),
+                              ],
+                            ),
                           );
                         },
                       ),
                     )
-                  : Icon(
-                      Icons.image,
-                      color: Colors.grey[400],
-                      size: 60.w,
+                  : Container(
+                      width: 154.w,
+                      height: 214.h,
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFF4F4F6),
+                        borderRadius: BorderRadius.circular(8.r),
+                      ),
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(
+                            Icons.image_outlined,
+                            color: Colors.grey[400],
+                            size: 40.w,
+                          ),
+                          SizedBox(height: 4.h),
+                          Text(
+                            '暂无图片',
+                            style: TextStyle(
+                              fontSize: 12.sp,
+                              color: Colors.grey[500],
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
             ),
             
@@ -1063,16 +1182,37 @@ class _ProductManagementScreenState extends State<ProductManagementScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // 商品名称
-                  Text(
-                    product.displayName,
-                    style: TextStyle(
-                      fontSize: 32.sp,
-                      fontWeight: FontWeight.w500,
-                      color: const Color(0xFF212222),
-                    ),
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
+                  // 商品名称和价格一行显示，两边居中对齐
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    crossAxisAlignment: CrossAxisAlignment.center,
+                    children: [
+                      // 商品名称（左侧）
+                      Expanded(
+                        child: Text(
+                          product.displayName,
+                          style: TextStyle(
+                            fontSize: 32.sp,
+                            fontWeight: FontWeight.w500,
+                            color: const Color(0xFF212222),
+                          ),
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                      
+                      SizedBox(width: 16.w),
+                      
+                      // 价格（右侧）
+                      Text(
+                        'RM ${product.price.toStringAsFixed(2)}',
+                        style: TextStyle(
+                          fontSize: 30.sp,
+                          fontWeight: FontWeight.w500,
+                          color: const Color(0xFFF86700),
+                        ),
+                      ),
+                    ],
                   ),
                   
                   SizedBox(height: 8.h),
@@ -1105,16 +1245,6 @@ class _ProductManagementScreenState extends State<ProductManagementScreen> {
                   
                   const Spacer(),
                   
-                  // 价格
-                  Text(
-                    'RM ${product.price.toStringAsFixed(2)}',
-                    style: TextStyle(
-                      fontSize: 30.sp,
-                      fontWeight: FontWeight.w500,
-                      color: const Color(0xFFF86700),
-                    ),
-                  ),
-                  
                   SizedBox(height: 12.h),
                   
                   // 底部信息：品质、评级、数量
@@ -1123,7 +1253,7 @@ class _ProductManagementScreenState extends State<ProductManagementScreen> {
                       // 品质标签
                       Container(
                         height: 36.h,
-                        padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 6.h),
+                        padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 0.h),
                         decoration: BoxDecoration(
                           border: Border.all(color: const Color(0xFFD3D3D3)),
                           borderRadius: BorderRadius.circular(8.r),
@@ -1511,10 +1641,20 @@ class _FilterSection {
 class _CustomFilterDrawer extends StatefulWidget {
   final SpuFilterSelections initialSelections;
   final Function(SpuFilterSelections) onResult;
+  final List<RatingCompany> ratingCompanies;
+  final List<String> cardScores;
+  final List<ProductCategory> categories;
+  final List<String> levels;
+  final bool isLoadingFilterData;
 
   const _CustomFilterDrawer({
     required this.initialSelections,
     required this.onResult,
+    required this.ratingCompanies,
+    required this.cardScores,
+    required this.categories,
+    required this.levels,
+    required this.isLoadingFilterData,
   });
 
   @override
@@ -1580,18 +1720,37 @@ class _CustomFilterDrawerState extends State<_CustomFilterDrawer> {
                     ),
                   ),
                   Expanded(
-                    child: ListView.separated(
-                      padding: EdgeInsets.symmetric(
-                        horizontal: 40.w,
-                        vertical: 20.h,
-                      ),
-                      itemCount: _getFilterSections().length,
-                      separatorBuilder: (_, __) => SizedBox(height: 40.h),
-                      itemBuilder: (context, index) {
-                        final section = _getFilterSections()[index];
-                        return _buildFilterSection(section);
-                      },
-                    ),
+                    child: widget.isLoadingFilterData
+                        ? Center(
+                            child: Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                CircularProgressIndicator(
+                                  valueColor: AlwaysStoppedAnimation<Color>(const Color(0xFF0DEE80)),
+                                ),
+                                SizedBox(height: 20.h),
+                                Text(
+                                  '正在加载筛选选项...',
+                                  style: TextStyle(
+                                    fontSize: 16.sp,
+                                    color: Colors.grey[600],
+                                  ),
+                                ),
+                              ],
+                            ),
+                          )
+                        : ListView.separated(
+                            padding: EdgeInsets.symmetric(
+                              horizontal: 40.w,
+                              vertical: 20.h,
+                            ),
+                            itemCount: _getFilterSections().length,
+                            separatorBuilder: (_, __) => SizedBox(height: 40.h),
+                            itemBuilder: (context, index) {
+                              final section = _getFilterSections()[index];
+                              return _buildFilterSection(section);
+                            },
+                          ),
                   ),
                   Padding(
                     padding: EdgeInsets.all(40.w),
@@ -1694,41 +1853,45 @@ class _CustomFilterDrawerState extends State<_CustomFilterDrawer> {
       },
     ));
     
-    // Graded Slabs 分组（条件显示）
-    if (_viewGradedCardsEnabled) {
+    // Graded Slabs 分组（条件显示，使用动态数据）
+    if (_viewGradedCardsEnabled && widget.ratingCompanies.isNotEmpty) {
       sections.add(_FilterSection(
         title: 'Graded Slabs',
-        options: [
-          _FilterOption(id: 'psa', label: 'PSA'),
-          _FilterOption(id: 'bgs', label: 'BGS'),
-          _FilterOption(id: 'cgc', label: 'CGC'),
-          _FilterOption(id: 'pgc', label: 'PGC'),
-        ],
+        options: widget.ratingCompanies.map((company) => 
+          _FilterOption(id: company.name.toLowerCase(), label: company.name)
+        ).toList(),
       ));
     }
     
-    // Rarity 分组
-    sections.add(_FilterSection(
-      title: 'Rarity',
-      options: [
-        _FilterOption(id: 'amazing', label: 'Amazing'),
-        _FilterOption(id: 'rainbow', label: 'Rainbow'),
-        _FilterOption(id: 'radiant_1', label: 'Radiant'),
-        _FilterOption(id: 'radiant_2', label: 'Radiant'),
-        _FilterOption(id: 'holo', label: 'Holo'),
-      ],
-    ));
+    // Rarity 分组（使用动态卡牌评分数据）
+    if (widget.cardScores.isNotEmpty) {
+      sections.add(_FilterSection(
+        title: 'Rarity',
+        options: widget.cardScores.map((score) => 
+          _FilterOption(id: score.toLowerCase().replaceAll(' ', '_'), label: score)
+        ).toList(),
+      ));
+    }
     
-    // Series & Expansion 分组
-    sections.add(_FilterSection(
-      title: 'Series & Expansion',
-      options: [
-        _FilterOption(id: 'series_amazing_1', label: 'Amazing'),
-        _FilterOption(id: 'series_amazing_2', label: 'Amazing'),
-        _FilterOption(id: 'series_amazing_3', label: 'Amazing'),
-        _FilterOption(id: 'series_amazing_4', label: 'Amazing'),
-      ],
-    ));
+    // Categories 分组（使用动态类目数据）
+    if (widget.categories.isNotEmpty) {
+      sections.add(_FilterSection(
+        title: 'Categories',
+        options: widget.categories.map((category) => 
+          _FilterOption(id: category.id, label: category.displayName)
+        ).toList(),
+      ));
+    }
+    
+    // Levels 分组（使用动态等级数据）
+    if (widget.levels.isNotEmpty) {
+      sections.add(_FilterSection(
+        title: 'Levels',
+        options: widget.levels.map((level) => 
+          _FilterOption(id: level.toLowerCase().replaceAll(' ', '_'), label: level)
+        ).toList(),
+      ));
+    }
     
     return sections;
   }

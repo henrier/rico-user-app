@@ -146,13 +146,6 @@ class HomeScreen extends ConsumerWidget {
                       );
                     },
                   ),
-                  _buildActionCard(
-                    context,
-                    icon: Icons.add_business,
-                    title: '批量添加商品',
-                    subtitle: '批量调整商品列表',
-                    onTap: () => context.pushNamed('batch-add-product'),
-                  ),
                     _buildActionCard(
                     context,
                     icon: Icons.add_business,

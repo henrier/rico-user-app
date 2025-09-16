@@ -5,6 +5,7 @@ import 'dart:convert';
 import 'package:crypto/crypto.dart';
 import 'package:mime/mime.dart';
 import 'package:dio/dio.dart';
+import 'package:flutter/foundation.dart';
 import '../common/constants/app_constants.dart';
 import '../common/utils/logger.dart';
 
@@ -55,10 +56,16 @@ class OssApi {
     }
 
     try {
-      // 检查文件大小
-      final fileSize = await file.length();
-      if (fileSize > AppConstants.ossMaxFileSize) {
-        throw Exception('文件大小超过限制 (${AppConstants.ossMaxFileSize / 1024 / 1024}MB)');
+      // Web环境下的特殊处理
+      if (kIsWeb) {
+        AppLogger.info('Web环境：跳过文件大小检查');
+        // 在Web环境下，我们无法直接获取文件大小，所以跳过检查
+      } else {
+        // 检查文件大小（仅在非Web环境）
+        final fileSize = await file.length();
+        if (fileSize > AppConstants.ossMaxFileSize) {
+          throw Exception('文件大小超过限制 (${AppConstants.ossMaxFileSize / 1024 / 1024}MB)');
+        }
       }
 
       // 生成文件名
@@ -79,6 +86,57 @@ class OssApi {
 
     } catch (e) {
       AppLogger.error('文件上传失败: $e');
+      
+      // 提供更详细的错误信息
+      if (e.toString().contains('_Namespace')) {
+        AppLogger.error('检测到Web环境文件操作错误，这通常发生在Web环境下使用File对象时');
+        throw Exception('Web环境不支持此文件操作，请检查平台兼容性');
+      }
+      
+      rethrow;
+    }
+  }
+
+  /// Web兼容的文件上传方法
+  /// 
+  /// [fileBytes] 文件的字节数据
+  /// [fileName] 文件名
+  /// [folder] 存储文件夹路径
+  /// 
+  /// 返回上传成功后的文件URL（模拟）
+  Future<String> uploadFileBytes(
+    Uint8List fileBytes, {
+    required String fileName,
+    String? folder,
+  }) async {
+    if (!_isInitialized) {
+      await initialize();
+    }
+
+    try {
+      // 检查文件大小
+      if (fileBytes.length > AppConstants.ossMaxFileSize) {
+        throw Exception('文件大小超过限制 (${AppConstants.ossMaxFileSize / 1024 / 1024}MB)');
+      }
+
+      // 生成文件名
+      final String finalFileName = fileName;
+      final String folderPath = folder ?? AppConstants.ossImageFolder;
+      final String objectKey = '$folderPath$finalFileName';
+
+      AppLogger.info('开始模拟上传文件字节: $objectKey');
+
+      // 模拟上传延迟
+      await Future.delayed(const Duration(milliseconds: 1500));
+
+      // 生成模拟的OSS URL
+      final String fileUrl = '${AppConstants.ossEndpoint.replaceAll('https://', 'https://${AppConstants.ossBucketName}.')}/$objectKey';
+      
+      AppLogger.info('文件字节模拟上传成功: $fileUrl');
+      return fileUrl;
+
+    } catch (e) {
+      AppLogger.error('文件字节上传失败: $e');
       rethrow;
     }
   }
@@ -162,11 +220,24 @@ class OssApi {
   /// [originalPath] 原始文件路径
   /// 返回格式: timestamp_randomString.extension
   String _generateFileName(String originalPath) {
-    final String extension = originalPath.split('.').last.toLowerCase();
-    final int timestamp = DateTime.now().millisecondsSinceEpoch;
-    final String randomString = _generateRandomString(8);
-    
-    return '${timestamp}_$randomString.$extension';
+    try {
+      if (kIsWeb) {
+        // Web环境下，可能无法获取文件路径，使用默认扩展名
+        final int timestamp = DateTime.now().millisecondsSinceEpoch;
+        final String randomString = _generateRandomString(8);
+        return '${timestamp}_$randomString.jpg'; // 默认使用jpg扩展名
+      } else {
+        final String extension = originalPath.split('.').last.toLowerCase();
+        final int timestamp = DateTime.now().millisecondsSinceEpoch;
+        final String randomString = _generateRandomString(8);
+        return '${timestamp}_$randomString.$extension';
+      }
+    } catch (e) {
+      // 如果解析路径失败，使用默认文件名
+      final int timestamp = DateTime.now().millisecondsSinceEpoch;
+      final String randomString = _generateRandomString(8);
+      return '${timestamp}_$randomString.jpg';
+    }
   }
 
   /// 生成随机字符串
@@ -196,10 +267,17 @@ class OssApi {
     int maxWidth = 1024,
     int maxHeight = 1024,
   }) async {
-    // 这里可以集成图片压缩库，如 flutter_image_compress
-    // 目前先返回原文件，后续可以根据需要添加压缩逻辑
-    AppLogger.info('模拟图片压缩: ${file.path}');
-    return file;
+    // Web环境下的特殊处理
+    if (kIsWeb) {
+      AppLogger.info('Web环境：跳过图片压缩');
+      // 在Web环境下，直接返回原文件
+      return file;
+    } else {
+      // 这里可以集成图片压缩库，如 flutter_image_compress
+      // 目前先返回原文件，后续可以根据需要添加压缩逻辑
+      AppLogger.info('模拟图片压缩: ${file.path}');
+      return file;
+    }
   }
 
   /// 验证文件类型
@@ -207,10 +285,18 @@ class OssApi {
   /// [file] 要验证的文件
   /// [allowedTypes] 允许的MIME类型列表
   bool validateFileType(File file, List<String> allowedTypes) {
-    final String? mimeType = lookupMimeType(file.path);
-    if (mimeType == null) return false;
-    
-    return allowedTypes.contains(mimeType);
+    // Web环境下的特殊处理
+    if (kIsWeb) {
+      AppLogger.info('Web环境：跳过文件类型验证');
+      // 在Web环境下，我们暂时跳过文件类型验证
+      // 实际应用中可以通过其他方式验证
+      return true;
+    } else {
+      final String? mimeType = lookupMimeType(file.path);
+      if (mimeType == null) return false;
+      
+      return allowedTypes.contains(mimeType);
+    }
   }
 
   /// 获取支持的图片类型

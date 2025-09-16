@@ -3,7 +3,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:flutter_screenutil/flutter_screenutil.dart';
+import 'package:flutter/foundation.dart';
 import 'dart:io';
+import 'dart:math';
 
 import '../../models/productinfo/service.dart';
 import '../../models/productinfo/data.dart';
@@ -16,6 +18,8 @@ import '../../models/i18n_string.dart';
 import '../../providers/auth_provider.dart';
 import '../../common/utils/logger.dart';
 import '../../api/oss_api.dart';
+import '../../widgets/platform_image.dart';
+import '../../widgets/web_compatible_image.dart';
 
 /// 商品详情新增/编辑页面
 /// 对应Figma设计中的"7 商品详情编辑 - raw 裸卡"页面
@@ -64,6 +68,8 @@ class _ProductDetailCreateScreenState
   String _selectedGrade = '';
   String _serialNumber = '';
   List<File> _selectedImages = [];
+  List<String> _uploadedImageUrls = []; // 新增：存储上传成功的图片URL
+  List<String> _existingImageUrls = []; // 新增：存储编辑模式下的现有图片URL
   bool _setCoverPhoto = false;
   final ImagePicker _imagePicker = ImagePicker();
   
@@ -200,8 +206,11 @@ class _ProductDetailCreateScreenState
     // 处理图片列表
     if (product.hasImages) {
       AppLogger.i('编辑模式：检测到${product.images.length}张现有图片');
+      _existingImageUrls = List<String>.from(product.images);
       // 注意：这里暂时不处理URL转File的逻辑，因为编辑模式下通常显示现有图片
       // 如果需要编辑图片，用户可以重新选择
+    } else {
+      _existingImageUrls.clear();
     }
     
     AppLogger.i('成功从PersonalProduct初始化编辑数据');
@@ -243,9 +252,12 @@ class _ProductDetailCreateScreenState
     // 预填充图片列表（从URL列表处理）
     if (data['imageUrls'] != null && data['imageUrls'] is List) {
       final imageUrls = data['imageUrls'] as List;
+      _existingImageUrls = imageUrls.cast<String>();
       // 注意：这里暂时不处理URL转File的逻辑，因为编辑模式下通常显示现有图片
       // 如果需要编辑图片，用户可以重新选择
       AppLogger.i('编辑模式：检测到${imageUrls.length}张现有图片');
+    } else {
+      _existingImageUrls.clear();
     }
   }
 
@@ -834,17 +846,19 @@ class _ProductDetailCreateScreenState
           ),
         ),
         SizedBox(width: 20.w),
-        // 标签部分 - 自适应宽度，超出换行
+        // 标签部分 - 编辑模式下只显示当前标签，新增模式下显示所有选项
         Expanded(
-          child: Wrap(
-            spacing: 20.w,
-            runSpacing: 12.h,
-            children: [
-              _buildTypeChip('Raw', _selectedType == 'Raw'),
-              _buildTypeChip('Graded', _selectedType == 'Graded'),
-              _buildTypeChip('Sealed', _selectedType == 'Sealed'),
-            ],
-          ),
+          child: widget.isEditMode 
+            ? _buildTypeChip(_selectedType, true) // 编辑模式：只显示当前选中的标签
+            : Wrap( // 新增模式：显示所有选项
+                spacing: 20.w,
+                runSpacing: 12.h,
+                children: [
+                  _buildTypeChip('Raw', _selectedType == 'Raw'),
+                  _buildTypeChip('Graded', _selectedType == 'Graded'),
+                  _buildTypeChip('Sealed', _selectedType == 'Sealed'),
+                ],
+              ),
         ),
       ],
     );
@@ -869,7 +883,7 @@ class _ProductDetailCreateScreenState
     }
 
     return GestureDetector(
-      onTap: () {
+      onTap: widget.isEditMode ? null : () { // 编辑模式下禁用点击
         setState(() {
           _selectedType = type;
           // 切换类型时清空相关选择
@@ -887,7 +901,8 @@ class _ProductDetailCreateScreenState
       },
       child: Container(
         height: 54.h,
-        width: width,
+        // 编辑模式下使用自适应宽度，新增模式下使用固定宽度
+        width:  width,
         decoration: BoxDecoration(
           color: isSelected ? designGreen : const Color(0xFFF4F4F4),
           borderRadius: BorderRadius.circular(47.r),
@@ -994,7 +1009,7 @@ class _ProductDetailCreateScreenState
                 GestureDetector(
                   onTap: _loadRatingCompanies,
                   child: Container(
-                    padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 8.h),
+                    padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 0.h),
                     decoration: BoxDecoration(
                       border: Border.all(color: designGreen),
                       borderRadius: BorderRadius.circular(8.r),
@@ -1863,11 +1878,22 @@ class _ProductDetailCreateScreenState
 
   /// 构建照片上传区域
   Widget _buildPhotoUploadArea() {
+    final totalImages = _selectedImages.length + _existingImageUrls.length;
+    
     return Row(
       children: [
+        // 现有图片URL（编辑模式下）
+        ..._existingImageUrls.asMap().entries.map((entry) {
+          final index = entry.key;
+          final imageUrl = entry.value;
+          return Container(
+            margin: EdgeInsets.only(right: 12.w),
+            child: _buildExistingImageItem(imageUrl, index),
+          );
+        }).toList(),
         // 已选择的图片
         ..._selectedImages.asMap().entries.map((entry) {
-          final index = entry.key;
+          final index = entry.key + _existingImageUrls.length;
           final image = entry.value;
           return Container(
             margin: EdgeInsets.only(right: 12.w),
@@ -1875,7 +1901,7 @@ class _ProductDetailCreateScreenState
           );
         }).toList(),
         // 添加图片按钮（最多2张）
-        if (_selectedImages.length < 2)
+        if (totalImages < 2)
           Container(
             width: 136.w,
             height: 188.h,
@@ -1906,6 +1932,101 @@ class _ProductDetailCreateScreenState
     );
   }
 
+  /// 构建现有图片项（URL）
+  Widget _buildExistingImageItem(String imageUrl, int index) {
+    return Container(
+      width: 136.w,
+      height: 188.h,
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(12.r),
+        border: Border.all(color: Colors.grey[300]!),
+      ),
+      child: Stack(
+        children: [
+          // 图片
+          ClipRRect(
+            borderRadius: BorderRadius.circular(12.r),
+            child: Image.network(
+              imageUrl,
+              width: 136.w,
+              height: 188.h,
+              fit: BoxFit.cover,
+              loadingBuilder: (context, child, loadingProgress) {
+                if (loadingProgress == null) return child;
+                return Container(
+                  width: 136.w,
+                  height: 188.h,
+                  decoration: BoxDecoration(
+                    color: Colors.grey[50],
+                    borderRadius: BorderRadius.circular(12.r),
+                  ),
+                  child: Center(
+                    child: CircularProgressIndicator(
+                      value: loadingProgress.expectedTotalBytes != null
+                          ? loadingProgress.cumulativeBytesLoaded / loadingProgress.expectedTotalBytes!
+                          : null,
+                      strokeWidth: 2.w,
+                      valueColor: AlwaysStoppedAnimation<Color>(designGreen),
+                    ),
+                  ),
+                );
+              },
+              errorBuilder: (context, error, stackTrace) {
+                return Container(
+                  width: 136.w,
+                  height: 188.h,
+                  decoration: BoxDecoration(
+                    color: Colors.grey[50],
+                    borderRadius: BorderRadius.circular(12.r),
+                  ),
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(
+                        Icons.broken_image,
+                        color: Colors.grey[400],
+                        size: 40.sp,
+                      ),
+                      SizedBox(height: 4.h),
+                      Text(
+                        '图片加载失败',
+                        style: TextStyle(
+                          fontSize: 12.sp,
+                          color: Colors.grey[500],
+                        ),
+                      ),
+                    ],
+                  ),
+                );
+              },
+            ),
+          ),
+          // 删除按钮
+          Positioned(
+            top: 8.h,
+            right: 8.w,
+            child: GestureDetector(
+              onTap: () => _removeExistingImage(index),
+              child: Container(
+                width: 24.w,
+                height: 24.h,
+                decoration: const BoxDecoration(
+                  color: Colors.red,
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(
+                  Icons.close,
+                  color: Colors.white,
+                  size: 16.sp,
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
   /// 构建单个图片项
   Widget _buildImageItem(File image, int index) {
     return Container(
@@ -1920,8 +2041,8 @@ class _ProductDetailCreateScreenState
           // 图片
           ClipRRect(
             borderRadius: BorderRadius.circular(12.r),
-            child: Image.file(
-              image,
+            child: WebCompatibleImage(
+              file: image,
               width: 136.w,
               height: 188.h,
               fit: BoxFit.cover,
@@ -1978,9 +2099,71 @@ class _ProductDetailCreateScreenState
       );
 
       if (image != null) {
-        setState(() {
-          _selectedImages.add(File(image.path));
-        });
+        final imageFile = File(image.path);
+        
+        // 立即上传图片到OSS
+        try {
+          // 显示上传进度
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('正在上传图片...'),
+              backgroundColor: Colors.blue,
+              duration: Duration(seconds: 2),
+            ),
+          );
+          
+          // 上传图片
+          final ossApi = OssApi();
+          String uploadedUrl;
+          
+          if (kIsWeb) {
+            // Web环境：直接使用File对象上传（跳过压缩和字节转换）
+            uploadedUrl = await ossApi.uploadFile(
+              imageFile,
+              folder: 'images/products/',
+            );
+          } else {
+            // 移动端：使用File对象上传
+            final compressedFile = await ossApi.compressImage(
+              imageFile,
+              quality: 85,
+              maxWidth: 1024,
+              maxHeight: 1024,
+            );
+            
+            uploadedUrl = await ossApi.uploadFile(
+              compressedFile,
+              folder: 'images/products/',
+            );
+          }
+          
+          // 更新状态
+          setState(() {
+            _selectedImages.add(imageFile);
+            _uploadedImageUrls.add(uploadedUrl);
+          });
+          
+          // 显示成功消息
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('图片上传成功！'),
+              backgroundColor: Colors.green,
+              duration: Duration(seconds: 2),
+            ),
+          );
+          
+          AppLogger.info('图片上传成功: $uploadedUrl');
+          
+        } catch (e) {
+          AppLogger.error('图片上传失败: $e');
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('图片上传失败: $e'),
+              backgroundColor: Colors.red,
+              duration: const Duration(seconds: 3),
+            ),
+          );
+        }
       }
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -2022,11 +2205,72 @@ class _ProductDetailCreateScreenState
     );
   }
 
+  /// 生成唯一文件名
+  String _generateFileName(String originalPath) {
+    final String extension = originalPath.split('.').last.toLowerCase();
+    final int timestamp = DateTime.now().millisecondsSinceEpoch;
+    final String randomString = _generateRandomString(8);
+    
+    return '${timestamp}_$randomString.$extension';
+  }
+
+  /// 生成随机字符串
+  String _generateRandomString(int length) {
+    const String chars = 'abcdefghijklmnopqrstuvwxyz0123456789';
+    final Random random = Random();
+    
+    return String.fromCharCodes(
+      Iterable.generate(
+        length,
+        (_) => chars.codeUnitAt(random.nextInt(chars.length)),
+      ),
+    );
+  }
+
+  /// 获取所有图片URL（现有图片+新上传的图片）
+  List<String> _getAllImageUrls() {
+    final List<String> allUrls = [];
+    allUrls.addAll(_existingImageUrls);
+    allUrls.addAll(_uploadedImageUrls);
+    return allUrls;
+  }
+
+  /// 移除现有图片（URL）
+  void _removeExistingImage(int index) {
+    setState(() {
+      if (index < _existingImageUrls.length) {
+        _existingImageUrls.removeAt(index);
+      }
+    });
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('图片已删除'),
+        backgroundColor: Colors.orange,
+        duration: Duration(seconds: 1),
+      ),
+    );
+  }
+
   /// 移除图片
   void _removeImage(int index) {
     setState(() {
-      _selectedImages.removeAt(index);
+      // 调整索引，因为现有图片在前面
+      final adjustedIndex = index - _existingImageUrls.length;
+      if (adjustedIndex >= 0 && adjustedIndex < _selectedImages.length) {
+        _selectedImages.removeAt(adjustedIndex);
+      }
+      if (adjustedIndex >= 0 && adjustedIndex < _uploadedImageUrls.length) {
+        _uploadedImageUrls.removeAt(adjustedIndex);
+      }
     });
+    
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('图片已删除'),
+        backgroundColor: Colors.orange,
+        duration: Duration(seconds: 1),
+      ),
+    );
   }
 
   /// 构建设为封面照片选项
@@ -2457,8 +2701,8 @@ class _ProductDetailCreateScreenState
       price: double.tryParse(_priceController.text),
       quantity: int.tryParse(_stockController.text) ?? 1,
       notes: _notesController.text.trim().isNotEmpty ? _notesController.text.trim() : null,
-      images: _selectedImages.isNotEmpty 
-          ? await _processImages(_selectedImages) // 处理图片上传
+      images: _getAllImageUrls().isNotEmpty 
+          ? _getAllImageUrls() // 使用所有图片URL（现有+新上传）
           : null,
       isMainImage: _setCoverPhoto,
     );
@@ -2535,8 +2779,8 @@ class _ProductDetailCreateScreenState
       price: double.tryParse(_priceController.text),
       quantity: int.tryParse(_stockController.text) ?? 1,
       notes: _notesController.text.trim().isNotEmpty ? _notesController.text.trim() : null,
-      images: _selectedImages.isNotEmpty 
-          ? await _processImages(_selectedImages) // 处理图片上传
+      images: _getAllImageUrls().isNotEmpty 
+          ? _getAllImageUrls() // 使用所有图片URL（现有+新上传）
           : null,
       isMainImage: _setCoverPhoto,
       status: _listingStatus ? PersonalProductStatus.listed : PersonalProductStatus.pendingListing, // 根据上架状态设置

@@ -567,16 +567,6 @@ class _BulkEditScreenState extends State<BulkEditScreen> {
                 
                 // 底部操作按钮
                 if (selectedProductIds.isNotEmpty) _buildBottomActionBar(),
-                
-                // 调试信息（临时）
-                Container(
-                  padding: EdgeInsets.all(16.w),
-                  color: Colors.yellow.withOpacity(0.1),
-                  child: Text(
-                    'Debug: Status=$_currentStatus, Filter=$selectedFilter, Products=${products.length}',
-                    style: TextStyle(fontSize: 12.sp, color: Colors.grey),
-                  ),
-                ),
               ],
             ),
             

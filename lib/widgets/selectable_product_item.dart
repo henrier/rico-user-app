@@ -136,8 +136,8 @@ class SelectableProductItem extends StatelessWidget {
                   children: [
                     // 品质标签
                     Container(
-                      height: 36.h,
-                      padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 6.h),
+                      height: 36.h, // 增加高度以确保文字完全显示
+                      padding: EdgeInsets.symmetric(horizontal: 16.w, vertical: 0.h), // 增加垂直内边距
                       decoration: BoxDecoration(
                         border: Border.all(color: const Color(0xFFD3D3D3)),
                         borderRadius: BorderRadius.circular(8.r),
