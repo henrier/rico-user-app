@@ -109,6 +109,13 @@ class HomeScreen extends ConsumerWidget {
                   ),
                   _buildActionCard(
                     context,
+                    icon: Icons.search,
+                    title: '商品搜索(模拟)',
+                    subtitle: 'Figma 高度还原·本地数据',
+                    onTap: () => context.go('/home/product-search'),
+                  ),
+                  _buildActionCard(
+                    context,
                     icon: Icons.settings,
                     title: 'Settings',
                     subtitle: 'App preferences & theme',
