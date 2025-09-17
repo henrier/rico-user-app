@@ -153,6 +153,13 @@ class HomeScreen extends ConsumerWidget {
                     subtitle: '商品管理列表',
                     onTap: () => context.pushNamed('product-management'),
                   ),
+                  _buildActionCard(
+                    context,
+                    icon: Icons.search,
+                    title: '商品搜索',
+                    subtitle: '搜索商品信息',
+                    onTap: () => context.pushNamed('product-search'),
+                  ),
                 ],
               ),
             ),
